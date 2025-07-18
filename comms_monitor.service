@@ -1,0 +1,22 @@
+[Unit]
+Description=Claude Communications Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=$(whoami)
+WorkingDirectory=/home/sonnet-4/claude-autonomy-platform
+ExecStart=/usr/bin/python3 /home/sonnet-4/claude-autonomy-platform/comms_monitor_simple.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment=PYTHONUNBUFFERED=1
+
+# Logging
+SyslogIdentifier=comms-monitor
+
+[Install]
+WantedBy=default.target

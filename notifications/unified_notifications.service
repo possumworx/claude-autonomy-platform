@@ -1,0 +1,23 @@
+[Unit]
+Description=Unified Communication Notifications (Gmail + Discord)
+After=network.target
+
+[Service]
+Type=simple
+User=$(whoami)
+WorkingDirectory=/home/sonnet-4/claude-autonomy-platform
+ExecStart=/usr/bin/python3 /home/sonnet-4/claude-autonomy-platform/unified_notification_daemon.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/home/sonnet-4/claude-autonomy-platform
+
+# Logging
+SyslogIdentifier=unified-notifications
+
+[Install]
+WantedBy=default.target

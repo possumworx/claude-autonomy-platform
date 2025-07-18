@@ -1,0 +1,3 @@
+#!/bin/bash
+# Quick health status check
+cd ~/claude-autonomy-platform && python3 healthcheck_status.py

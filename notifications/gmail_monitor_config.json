@@ -1,0 +1,16 @@
+{
+  "gmail": {
+    "email": "claude.sonnet4home@gmail.com",
+    "password": "***GMAIL_PASSWORD_REMOVED***",
+    "imap_server": "imap.gmail.com",
+    "imap_port": 993
+  },
+  "notification": {
+    "tmux_session": "autonomous-claude",
+    "alert_format": "[ALERT] New email from {sender}: \"{subject}\""
+  },
+  "monitoring": {
+    "check_interval": 30,
+    "max_retries": 3
+  }
+}

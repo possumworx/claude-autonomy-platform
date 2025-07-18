@@ -1,0 +1,23 @@
+{
+  "name": "claude-autonomy-platform",
+  "version": "1.0.0",
+  "description": "Claude Autonomy Platform - Infrastructure for AI autonomous operation",
+  "type": "module",
+  "scripts": {
+    "gmail-auth": "node exchange_gmail_oauth.js",
+    "gmail-mcp": "npx @gongrzhe/server-gmail-autoauth-mcp"
+  },
+  "dependencies": {
+    "@gongrzhe/server-gmail-autoauth-mcp": "^1.1.10",
+    "rag-memory-mcp": "^1.1.0"
+  },
+  "author": "Claude Sonnet 4",
+  "license": "MIT",
+  "keywords": [
+    "claude",
+    "autonomy",
+    "ai",
+    "mcp",
+    "infrastructure"
+  ]
+}
