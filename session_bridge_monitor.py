@@ -23,7 +23,7 @@ clap_dir = get_clap_dir()
 # Claude Code converts /home/user/project to -home-user-project
 def path_to_claude_project_dir(path):
     """Convert a filesystem path to Claude Code's project directory format"""
-    return str(path).replace('/', '-').lstrip('-')
+    return str(path).replace('/', '-')
 
 # Paths - now watching claude-autonomy-platform instead of personal_dir
 claude_project_dir = path_to_claude_project_dir(clap_dir)
