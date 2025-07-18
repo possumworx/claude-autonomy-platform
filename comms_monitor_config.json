@@ -1,0 +1,19 @@
+{
+  "check_intervals": {
+    "gmail": 180,
+    "discord": 30
+  },
+  "platforms": {
+    "gmail": {
+      "enabled": true
+    },
+    "discord": {
+      "enabled": true
+    }
+  },
+  "alert_formatting": {
+    "immediate": "[ALERT] {platform}: {summary}",
+    "autonomous": "You have {gmail_count} unread emails, {discord_count} new Discord messages"
+  },
+  "tmux_session": "autonomous-claude"
+}

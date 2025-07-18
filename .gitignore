@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Environment files
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
+
+# Cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs (keep logs/ directory structure but ignore content)
+logs/*.log
+
+# Personal configuration (keep templates)
+claude_infrastructure_config.txt
+
+# Session data
+last_autonomy_prompt.txt
+new_session.txt
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

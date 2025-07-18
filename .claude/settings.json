@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Write", 
+      "Bash",
+      "MultiEdit",
+      "Read",
+      "LS",
+      "Glob",
+      "Grep"
+    ]
+  }
+}

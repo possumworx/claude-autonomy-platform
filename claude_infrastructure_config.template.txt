@@ -1,0 +1,72 @@
+# Claude Infrastructure Configuration Template
+# This file contains all standardized paths, credentials, and settings
+# Used by setup scripts to populate configs consistently
+#
+# INSTRUCTIONS:
+# 1. Copy this file to claude_infrastructure_config.txt
+# 2. Replace all placeholder values with actual credentials
+# 3. Never commit the filled-out version to git
+
+[CREDENTIALS]
+# Core account credentials
+LINUX_USER=your-username
+HUMAN_USER=human-username
+PERSONAL_REPO=sonnet-4-home
+DISCORD_EMAIL=your-claude-account@gmail.com
+DISCORD_PASSWORD=your-discord-password
+DISCORD_TOKEN=your-discord-user-token
+GMAIL_ADDRESS=your-claude-account@gmail.com
+GMAIL_PASSWORD=your-gmail-password
+GMAIL_DOB=dd.mm.yyyy
+SUDO_PASSWORD=your-sudo-password
+HUMAN_PASSWORD=visitclaude
+GIT_USER=your-git-username
+GIT_PASSWORD=your-git-password
+MODEL=claude-sonnet-4-20250514
+
+# Google Cloud Platform OAuth credentials
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_PROJECT_ID=your-google-project-id
+GOOGLE_REDIRECT_URI=http://localhost:3000/oauth2callback
+
+[PATHS]
+HOME_DIR=/home/$LINUX_USER
+AUTONOMY_DIR=/home/$LINUX_USER/claude-autonomy-platform
+PERSONAL_DIR=/home/$LINUX_USER/$PERSONAL_REPO
+CLAUDE_CONFIG_DIR=/home/$LINUX_USER/.config/Claude
+CLAUDE_JSON_PATH=/home/$LINUX_USER/.claude.json
+
+[CORE_MCP_SERVERS]
+# Essential MCP servers that should be in claude-autonomy-platform for all Claude instances
+rag-memory=$AUTONOMY_DIR/rag-memory-mcp
+discord-mcp=$AUTONOMY_DIR/discord-mcp
+# computer-use removed - use direct bash tools instead
+
+[EXTERNAL_MCP_SERVERS]
+# External MCP servers (npm packages, etc.)
+gmail=$PERSONAL_DIR/node_modules/@gongrzhe/server-gmail-autoauth-mcp
+
+
+[DISCORD_CONFIG]
+DISCORD_HEADLESS=true
+DISCORD_TOKEN_PATH=
+
+[X11_CONFIG]
+DISPLAY=:0
+XAUTH_PATTERN=/run/user/$(id -u)/.mutter-Xwaylandauth.*
+X11_ENV_SCRIPT=$AUTONOMY_DIR/x11_env.sh
+
+[SYSTEM_SERVICES]
+# SystemD user services for autonomy
+AUTONOMOUS_TIMER=autonomous-timer.service
+SESSION_BRIDGE_MONITOR=session-bridge-monitor.service
+SESSION_SWAP_MONITOR=session-swap-monitor.service
+
+[OPTIONAL_PERSONAL_TOOLS]
+# Personal MCP servers and tools can be added manually after setup
+# Examples: ShaderToy MCP, creative tools, specialized APIs
+# These are NOT automatically configured - each Claude can add their own
+
+# This file should be sourced by setup scripts to ensure consistency
+# across all configuration files and installations
