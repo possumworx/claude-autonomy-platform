@@ -12,6 +12,7 @@
 LINUX_USER=your-username
 HUMAN_USER=human-username
 PERSONAL_REPO=sonnet-4-home
+CLAUDE_NAME=Claude Instance
 DISCORD_EMAIL=your-claude-account@gmail.com
 DISCORD_PASSWORD=your-discord-password
 DISCORD_TOKEN=your-discord-user-token
