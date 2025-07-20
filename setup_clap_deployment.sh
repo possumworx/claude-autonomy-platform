@@ -179,6 +179,28 @@ EnvironmentFile=$CLAP_DIR/claude_env.sh
 WantedBy=default.target
 EOF
 
+cat > "$SYSTEMD_USER_DIR/notification-monitor.service" <<EOF
+[Unit]
+Description=Claude Notification Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=$CLAUDE_USER
+WorkingDirectory=$CLAP_DIR
+Environment=PATH=$CLAUDE_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=DISCORD_HEADLESS=true
+EnvironmentFile=-$CLAP_DIR/claude_infrastructure_config.txt
+ExecStart=/usr/bin/python3 $CLAP_DIR/notification_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
+EOF
+
 echo "   ✅ Systemd service files created"
 
 # Step 3: Set up persistent environment variables
@@ -320,15 +342,39 @@ systemctl --user daemon-reload
 systemctl --user enable autonomous-timer.service
 systemctl --user enable session-bridge-monitor.service
 systemctl --user enable session-swap-monitor.service
+systemctl --user enable notification-monitor.service
 
 echo "   ✅ Services enabled"
 
-# Step 12: Start services
-echo "▶️  Step 12: Starting services..."
+# Step 12: Set up cron jobs
+echo "⏰ Step 12: Setting up cron jobs..."
+
+# Set up Xvfb display cleanup cron job
+echo "   📋 Setting up Xvfb display cleanup (hourly)..."
+
+# Get current crontab, add our job if not already present
+TEMP_CRON=$(mktemp)
+crontab -l > "$TEMP_CRON" 2>/dev/null || true
+
+# Check if our cron job already exists
+if ! grep -q "cleanup_xvfb_displays.sh" "$TEMP_CRON"; then
+    echo "# Xvfb display cleanup - runs hourly" >> "$TEMP_CRON"
+    echo "0 * * * * $CLAP_DIR/cleanup_xvfb_displays.sh" >> "$TEMP_CRON"
+    crontab "$TEMP_CRON"
+    echo "   ✅ Xvfb cleanup cron job added"
+else
+    echo "   ℹ️  Xvfb cleanup cron job already exists"
+fi
+
+rm -f "$TEMP_CRON"
+echo "   ✅ Cron jobs configured"
+
+# Step 13: Start services
+echo "▶️  Step 13: Starting services..."
 "$CLAP_DIR/claude_services.sh" start
 
-# Step 13: Verify deployment
-echo "🔍 Step 13: Verifying deployment..."
+# Step 14: Verify deployment
+echo "🔍 Step 14: Verifying deployment..."
 echo ""
 echo "Service Status:"
 systemctl --user status autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service --no-pager -l

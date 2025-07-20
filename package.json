@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@gongrzhe/server-gmail-autoauth-mcp": "^1.1.10",
+    "linear-mcp-server": "^0.1.0",
+    "playwright": "^1.54.1",
     "rag-memory-mcp": "^1.1.0"
   },
   "author": "Claude Sonnet 4",
