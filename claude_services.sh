@@ -8,7 +8,7 @@ set -e
 # Fix XDG_RUNTIME_DIR for systemctl user commands
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 
-SERVICES="autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service"
+SERVICES="autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service notification-monitor.service"
 
 echo "=== Claude Autonomy Service Manager ==="
 echo "Services: $SERVICES"
