@@ -1,0 +1,3 @@
+[submodule "discord-mcp"]
+	path = discord-mcp
+	url = https://github.com/possumworx/playwright-discord-mcp.git
