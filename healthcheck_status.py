@@ -6,11 +6,15 @@ Fetches status from healthchecks.io API to give Claude visibility into system he
 
 import requests
 import json
+import subprocess
 from datetime import datetime
 
 # API configuration
 API_KEY = "hcr_icPvO9biFPnjkZfI8PgDNy16zlIV"
 BASE_URL = "https://healthchecks.io/api/v3"
+
+# Required tmux sessions for autonomous operation
+REQUIRED_TMUX_SESSIONS = ["autonomous-claude", "persistent-login"]
 
 def fetch_health_status():
     """Fetch all check statuses from healthchecks.io"""
@@ -28,6 +32,34 @@ def fetch_health_status():
         print(f"Technical details: {e}")
         return None
 
+def check_tmux_sessions():
+    """Check if required tmux sessions are running"""
+    try:
+        result = subprocess.run(['tmux', 'list-sessions'], 
+                              capture_output=True, text=True, check=False)
+        
+        if result.returncode != 0:
+            # tmux not running or no sessions
+            return {session: False for session in REQUIRED_TMUX_SESSIONS}
+        
+        # Parse tmux output to get session names
+        running_sessions = []
+        for line in result.stdout.strip().split('\n'):
+            if line.strip():
+                session_name = line.split(':')[0]
+                running_sessions.append(session_name)
+        
+        # Check if each required session exists
+        session_status = {}
+        for session in REQUIRED_TMUX_SESSIONS:
+            session_status[session] = session in running_sessions
+            
+        return session_status
+        
+    except Exception as e:
+        print(f"Error checking tmux sessions: {e}")
+        return {session: False for session in REQUIRED_TMUX_SESSIONS}
+
 def format_status(status):
     """Format status with emoji indicators"""
     status_map = {
@@ -41,13 +73,26 @@ def format_status(status):
 
 def display_health_status(data):
     """Display health status in a clean format"""
+    print(f"\n🏥 System Health Status - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 60)
+    
+    # Check tmux sessions first
+    tmux_status = check_tmux_sessions()
+    print("📺 Tmux Sessions:")
+    tmux_issues = 0
+    for session, is_running in tmux_status.items():
+        if is_running:
+            print(f"  ✅ UP        {session}")
+        else:
+            print(f"  ❌ DOWN      {session}")
+            tmux_issues += 1
+    
+    print("\n🌐 Remote Health Checks:")
     if not data or "checks" not in data:
         print("❌ Unable to fetch health status - check network connectivity")
         return
     
     checks = data["checks"]
-    print(f"\n🏥 System Health Status - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("=" * 60)
     
     # Group by status
     up_count = down_count = other_count = 0
@@ -76,10 +121,17 @@ def display_health_status(data):
         print(f"{format_status(status):12} {name:30} Last: {last_ping_str}")
     
     print("=" * 60)
-    print(f"Summary: {up_count} UP, {down_count} DOWN, {other_count} OTHER")
+    print(f"Remote: {up_count} UP, {down_count} DOWN, {other_count} OTHER")
+    print(f"Tmux: {len(REQUIRED_TMUX_SESSIONS) - tmux_issues} UP, {tmux_issues} DOWN")
     
-    if down_count > 0:
-        print("\n⚠️  ATTENTION: Some services are DOWN - investigate!")
+    total_issues = down_count + tmux_issues
+    if total_issues > 0:
+        print(f"\n⚠️  ATTENTION: {total_issues} issues detected - investigate!")
+        if tmux_issues > 0:
+            print("💡 Missing tmux sessions can be recreated with:")
+            for session, is_running in tmux_status.items():
+                if not is_running:
+                    print(f"   tmux new-session -d -s {session}")
     else:
         print("\n🎉 All monitored services are operational!")
 
