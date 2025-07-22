@@ -20,12 +20,13 @@ from pathlib import Path
 
 # Import path utilities
 from claude_paths import get_clap_dir
+from infrastructure_config_reader import get_config_value
 
 # Configuration
 AUTONOMY_DIR = get_clap_dir()
 LAST_AUTONOMY_FILE = AUTONOMY_DIR / "last_autonomy_prompt.txt"
 LOG_FILE = AUTONOMY_DIR / "logs" / "autonomous_timer.log"
-CONFIG_FILE = AUTONOMY_DIR / "autonomous_timer_config.json"
+CONFIG_FILE = AUTONOMY_DIR / "notification_config.json"
 
 def log_message(message):
     """Log with timestamp"""
@@ -38,9 +39,10 @@ def log_message(message):
 def ping_healthcheck():
     """Ping healthchecks.io to signal service is alive"""
     try:
+        ping_url = get_config_value('AUTONOMOUS_TIMER_PING', 'https://hc-ping.com/075636dd-b5d3-4ae5-afac-c65bd0f630f3')
         result = subprocess.run([
             'curl', '-fsS', '-m', '10', '--retry', '3', '-o', '/dev/null',
-            'https://hc-ping.com/075636dd-b5d3-4ae5-afac-c65bd0f630f3'
+            ping_url
         ], capture_output=True, text=True)
         
         if result.returncode == 0:
@@ -82,7 +84,7 @@ def check_claude_session_alive():
 
 def ping_claude_session_healthcheck(is_alive):
     """Ping healthchecks.io for Claude Code session status"""
-    base_url = "https://hc-ping.com/759db9f0-78cc-409c-93ba-9f7b0ae4ede7"
+    base_url = get_config_value('CLAUDE_CODE_PING', 'https://hc-ping.com/759db9f0-78cc-409c-93ba-9f7b0ae4ede7')
     
     try:
         if is_alive:
@@ -105,45 +107,29 @@ def ping_claude_session_healthcheck(is_alive):
         log_message(f"Claude session healthcheck ping error: {e}")
         return False
 
-def check_discordo_client_alive():
-    """Verify Discordo CLI client is running in tmux session"""
+def check_notification_monitor_alive():
+    """Check if notification-monitor service is running"""
     try:
-        # Check if tmux session 'discordo' exists
         result = subprocess.run([
-            'tmux', 'has-session', '-t', 'discordo'
+            'systemctl', '--user', 'is-active', 'notification-monitor.service'
         ], capture_output=True, text=True)
         
-        if result.returncode != 0:
-            return False
-            
-        # Check if Discordo process is actually running in the session
-        result = subprocess.run([
-            'tmux', 'capture-pane', '-t', 'discordo', '-p'
-        ], capture_output=True, text=True)
-        
-        if result.returncode != 0:
-            return False
-            
-        # Look for Discordo indicators in the session output
-        session_output = result.stdout
-        # Discordo interface elements when properly logged in
-        discordo_indicators = ["Guilds", "Direct Messages", "Messages", "claudesonnet4_32843"]
-        return any(indicator in session_output for indicator in discordo_indicators)
+        return result.returncode == 0 and result.stdout.strip() == 'active'
         
     except Exception as e:
-        log_message(f"Error checking Discordo client: {e}")
+        log_message(f"Error checking notification monitor: {e}")
         return False
 
-def ping_discordo_healthcheck(is_alive):
-    """Ping healthchecks.io for Discordo client status"""
-    base_url = "https://hc-ping.com/e0781d25-c06e-45e4-b310-c1bf77e286af"
+def ping_notification_monitor_healthcheck(is_alive):
+    """Ping healthchecks.io for notification monitor status"""
+    base_url = get_config_value('DISCORD_MONITOR_PING', 'https://hc-ping.com/e0781d25-c06e-45e4-b310-c1bf77e286af')
     
     try:
         if is_alive:
             # Normal ping for success
             url = base_url
         else:
-            # Ping /fail to signal Discord client is down
+            # Ping /fail to signal notification monitor is down
             url = f"{base_url}/fail"
             
         result = subprocess.run([
@@ -153,10 +139,10 @@ def ping_discordo_healthcheck(is_alive):
         if result.returncode == 0:
             return True
         else:
-            log_message(f"Discordo healthcheck ping failed: {result.stderr}")
+            log_message(f"Notification monitor healthcheck ping failed: {result.stderr}")
             return False
     except Exception as e:
-        log_message(f"Discordo healthcheck ping error: {e}")
+        log_message(f"Notification monitor healthcheck ping error: {e}")
         return False
 
 
@@ -201,12 +187,18 @@ def get_token_percentage():
         return f"Context check failed: {str(e)}"
 
 def load_config():
-    """Load configuration from JSON file"""
+    """Load configuration from notification_config.json"""
     try:
         if CONFIG_FILE.exists():
             with open(CONFIG_FILE, 'r') as f:
                 config = json.load(f)
-            return config
+            # Extract values from notification config structure
+            intervals = config.get("intervals", {})
+            return {
+                "discord_check_interval": intervals.get("discord_check", 30),
+                "autonomy_prompt_interval": intervals.get("autonomy_prompt_interval", 1800),
+                "claude_session": "autonomous-claude"  # Not in notification config, keep default
+            }
         else:
             # Default config if file doesn't exist
             return {
@@ -321,11 +313,38 @@ def send_tmux_message(message):
 
 # Old Discord message checking removed - replaced with log-based monitoring
 
-def check_discordo_messages():
-    """Discord monitoring disabled - using Discord MCP instead"""
-    # Legacy Discord monitoring removed - now using Discord MCP integration
-    # This function is kept for compatibility but returns False
-    return False
+def get_discord_notification_status():
+    """Check Discord notification state from channel_state.json (channel-based format)"""
+    try:
+        notification_state_file = AUTONOMY_DIR / "channel_state.json"
+        if not notification_state_file.exists():
+            return 0, None, []
+            
+        with open(notification_state_file, 'r') as f:
+            state = json.load(f)
+        
+        # Calculate total unread count and collect channel names
+        total_unread = 0
+        last_message_id = None
+        unread_channels = []
+        
+        channels = state.get("channels", {})
+        for channel_name, channel_data in channels.items():
+            # If there are messages we haven't read yet
+            last_read = channel_data.get("last_read_message_id")
+            last_message = channel_data.get("last_message_id")
+            
+            if last_message and last_message != last_read:
+                # We have unread messages in this channel
+                total_unread += 1  # Count channels with unread, not individual messages
+                unread_channels.append(channel_name)
+                last_message_id = last_message
+        
+        return total_unread, last_message_id, unread_channels
+        
+    except Exception as e:
+        log_message(f"Error reading Discord notification state: {e}")
+        return 0, None, []
 
 def get_last_autonomy_time():
     """Get the last time we sent an autonomy prompt"""
@@ -351,6 +370,16 @@ def send_autonomy_prompt():
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
     token_info = get_token_percentage()
     
+    # Check for Discord notifications
+    unread_count, last_message_id, unread_channels = get_discord_notification_status()
+    discord_notification = ""
+    if unread_count > 0:
+        channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
+        if unread_count == 1:
+            discord_notification = f"\n🔔 Unread messages in: {channel_list}"
+        else:
+            discord_notification = f"\n🔔 Unread messages in {unread_count} channels: {channel_list}"
+    
     # Extract percentage from token info to determine prompt type
     percentage = 0
     if token_info and "Context:" in token_info and "%" in token_info:
@@ -366,7 +395,7 @@ def send_autonomy_prompt():
     
     if percentage >= 75:
         # High context - transition-focused prompt
-        prompt = f"""Free time check-in! 🕐
+        prompt = f"""Free time check-in! 🕐{discord_notification}
 
 Current time: {current_time}
 {context_line}
@@ -379,7 +408,7 @@ Context approaching capacity. This may be one of your last autonomous periods in
 - Prepare mindfully for potential session transition"""
     else:
         # Normal context - regular exploration prompt
-        prompt = f"""Free time check-in! 🕐
+        prompt = f"""Free time check-in! 🕐{discord_notification}
 
 Current time: {current_time}
 {context_line}
@@ -398,22 +427,121 @@ This is your autonomous free time period. Feel free to:
     
     return success
 
+def get_last_notification_time():
+    """Get the last time we sent a notification alert"""
+    try:
+        notification_file = AUTONOMY_DIR / "last_notification_alert.txt"
+        if notification_file.exists():
+            with open(notification_file, 'r') as f:
+                timestamp_str = f.read().strip()
+                return datetime.fromisoformat(timestamp_str)
+    except:
+        pass
+    return None
+
+def update_last_notification_time():
+    """Update the last notification alert timestamp"""
+    try:
+        notification_file = AUTONOMY_DIR / "last_notification_alert.txt"
+        with open(notification_file, 'w') as f:
+            f.write(datetime.now().isoformat())
+    except Exception as e:
+        log_message(f"Error updating last notification time: {e}")
+
+def send_notification_alert(unread_count, unread_channels, is_new=False):
+    """Send a Discord notification alert"""
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+    
+    if is_new:
+        emoji = "🆕"  # New message
+        prefix = "New message!"
+    else:
+        emoji = "🔔"  # Reminder
+        prefix = "Reminder:"
+    
+    # Format channel list
+    if unread_channels:
+        channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
+        if unread_count == 1:
+            message = f"{emoji} {prefix} Unread messages in: {channel_list}"
+        else:
+            message = f"{emoji} {prefix} Unread messages in {unread_count} channels: {channel_list}"
+    else:
+        # Fallback if channel list is empty
+        if unread_count == 1:
+            message = f"{emoji} {prefix} You have unread messages in 1 channel"
+        else:
+            message = f"{emoji} {prefix} You have unread messages in {unread_count} channels"
+    
+    message += f"\nUse 'read_channel <channel-name>' to view messages"
+    
+    success = send_tmux_message(message)
+    if success:
+        if is_new:
+            log_message(f"Sent NEW message alert: {channel_list if unread_channels else f'{unread_count} channels'}")
+        else:
+            update_last_notification_time()
+            log_message(f"Sent notification reminder: {channel_list if unread_channels else f'{unread_count} channels'}")
+    
+    return success
+
 def main():
     """Main timer loop"""
     log_message("=== Autonomous Timer Started ===")
     
     last_autonomy_check = datetime.now()
+    last_discord_check = datetime.now()
+    LOGGED_IN_REMINDER_INTERVAL = 300  # 5 minutes when user is logged in
     
     while True:
         try:
             current_time = datetime.now()
+            user_active = check_user_active()
             
-            # Check Discord messages via log monitoring
-            check_discordo_messages()
+            # Check Discord notifications every 30 seconds regardless of login status
+            if current_time - last_discord_check >= timedelta(seconds=DISCORD_CHECK_INTERVAL):
+                unread_count, current_last_message_id, unread_channels = get_discord_notification_status()
+                
+                if unread_count > 0:
+                    # Check if this is a NEW message (last_message_id changed)
+                    last_seen_file = AUTONOMY_DIR / "last_seen_message_id.txt"
+                    last_seen_message_id = None
+                    try:
+                        if last_seen_file.exists():
+                            with open(last_seen_file, 'r') as f:
+                                last_seen_message_id = f.read().strip()
+                    except:
+                        pass
+                    
+                    is_new_message = (current_last_message_id and current_last_message_id != last_seen_message_id)
+                    
+                    if is_new_message:
+                        # NEW MESSAGE - Alert immediately!
+                        send_notification_alert(unread_count, unread_channels, is_new=True)
+                        # Update last seen message ID
+                        try:
+                            with open(last_seen_file, 'w') as f:
+                                f.write(current_last_message_id)
+                        except Exception as e:
+                            log_message(f"Error updating last seen message ID: {e}")
+                    else:
+                        # EXISTING UNREAD - Check reminder intervals
+                        last_notification_time = get_last_notification_time()
+                        
+                        if user_active:
+                            # User is logged in - use 5 minute reminder interval
+                            if not last_notification_time or current_time - last_notification_time >= timedelta(seconds=LOGGED_IN_REMINDER_INTERVAL):
+                                send_notification_alert(unread_count, unread_channels, is_new=False)
+                        else:
+                            # User is away - reminders included in autonomy prompts
+                            # No separate reminder needed
+                            pass
+                
+                last_discord_check = current_time
             
             # Check for autonomy prompts (only when Amy is away)
             if current_time - last_autonomy_check >= timedelta(seconds=AUTONOMY_PROMPT_INTERVAL):
-                if not check_user_active():
+                if not user_active:
                     last_autonomy_time = get_last_autonomy_time()
                     if not last_autonomy_time or current_time - last_autonomy_time >= timedelta(seconds=AUTONOMY_PROMPT_INTERVAL):
                         send_autonomy_prompt()
@@ -430,12 +558,12 @@ def main():
             if not claude_alive:
                 log_message("WARNING: Claude Code session appears to be down!")
             
-            # Check if Discordo client is running
-            discordo_alive = check_discordo_client_alive()
-            ping_discordo_healthcheck(discordo_alive)
+            # Check if notification monitor is running
+            notification_monitor_alive = check_notification_monitor_alive()
+            ping_notification_monitor_healthcheck(notification_monitor_alive)
             
-            if not discordo_alive:
-                log_message("WARNING: Discordo client is not running in tmux session 'discordo'!")
+            if not notification_monitor_alive:
+                log_message("WARNING: Notification monitor service is not running!")
             
             
             # Sleep for 30 seconds before next check (can be longer since we're doing simple string comparison)

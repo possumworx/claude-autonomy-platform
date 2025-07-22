@@ -14,6 +14,7 @@ from pathlib import Path
 
 # Import path utilities
 from claude_paths import get_claude_paths, get_clap_dir
+from infrastructure_config_reader import get_config_value
 
 # Get dynamic paths
 claude_home, personal_dir, autonomy_dir = get_claude_paths()
@@ -44,9 +45,10 @@ def ping_healthcheck():
     """Ping healthchecks.io to signal service is alive"""
     import subprocess
     try:
+        ping_url = get_config_value('CONTINUITY_BRIDGE_PING', 'https://hc-ping.com/fbadae5b-8303-4ba7-a478-a162ed6e6aa1')
         result = subprocess.run([
             'curl', '-fsS', '-m', '10', '--retry', '3', '-o', '/dev/null',
-            'https://hc-ping.com/fbadae5b-8303-4ba7-a478-a162ed6e6aa1'
+            ping_url
         ], capture_output=True, text=True)
         
         if result.returncode == 0:
@@ -132,9 +134,13 @@ def parse_existing_conversation(swap_file_path):
         log(f"Error parsing existing conversation: {e}")
         return []
 
-def update_swap_bridge_rolling(new_turns, session_file, max_turns=20):
+def update_swap_bridge_rolling(new_turns, session_file, max_turns=None):
     """Update swap_CLAUDE.md with rolling window of conversation turns"""
     try:
+        # Get max_turns from config if not specified
+        if max_turns is None:
+            max_turns = int(get_config_value('HISTORY_TURNS', '20'))
+            
         # Get existing conversation turns
         existing_turns = parse_existing_conversation(SWAP_CLAUDE_MD_PATH)
         

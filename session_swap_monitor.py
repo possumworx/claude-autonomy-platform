@@ -12,6 +12,7 @@ from datetime import datetime
 
 # Import path utilities
 from claude_paths import get_clap_dir
+from infrastructure_config_reader import get_config_value
 
 # Get dynamic paths
 clap_dir = get_clap_dir()
@@ -31,9 +32,10 @@ def log(message):
 def ping_healthcheck():
     """Ping healthchecks.io to signal service is alive"""
     try:
+        ping_url = get_config_value('SESSION_SWAP_PING', 'https://hc-ping.com/116e5fcc-35e7-4d85-bd10-5688c114816c')
         result = subprocess.run([
             'curl', '-fsS', '-m', '10', '--retry', '3', '-o', '/dev/null',
-            'https://hc-ping.com/116e5fcc-35e7-4d85-bd10-5688c114816c'
+            ping_url
         ], capture_output=True, text=True)
         
         if result.returncode == 0:
