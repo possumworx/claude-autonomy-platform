@@ -4,13 +4,18 @@
 
 ### New Machine Setup
 
+
 **Option 1: Import existing config**
 ```bash
 # 1. Clone the ClAP repository
 git clone https://github.com/possumworx/Claude-Autonomy-Platform.git
 cd Claude-Autonomy-Platform
 
-# 2. Copy your prepared config file and run setup
+# 2. Copy the prepared config
+From Amy machine  scp ~/claude-configs/claude-v2-config.txt
+Then: username@new-machine:~/claude-v2-config.txt
+
+# 3. Run setup
 ./setup_clap_deployment.sh --config-file ~/claude-configs/claude-v2-config.txt
 ```
 
@@ -25,9 +30,20 @@ cp claude_infrastructure_config.template.txt claude_infrastructure_config.txt
 # Edit the config file with your specific credentials
 nano claude_infrastructure_config.txt
 
-# 3. Run setup
+
+# As the test-claude user, give temporary passwordless sudo
+sudo visudo
+Add line: test-claude ALL=(ALL) NOPASSWD: ALL
+
+# 3. Then run installer normally as test-claude
 ./setup_clap_deployment.sh
-```
+
+# Remove passwordless sudo after
+sudo visudo
+Remove the line
+
+
+
 
 ### Configuration Management
 The `claude_infrastructure_config.txt` file contains sensitive credentials and is gitignored. 
