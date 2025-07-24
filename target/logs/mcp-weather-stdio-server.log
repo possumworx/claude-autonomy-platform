@@ -72,3 +72,16 @@ Caused by: net.dv8tion.jda.api.exceptions.InvalidTokenException: The provided to
 	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:146) ~[spring-beans-6.1.15.jar!/:6.1.15]
 	... 38 common frames omitted
 
+2025-07-24T12:53:31.950+01:00  INFO 784442 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : Starting DiscordMcpApplication v0.0.1-SNAPSHOT using Java 21.0.7 with PID 784442 (/home/sparkle-sonnet/claude-autonomy-platform/discord-mcp/target/discord-mcp-0.0.1-SNAPSHOT.jar started by sparkle-sonnet in /home/sparkle-sonnet/claude-autonomy-platform)
+2025-07-24T12:53:31.952+01:00  INFO 784442 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : No active profile set, falling back to 1 default profile: "default"
+2025-07-24T12:53:33.275+01:00  INFO 784442 --- [discord-mcp] [main] net.dv8tion.jda.api.JDA                  : Login Successful!
+2025-07-24T12:53:33.513+01:00  INFO 784442 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable tools capabilities, notification: true
+2025-07-24T12:53:33.527+01:00  INFO 784442 --- [discord-mcp] [JDA MainWS-ReadThread] n.d.j.internal.requests.WebSocketClient  : Connected to WebSocket
+2025-07-24T12:53:33.595+01:00  INFO 784442 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Registered tools: 24
+2025-07-24T12:53:33.595+01:00  INFO 784442 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable resources capabilities, notification: true
+2025-07-24T12:53:33.596+01:00  INFO 784442 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable prompts capabilities, notification: true
+2025-07-24T12:53:33.597+01:00  INFO 784442 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable completions capabilities
+2025-07-24T12:53:33.687+01:00  INFO 784442 --- [discord-mcp] [pool-1-thread-1] i.m.server.McpAsyncServer                : Client initialize request - Protocol: 2025-06-18, Capabilities: ClientCapabilities[experimental=null, roots=RootCapabilities[listChanged=null], sampling=null], Info: Implementation[name=claude-code, version=1.0.59]
+2025-07-24T12:53:33.692+01:00  WARN 784442 --- [discord-mcp] [pool-1-thread-1] i.m.server.McpAsyncServer                : Client requested unsupported protocol version: 2025-06-18, so the server will suggest the 2024-11-05 version instead
+2025-07-24T12:53:33.840+01:00  INFO 784442 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : Started DiscordMcpApplication in 2.735 seconds (process running for 3.421)
+2025-07-24T12:53:33.980+01:00  INFO 784442 --- [discord-mcp] [JDA MainWS-ReadThread] net.dv8tion.jda.api.JDA                  : Finished Loading!
