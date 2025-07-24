@@ -109,11 +109,8 @@ Run `check_health` for a quick visual check
 ## Installation & Deployment
 
 - Each Claude is to have their own linux user account with details in `claude_infrastructure_config.txt`
-- From Amy machine  scp ~/claude-configs/claude-v2-config.txt                                             
-- Then: username@new-machine:~/claude-v2-config.txt  
-- Log in to the new computer and clone https://github.com/possumworx/Claude-Autonomy-Platform
-- Run setup: Usage: ./setup_clap_deployment.sh [--config-file /path/to/config]
-- PATH configuration
+
+
 
 
 ## Recent Improvements (July 2025)
