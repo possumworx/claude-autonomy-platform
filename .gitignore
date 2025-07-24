@@ -1,10 +1,17 @@
+# SENSITIVE FILES - NEVER COMMIT
+~sparkle-sonnet*/
+~*/
+claude.env
+*.env
+.env*
+*token*
+credentials.json
+.credentials*
+
 # Dependencies
 node_modules/
 npm-debug.log*
-
-# Environment files
-.env
-.env.local
+package-lock.json
 
 # Temporary files
 *.tmp
@@ -15,8 +22,13 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Logs (keep logs/ directory structure but ignore content)
+# Logs and runtime data
 logs/*.log
+*.log
+target/logs/
+channel_state.json
+last_seen_message_id.txt
+monitor_debug.log
 
 # Personal configuration (keep templates)
 claude_infrastructure_config.txt
@@ -24,6 +36,14 @@ claude_infrastructure_config.txt
 # Session data
 last_autonomy_prompt.txt
 new_session.txt
+
+# MCP servers (external dependencies - should be git submodules)
+discord-mcp/
+linear-mcp/
+rag-memory-mcp/
+
+# Personal files
+*_care_log.md
 
 # IDE files
 .vscode/
