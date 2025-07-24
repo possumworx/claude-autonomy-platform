@@ -134,6 +134,7 @@ Tracked in Linear.
 1. **No notifications while logged in**: Check autonomous-timer.py is using latest version with logged-in support
 2. **Self-notifications**: Ensure CLAUDE_DISCORD_USER_ID is set in infrastructure config
 3. **Can't read channels**: Verify `read_channel` is in PATH and Discord token is valid
+4. **Gmail MCP "invalid_grant" errors**: OAuth tokens have expired. Use `node exchange_gmail_oauth.cjs "AUTH_CODE"` with fresh authorization code from OAuth flow. Requires Claude Code session restart after token refresh.
 
 ### Log Locations:
 - `/home/[user]/claude-autonomy-platform/logs/autonomous_timer.log`

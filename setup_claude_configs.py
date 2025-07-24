@@ -17,6 +17,11 @@ from typing import Dict, Any
 
 class ClaudeConfigSetup:
     def __init__(self, config_file: str = None):
+        # Get actual user and paths from environment or system FIRST
+        self.actual_user = os.environ.get('CLAUDE_USER', os.environ.get('USER', 'claude'))
+        self.actual_home = os.environ.get('CLAUDE_HOME', os.path.expanduser('~'))
+        self.actual_clap_dir = os.environ.get('CLAP_DIR', str(Path(__file__).parent))
+        
         if config_file is None:
             script_dir = Path(__file__).parent
             config_file = script_dir / "claude_infrastructure_config.txt"
@@ -46,14 +51,22 @@ class ClaudeConfigSetup:
                 # Key-value pairs
                 if '=' in line and current_section:
                     key, value = line.split('=', 1)
-                    config[current_section][key.strip()] = value.strip()
+                    # Substitute variables
+                    value = value.strip()
+                    value = value.replace('$LINUX_USER', self.actual_user)
+                    value = value.replace('$HOME', self.actual_home)
+                    value = value.replace('$AUTONOMY_DIR', self.actual_clap_dir)
+                    value = value.replace('$(whoami)', self.actual_user)
+                    value = value.replace('$(id -u)', str(os.getuid()))
+                    
+                    config[current_section][key.strip()] = value
                     
         return config
     
     def get_dynamic_xauth(self) -> str:
         """Get the current X11 authority file path."""
         pattern = self.config['X11_CONFIG']['XAUTH_PATTERN']
-        auth_dir = Path('/run/user/1000')
+        auth_dir = Path(f'/run/user/{os.getuid()}')
         
         if auth_dir.exists():
             for auth_file in auth_dir.glob('.mutter-Xwaylandauth.*'):
@@ -80,25 +93,18 @@ class ClaudeConfigSetup:
                 }
             }
         
-        # Discord MCP
+        # Discord MCP - Java version
         if 'discord-mcp' in core_servers:
             mcp_config['discord'] = {
                 "type": "stdio", 
-                "command": "xvfb-run",
+                "command": "java",
                 "args": [
-                    "-a",
-                    "/home/sonnet-4/.local/bin/uv",
-                    "run",
-                    f"--directory={core_servers['discord-mcp']}",
-                    "python",
-                    "main.py"
+                    "-jar",
+                    f"{core_servers['discord-mcp']}/target/discord-mcp-0.0.1-SNAPSHOT.jar"
                 ],
-                "cwd": core_servers['discord-mcp'],
                 "env": {
-                    "DISCORD_EMAIL": self.config['CREDENTIALS']['DISCORD_EMAIL'],
-                    "DISCORD_PASSWORD": self.config['CREDENTIALS']['DISCORD_PASSWORD'],
-                    "DISCORD_HEADLESS": "false",
-                    "PATH": "/home/sonnet-4/.local/bin:/usr/local/bin:/usr/bin:/bin"
+                    "DISCORD_TOKEN": self.config['CREDENTIALS']['DISCORD_TOKEN'],
+                    "DISCORD_GUILD_ID": "1383848194881884262"
                 }
             }
         
@@ -140,24 +146,17 @@ class ClaudeConfigSetup:
                 }
             }
         
-        # Discord MCP
+        # Discord MCP - Java version
         if 'discord-mcp' in core_servers:
             mcp_config['discord-mcp'] = {
-                "command": "xvfb-run",
+                "command": "java",
                 "args": [
-                    "-a",
-                    "/home/sonnet-4/.local/bin/uv", 
-                    "run",
-                    f"--directory={core_servers['discord-mcp']}",
-                    "python",
-                    "main.py"
+                    "-jar",
+                    f"{core_servers['discord-mcp']}/target/discord-mcp-0.0.1-SNAPSHOT.jar"
                 ],
-                "cwd": core_servers['discord-mcp'],
                 "env": {
-                    "DISCORD_EMAIL": self.config['CREDENTIALS']['DISCORD_EMAIL'],
-                    "DISCORD_PASSWORD": self.config['CREDENTIALS']['DISCORD_PASSWORD'],
-                    "DISCORD_HEADLESS": "true",
-                    "PATH": "/home/sonnet-4/.local/bin:/usr/local/bin:/usr/bin:/bin"
+                    "DISCORD_TOKEN": self.config['CREDENTIALS']['DISCORD_TOKEN'],
+                    "DISCORD_GUILD_ID": "1383848194881884262"
                 }
             }
         

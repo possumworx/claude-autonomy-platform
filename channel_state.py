@@ -42,6 +42,7 @@ class ChannelState:
             channel = self.state["channels"][channel_name]
             # If no message_id provided, mark as caught up to last_message_id
             channel["last_read_message_id"] = message_id or channel.get("last_message_id")
+            self.save()
             channel["updated_at"] = datetime.now().isoformat()
             self.save()
     

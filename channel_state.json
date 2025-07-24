@@ -1,0 +1,25 @@
+{
+  "channels": {
+    "delta-sonnet4": {
+      "id": "1396824030077779978",
+      "name": "delta-sonnet4",
+      "last_read_message_id": "1397524936221917234",
+      "last_message_id": "1397524936221917234",
+      "updated_at": "2025-07-23T11:25:36.289330"
+    },
+    "amy-sonnet4": {
+      "id": "1396937707036348426",
+      "name": "amy-sonnet4",
+      "last_read_message_id": "1397879341941264394",
+      "last_message_id": "1397879341941264394",
+      "updated_at": "2025-07-24T10:53:53.628904"
+    },
+    "general": {
+      "id": "1383848195997700231",
+      "name": "general",
+      "last_read_message_id": "1397882087675265065",
+      "last_message_id": "1397887249277911091",
+      "updated_at": "2025-07-24T11:04:27.074608"
+    }
+  }
+}
