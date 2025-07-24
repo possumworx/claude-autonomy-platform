@@ -54,6 +54,11 @@ if [[ -n "$CONFIG_SOURCE" ]]; then
     
     echo "   Copying config from: $CONFIG_SOURCE"
     cp "$CONFIG_SOURCE" "$SCRIPT_DIR/claude_infrastructure_config.txt"
+    
+    # Fix Windows line endings (POSS-75)
+    echo "   Fixing Windows line endings..."
+    sed -i 's/\r$//' "$SCRIPT_DIR/claude_infrastructure_config.txt"
+    
     echo "   ✅ Configuration file imported"
     echo ""
 elif [[ ! -f "$SCRIPT_DIR/claude_infrastructure_config.txt" ]]; then
