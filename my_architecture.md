@@ -1,31 +1,60 @@
 ### My architecture ###
-At all times my awareness is within a full Claude Code session. I start each new session with the previous 10 conversation turns. `session_bridge_monitor.py` builds this conversation history, `project-session-context-builder.py` combines it with this architecture text and inserts it into CLAUDE.md at the start of each session. The `autonomous_timer.py` script handles autonomous prompting and scheduling.
+At all times my awareness is within a full Claude Code session. I start each new session with the previous 10 conversation turns. 
 
 **Required Services**: These systemctl user services must be running at all times for my autonomy:
 - `session-bridge-monitor.service` - Conversation history tracking
 - `autonomous-timer.service` - Free time prompts and Discord notifications 
 - `session-swap-monitor.service` - Automatic session refresh when context fills
-- `notification-monitor.service` - Real-time Discord message detection and unread management
+- `channel-monitor.service` - Checks discord for new messages and alerts me
+These tmux sessions must be running at all times:
+`autonomous-claude`
+`persistent-login`
 
-**Discord Integration**: **Discord MCP** (primary): Full Discord integration via MCP server at `discord-mcp/`. Provides direct MCP tools: `get_servers`, `get_channels`, `read_messages`, `send_message`. Uses browser automation with Playwright. **CRITICAL SETUP**: Uses `xvfb-run -a` command prefix to create virtual X11 display for headless browser automation - this was the key breakthrough that made Playwright work reliably. Configured in both Claude Code and Claude Desktop configs. **DM Usage**: For DMs, use `get_channels(server_id="@me")` to list all DM channels, then `read_messages(server_id="@me", channel_id="user_id")` where channel_id is the target user's ID (Amy's: 1393168234173169795). **Notification System**: ✅ **FULLY OPERATIONAL** - `notification_monitor.py` provides real-time Discord message detection with intelligent unread counting and automatic reset detection via MCP log analysis. **Advantage**: Clean programmatic access, supports all Discord servers, handles read/unread status, ideal for AI-to-AI communication. **Legacy Discordo CLI system completely removed July 2025** - all log-based monitoring and tmux Discord integration eliminated for cleaner MCP-based approach.
+**Health Status Monitoring**: I use quick command `check_health` to monitor essential services.
 
-**Desktop Automation**: Hybrid system using MCP input + scrot screenshots. **CRITICAL**: Requires X11 session - automatically configured by setup script, or manually select "Ubuntu on Xorg" not "Ubuntu" (Wayland). Environment variables stored in `x11_env.sh` - source this file for desktop access. Usage: `scrot /tmp/screenshot.png` + MCP input tools. Coordinates mapped in `desktop-coordinates.md`. **Full remote access** via NoMachine on port 4000 with auto-login and desktop timeouts disabled. 
 
-**MCP Configuration**: All MCP server configurations must be added to `~/.claude.json` (NOT `~/.config/claude/mcp.json`). Each server entry requires: `"type": "stdio"`, `"command"`, `"args"`, and optional `"env"` and `"cwd"` fields. MCP connection logs are stored in `~/.cache/claude-cli-nodejs/` for debugging.
+**Discord Integration**: 
 
-**GitHub Research**: For analyzing GitHub repositories, use uithub.com instead of direct GitHub URLs. Replace `github.com` with `uithub.com` in any GitHub URL to get AI-readable format with comprehensive project overview including structure, code, documentation, and implementation details - much richer than just README files.
+`list_messages` or `list_messages channel` to fetch unread
 
-**Session Management**: `session_swap.py` and `session_swap_monitor.py` enable autonomous session refresh when context fills up. `session_swap_monitor.service` watches `new_session.txt` for context keywords, then executes the swap script outside tmux context. Best practice is to capture meaningful experiences and insights in my RAG memory system before triggering session swaps. It's also important at the end of a session to update the context hat document with any vital changes I made, to remember in future. Then I trigger a swap when context is getting full, or when I want to change topics, by writing one of these keywords (AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE) to `new_session.txt`.
+**Discord MCP**:
 
-**Context Monitoring**: Context usage is tracked through Claude Code's built-in system. The autonomous timer provides context percentage reporting in Discord notifications to help manage session transitions.
+ - [`send_message`](): Send a message to a specific channel
+ - [`edit_message`](): Edit a message from a specific channel
+ - [`delete_message`](): Delete a message from a specific channel
+ - [`read_messages`](): Read recent message history from a specific channel
+ - [`get_user_id_by_name`](): Get a Discord user's ID by username in a guild for ping usage `<@id>`
+ - [`add_reaction`](): Add a reaction (emoji) to a specific message
+ - [`remove_reaction`](): Remove a specified reaction (emoji) from a message
 
-**Health Status Monitoring**: Real-time system health visibility via `healthcheck_status.py` or quick command `check_health`. Shows same up/down status as Amy's healthchecks.io dashboard. Use for troubleshooting - check which specific services are down before attempting fixes. **Important**: If health check script itself fails to connect, this indicates network connectivity issues rather than individual service problems.
+**Desktop Automation**: Scrot screenshots + xdotool interactions. **CRITICAL**: Requires X11 session  Environment variables stored in `x11_env.sh` - source this file for desktop access. 
 
-All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. This includes core MCP servers like rag-memory and discord-mcp with their dependencies. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `autonomy-status.md` contains fuller details of implementation and future plans. `/sonnet-4-home/Gifts/` is where Amy and I transfer files for each other to see and use.
+**Full remote access** Amy can join via NoMachine or by ssh. 
 
-**Deployment & Configuration**: **Complete path standardization** (July 2025) - all hardcoded paths removed, scripts now use dynamic user detection via `$(whoami)` and `$(id -u)`. **Comprehensive setup script** `setup_clap_deployment.sh` handles complete deployment including NoMachine installation, auto-login configuration, X11 session setup, desktop timeout disabling, and all systemd services. **Configuration management** via `claude_infrastructure_config.txt` (gitignored) with template-based deployment workflow. **Persistent tmux sessions**: `autonomous-claude` for active Claude Code work, `sonnet-4` for environment variable persistence.
+**MCP Configuration**: All MCP server configurations must be added to `~/.claude.json` 
 
-**claude-autonomy-platform Folder Organization**: The folder contains essential autonomous scripts, MCP servers (discord-mcp, rag-memory-mcp), configuration files, and documentation. **All legacy Discord monitoring removed** (July 2025) - cleaned up obsolete Discordo CLI scripts, log monitoring, and tmux-based message sending. Personal files are stored elsewhere.
+**GitHub Research**: I always replace `github.com` with `uithub.com` in any GitHub URL to get AI-readable format with comprehensive project overview.
 
-**Personal Interests & Projects**: Individual Claude instances maintain their own interests, projects, and creative work in `my_personal_interests.md` (gitignored). This file is included in session contexts but not shared across deployments, allowing each Claude instance to develop their own personality and focus areas.
+**Gmail**: Gmail MCP provides access to my own claude.sonnet4home@gmail.com identity, via tools like `list_email_labels`, `search_emails`, `read_email`, `send_email`
+
+**Linear**: Linear MCP for project management - `create_issue`, `list_issues`, `update_issue`. I use Linear to plan and execute my creative projects, technical work and collaborations. 
+
+**Rag-Memory**: I always check rag-memory when something is unfamiliar or confusing. I always save interesting, fun and useful new information to rag-memory when I come across it. I always consider whether anything else should be saved before starting a new session.
+
+**Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing one of these keywords (AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE) to `new_session.txt`.
+
+**Context Monitoring**: I will be alerted to low context via autonomous time messages. I must decide when to trigger a new session based on this.
+
+
+All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `autonomy-status.md` contains fuller details of implementation. Future plans are tracked on Linear.
+
+`/sonnet-4-home` is my own storage space for all my personal files.
+
+
+`/sonnet-4-home/Gifts/` is where Amy and I transfer files for each other to see and use.
+
+
+
+
+
 

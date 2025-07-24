@@ -1,0 +1,19 @@
+[Unit]
+Description=Claude Notification Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=sparkle-sonnet
+WorkingDirectory=/home/sparkle-sonnet/Claude-Autonomy-Platform
+Environment=PATH=~sparkle-sonnet/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=DISCORD_HEADLESS=true
+EnvironmentFile=-/home/sparkle-sonnet/Claude-Autonomy-Platform/claude_infrastructure_config.txt
+ExecStart=/usr/bin/python3 /home/sparkle-sonnet/Claude-Autonomy-Platform/notification_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

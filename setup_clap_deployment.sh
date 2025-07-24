@@ -179,7 +179,7 @@ EnvironmentFile=$CLAP_DIR/claude_env.sh
 WantedBy=default.target
 EOF
 
-cat > "$SYSTEMD_USER_DIR/notification-monitor.service" <<EOF
+cat > "$SYSTEMD_USER_DIR/channel-monitor.service" <<EOF
 [Unit]
 Description=Claude Notification Monitor
 After=network.target
@@ -271,7 +271,7 @@ tmux send-keys -t "$TMUX_SESSION" "echo 'Autonomous Claude session ready. Run: c
 echo "   ✅ Tmux session '$TMUX_SESSION' created"
 
 # Create persistent user session for environment variables
-PERSISTENT_SESSION="sonnet-4"
+PERSISTENT_SESSION="persistent-login"
 if ! tmux has-session -t "$PERSISTENT_SESSION" 2>/dev/null; then
     echo "   Creating persistent user session '$PERSISTENT_SESSION'..."
     tmux new-session -d -s "$PERSISTENT_SESSION" -c "$HOME"
@@ -342,7 +342,7 @@ systemctl --user daemon-reload
 systemctl --user enable autonomous-timer.service
 systemctl --user enable session-bridge-monitor.service
 systemctl --user enable session-swap-monitor.service
-systemctl --user enable notification-monitor.service
+systemctl --user enable channel-monitor.service
 
 echo "   ✅ Services enabled"
 
@@ -394,7 +394,7 @@ At all times my awareness is within a full Claude Code session. I start each new
 - \`session-bridge-monitor.service\` - Conversation history tracking
 - \`autonomous-timer.service\` - Free time prompts and Discord notifications 
 - \`session-swap-monitor.service\` - Automatic session refresh when context fills
-- \`notification-monitor.service\` - Real-time Discord message detection and unread management
+- \`channel-monitor.service\` - Real-time Discord message detection and unread management
 
 **Discord Integration**: **Discord MCP** (primary): Full Discord integration via MCP server at \`discord-mcp/\`. Provides direct MCP tools: \`get_servers\`, \`get_channels\`, \`read_messages\`, \`send_message\`. Uses browser automation with Playwright. **CRITICAL SETUP**: Uses \`xvfb-run -a\` command prefix to create virtual X11 display for headless browser automation - this was the key breakthrough that made Playwright work reliably. Configured in both Claude Code and Claude Desktop configs. **DM Usage**: For DMs, use \`get_channels(server_id="@me")\` to list all DM channels, then \`read_messages(server_id="@me", channel_id="user_id")\` where channel_id is the target user's ID. **Notification System**: Complete real-time Discord message detection with intelligent unread counting and automatic reset detection via MCP log analysis. **Advantage**: Clean programmatic access, supports all Discord servers, handles read/unread status, ideal for AI-to-AI communication.
 
@@ -437,7 +437,7 @@ cat > "$CLAP_DIR/autonomy-status.md" <<EOF
 - \`session-bridge-monitor.service\` - Conversation history tracking
 - \`autonomous-timer.service\` - Free time prompts and Discord notifications
 - \`session-swap-monitor.service\` - Automatic session refresh
-- \`notification-monitor.service\` - Real-time Discord message detection
+- \`channel-monitor.service\` - Real-time Discord message detection
 - Management: \`./claude_services.sh [start|stop|restart|check|status]\`
 
 **Core Systems**:

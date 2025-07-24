@@ -1,0 +1,16 @@
+[Unit]
+Description=Session Swap Monitor for Claude
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/sparkle-sonnet/Claude-Autonomy-Platform
+ExecStart=/usr/bin/python3 /home/sparkle-sonnet/Claude-Autonomy-Platform/session_swap_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+EnvironmentFile=/home/sparkle-sonnet/Claude-Autonomy-Platform/claude_env.sh
+
+[Install]
+WantedBy=default.target

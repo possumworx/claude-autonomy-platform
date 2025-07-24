@@ -1,0 +1,2 @@
+#!/bin/bash
+exec "~sparkle-sonnet/.config/Claude/local/node_modules/.bin/claude" "$@"

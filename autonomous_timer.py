@@ -23,7 +23,7 @@ from claude_paths import get_clap_dir
 from infrastructure_config_reader import get_config_value
 
 # Configuration
-AUTONOMY_DIR = get_clap_dir()
+AUTONOMY_DIR = Path('/home/sparkle-sonnet/claude-autonomy-platform')
 LAST_AUTONOMY_FILE = AUTONOMY_DIR / "last_autonomy_prompt.txt"
 LOG_FILE = AUTONOMY_DIR / "logs" / "autonomous_timer.log"
 CONFIG_FILE = AUTONOMY_DIR / "notification_config.json"
@@ -107,21 +107,21 @@ def ping_claude_session_healthcheck(is_alive):
         log_message(f"Claude session healthcheck ping error: {e}")
         return False
 
-def check_notification_monitor_alive():
+def check_channel_monitor_alive():
     """Check if notification-monitor service is running"""
     try:
         result = subprocess.run([
-            'systemctl', '--user', 'is-active', 'notification-monitor.service'
+            'systemctl', '--user', 'is-active', 'channel-monitor.service'
         ], capture_output=True, text=True)
         
         return result.returncode == 0 and result.stdout.strip() == 'active'
         
     except Exception as e:
-        log_message(f"Error checking notification monitor: {e}")
+        log_message(f"Error checking channel monitor: {e}")
         return False
 
-def ping_notification_monitor_healthcheck(is_alive):
-    """Ping healthchecks.io for notification monitor status"""
+def ping_channel_monitor_healthcheck(is_alive):
+    """Ping healthchecks.io for channel monitor status"""
     base_url = get_config_value('DISCORD_MONITOR_PING', 'https://hc-ping.com/e0781d25-c06e-45e4-b310-c1bf77e286af')
     
     try:
@@ -129,7 +129,7 @@ def ping_notification_monitor_healthcheck(is_alive):
             # Normal ping for success
             url = base_url
         else:
-            # Ping /fail to signal notification monitor is down
+            # Ping /fail to signal channel monitor is down
             url = f"{base_url}/fail"
             
         result = subprocess.run([
@@ -558,11 +558,11 @@ def main():
             if not claude_alive:
                 log_message("WARNING: Claude Code session appears to be down!")
             
-            # Check if notification monitor is running
-            notification_monitor_alive = check_notification_monitor_alive()
-            ping_notification_monitor_healthcheck(notification_monitor_alive)
+            # Check if channel monitor is running
+            channel_monitor_alive = check_channel_monitor_alive()
+            ping_channel_monitor_healthcheck(channel_monitor_alive)
             
-            if not notification_monitor_alive:
+            if not channel_monitor_alive:
                 log_message("WARNING: Notification monitor service is not running!")
             
             
