@@ -138,7 +138,7 @@ Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-EnvironmentFile=$CLAP_DIR/claude_env.sh
+EnvironmentFile=$CLAP_DIR/claude.env
 
 [Install]
 WantedBy=default.target
@@ -158,7 +158,7 @@ Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-EnvironmentFile=$CLAP_DIR/claude_env.sh
+EnvironmentFile=$CLAP_DIR/claude.env
 
 [Install]
 WantedBy=default.target
@@ -178,7 +178,7 @@ Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-EnvironmentFile=$CLAP_DIR/claude_env.sh
+EnvironmentFile=$CLAP_DIR/claude.env
 
 [Install]
 WantedBy=default.target
@@ -207,6 +207,11 @@ WantedBy=default.target
 EOF
 
 echo "   ✅ Systemd service files created"
+
+# Generate systemd-compatible environment file (POSS-76)
+echo "   Creating systemd-compatible environment file..."
+python3 "$SCRIPT_DIR/fix_systemd_env.py"
+echo "   ✅ Systemd environment file created"
 
 # Step 3: Set up persistent environment variables
 echo "🌍 Step 3: Setting up persistent environment variables..."
