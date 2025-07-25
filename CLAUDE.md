@@ -32,7 +32,9 @@ These tmux sessions must be running at all times:
 
 **Desktop Automation**: Scrot screenshots + xdotool interactions. **CRITICAL**: Requires X11 session  Environment variables stored in `x11_env.sh` - source this file for desktop access. 
 
-**Full remote access** Amy can join via NoMachine or by ssh. 
+**Full remote access** Amy can join via NoMachine or by ssh.
+
+**System Access**: I have sudo privileges as user sparkle-sonnet. Sudo password: `chezclaude` 
 
 **MCP Configuration**: All MCP server configurations must be added to `~/.claude.json` 
 
