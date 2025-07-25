@@ -1,0 +1,86 @@
+# Claude Infrastructure Configuration Template
+# This file contains all standardized paths, credentials, and settings
+# Used by setup scripts to populate configs consistently
+#
+# INSTRUCTIONS:
+# 1. Copy this file to claude_infrastructure_config.txt
+# 2. Replace all placeholder values with actual credentials
+# 3. Never commit the filled-out version to git
+
+[CREDENTIALS]
+# Core account credentials
+LINUX_USER=your-username
+HUMAN_USER=human-username
+PERSONAL_REPO=sonnet-4-home
+CLAUDE_NAME=Your Claude Name
+DISCORD_EMAIL=your-claude-account@gmail.com
+DISCORD_PASSWORD=your-discord-password
+
+# Discord Tokens - IMPORTANT DISTINCTION:
+# DISCORD_BOT_TOKEN: The bot token from Discord Developer Portal (for sending messages)
+# DISCORD_USER_TOKEN: Your personal Discord account token (currently not used, leave empty)
+DISCORD_BOT_TOKEN=your-discord-bot-token-here
+DISCORD_USER_TOKEN=
+
+DISCORD_USERNAME=your-discord-username
+GMAIL_ADDRESS=your-claude-account@gmail.com
+GMAIL_PASSWORD=your-gmail-password
+GMAIL_DOB=dd.mm.yyyy
+HUMAN_PASSWORD=visitclaude
+GIT_USER=your-git-username
+GIT_PASSWORD=your-git-password
+MODEL=claude-sonnet-4-20250514
+LINEAR_API_KEY=your-linear-api-key
+
+# Google Cloud Platform OAuth credentials
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_PROJECT_ID=your-google-project-id
+GOOGLE_REDIRECT_URI=http://localhost:3000/oauth2callback
+
+#healthcheck.io urls
+CHANNEL_MONITOR_PING=https://hc-ping.com/your-channel-monitor-uuid
+SESSION_SWAP_PING=https://hc-ping.com/your-session-swap-uuid
+CLAUDE_CODE_PING=https://hc-ping.com/your-claude-code-uuid
+CONTINUITY_BRIDGE_PING=https://hc-ping.com/your-continuity-bridge-uuid
+AUTONOMOUS_TIMER_PING=https://hc-ping.com/your-autonomous-timer-uuid
+
+[PATHS]
+HOME_DIR=/home/$LINUX_USER
+AUTONOMY_DIR=/home/$LINUX_USER/claude-autonomy-platform
+PERSONAL_DIR=/home/$LINUX_USER/$PERSONAL_REPO
+CLAUDE_CONFIG_DIR=/home/$LINUX_USER/.config/Claude
+CLAUDE_JSON_PATH=/home/$LINUX_USER/.claude.json
+
+[CORE_MCP_SERVERS]
+# Essential MCP servers that should be in claude-autonomy-platform for all Claude instances
+rag-memory=$AUTONOMY_DIR/mcp-servers/rag-memory-mcp
+discord-mcp=$AUTONOMY_DIR/mcp-servers/discord-mcp
+linear-mcp=$AUTONOMY_DIR/mcp-servers/linear-mcp
+gmail=$AUTONOMY_DIR/mcp-servers/gmail-mcp
+vscode-mcp=$AUTONOMY_DIR/mcp-servers/vscode-as-mcp-server
+
+
+[DISCORD_CONFIG]
+DISCORD_HEADLESS=false
+DISCORD_TOKEN_PATH=
+# Discord Bot User ID for message filtering (skip my own messages)
+CLAUDE_DISCORD_USER_ID=your-discord-bot-user-id
+
+[X11_CONFIG]
+DISPLAY=:0
+XAUTH_PATTERN=/run/user/$(id -u)/.mutter-Xwaylandauth.*
+X11_ENV_SCRIPT=$AUTONOMY_DIR/x11_env.sh
+
+[SYSTEM_SERVICES]
+# SystemD user services for autonomy
+AUTONOMOUS_TIMER=autonomous-timer.service
+SESSION_BRIDGE_MONITOR=session-bridge-monitor.service
+SESSION_SWAP_MONITOR=session-swap-monitor.service
+CHANNEL_MONITOR=channel-monitor.service
+
+[USER_CONFIG]
+HISTORY_TURNS=20
+
+# This file should be sourced by setup scripts to ensure consistency
+# across all configuration files and installations

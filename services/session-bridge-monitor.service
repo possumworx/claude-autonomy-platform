@@ -1,0 +1,18 @@
+[Unit]
+Description=Session Bridge Monitor for Claude
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/%i/claude-autonomy-platform
+Environment=PATH=/home/%i/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=-/home/%i/claude-autonomy-platform/config/claude_infrastructure_config.txt
+ExecStart=/usr/bin/python3 /home/%i/claude-autonomy-platform/core/session_bridge_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

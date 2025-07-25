@@ -12,6 +12,8 @@ credentials.json
 node_modules/
 npm-debug.log*
 package-lock.json
+mcp-servers/
+
 
 # Temporary files
 *.tmp
@@ -37,10 +39,8 @@ claude_infrastructure_config.txt
 last_autonomy_prompt.txt
 new_session.txt
 
-# MCP servers (external dependencies - should be git submodules)
-discord-mcp/
-linear-mcp/
-rag-memory-mcp/
+# MCP servers directory (cloned during install)
+mcp-servers/
 
 # Personal files
 *_care_log.md

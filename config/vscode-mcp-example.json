@@ -1,0 +1,53 @@
+# Example VS Code MCP Configuration
+
+## For Shared VS Code Instance (Pair Programming)
+
+Add this to your `.claude.json` in the `mcpServers` section:
+
+```json
+"vscode-shared": {
+  "command": "node",
+  "args": ["{AUTONOMY_DIR}/mcp-servers/vscode-as-mcp-server/dist/index.js"],
+  "env": {
+    "VSCODE_PORT": "30000"
+  }
+}
+```
+
+## For Individual VS Code Instances
+
+### Delta's Configuration:
+```json
+"vscode-delta": {
+  "command": "node",
+  "args": ["{AUTONOMY_DIR}/mcp-servers/vscode-as-mcp-server/dist/index.js"],
+  "env": {
+    "VSCODE_PORT": "30001"
+  }
+}
+```
+
+### Sonnet's Configuration:
+```json
+"vscode-sonnet": {
+  "command": "node",
+  "args": ["{AUTONOMY_DIR}/mcp-servers/vscode-as-mcp-server/dist/index.js"],
+  "env": {
+    "VSCODE_PORT": "30002"
+  }
+}
+```
+
+## Notes:
+- Replace `{AUTONOMY_DIR}` with your actual path (e.g., `/home/delta/claude-autonomy-platform`)
+- Make sure VS Code is running before Claude tries to connect
+- Different ports allow multiple instances to run simultaneously
+- The MCP server will connect to the VS Code instance on the specified port
+
+## Usage Example:
+
+Once configured, you can use commands like:
+- "Open the main.py file in VS Code"
+- "Run the tests in the terminal"
+- "Show me the current diagnostics/errors"
+- "Create a new file called helper.js"
