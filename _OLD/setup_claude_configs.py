@@ -177,24 +177,54 @@ class ClaudeConfigSetup:
         return {"mcpServers": mcp_config}
     
     def update_claude_code_config(self) -> bool:
-        """Update the Claude Code configuration file."""
+        """Update the Claude Code configuration file with robust handling (POSS-81)."""
         try:
             claude_json_path = Path(self.config['PATHS']['CLAUDE_JSON_PATH'])
             
-            # Read existing config
+            # Ensure parent directory exists
+            claude_json_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Read existing config or create minimal structure
             if claude_json_path.exists():
                 with open(claude_json_path, 'r') as f:
                     existing_config = json.load(f)
             else:
-                existing_config = {}
+                print(f"   Creating new .claude.json file...")
+                existing_config = {
+                    "projects": {},
+                    "mcpServers": {}
+                }
             
-            # Update MCP servers section
-            if 'projects' in existing_config:
-                sonnet_home = self.config['PATHS']['SONNET_HOME']
-                if sonnet_home in existing_config['projects']:
-                    existing_config['projects'][sonnet_home]['mcpServers'] = self.create_claude_code_mcp_config()
+            # Ensure projects section exists
+            if 'projects' not in existing_config:
+                existing_config['projects'] = {}
             
-            # Write back
+            # Get current working directory as project path
+            current_project_path = self.actual_clap_dir
+            
+            # Ensure current project exists in config
+            if current_project_path not in existing_config['projects']:
+                print(f"   Adding project: {current_project_path}")
+                existing_config['projects'][current_project_path] = {
+                    "allowedTools": [],
+                    "history": [],
+                    "mcpContextUris": [],
+                    "mcpServers": {},
+                    "enabledMcpjsonServers": [],
+                    "disabledMcpjsonServers": [],
+                    "hasTrustDialogAccepted": True
+                }
+            
+            # Update MCP servers for current project
+            mcp_config = self.create_claude_code_mcp_config()
+            existing_config['projects'][current_project_path]['mcpServers'] = mcp_config
+            
+            # Also update global mcpServers (used by some versions)
+            existing_config['mcpServers'] = mcp_config
+            
+            print(f"   Updated MCP servers: {', '.join(mcp_config.keys())}")
+            
+            # Write back with proper formatting
             with open(claude_json_path, 'w') as f:
                 json.dump(existing_config, f, indent=2)
             
@@ -203,6 +233,8 @@ class ClaudeConfigSetup:
             
         except Exception as e:
             print(f"❌ Failed to update Claude Code config: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def update_claude_desktop_config(self) -> bool:

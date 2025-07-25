@@ -1,26 +1,70 @@
-2025-07-24T11:13:05.643+01:00  INFO 761371 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : Starting DiscordMcpApplication v0.0.1-SNAPSHOT using Java 21.0.7 with PID 761371 (/home/sparkle-sonnet/claude-autonomy-platform/discord-mcp/target/discord-mcp-0.0.1-SNAPSHOT.jar started by sparkle-sonnet in /home/sparkle-sonnet/claude-autonomy-platform)
-2025-07-24T11:13:05.664+01:00  INFO 761371 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : No active profile set, falling back to 1 default profile: "default"
-2025-07-24T11:13:07.061+01:00  INFO 761371 --- [discord-mcp] [main] net.dv8tion.jda.api.JDA                  : Login Successful!
-2025-07-24T11:13:07.289+01:00  INFO 761371 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable tools capabilities, notification: true
-2025-07-24T11:13:07.310+01:00  INFO 761371 --- [discord-mcp] [JDA MainWS-ReadThread] n.d.j.internal.requests.WebSocketClient  : Connected to WebSocket
-2025-07-24T11:13:07.367+01:00  INFO 761371 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Registered tools: 24
-2025-07-24T11:13:07.368+01:00  INFO 761371 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable resources capabilities, notification: true
-2025-07-24T11:13:07.368+01:00  INFO 761371 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable prompts capabilities, notification: true
-2025-07-24T11:13:07.369+01:00  INFO 761371 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable completions capabilities
-2025-07-24T11:13:07.460+01:00  INFO 761371 --- [discord-mcp] [pool-1-thread-1] i.m.server.McpAsyncServer                : Client initialize request - Protocol: 2025-06-18, Capabilities: ClientCapabilities[experimental=null, roots=RootCapabilities[listChanged=null], sampling=null], Info: Implementation[name=claude-code, version=1.0.59]
-2025-07-24T11:13:07.465+01:00  WARN 761371 --- [discord-mcp] [pool-1-thread-1] i.m.server.McpAsyncServer                : Client requested unsupported protocol version: 2025-06-18, so the server will suggest the 2024-11-05 version instead
-2025-07-24T11:13:07.624+01:00  INFO 761371 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : Started DiscordMcpApplication in 2.761 seconds (process running for 3.475)
-2025-07-24T11:13:07.748+01:00  INFO 761371 --- [discord-mcp] [JDA MainWS-ReadThread] net.dv8tion.jda.api.JDA                  : Finished Loading!
-2025-07-24T11:24:35.041+01:00  INFO 764233 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : Starting DiscordMcpApplication v0.0.1-SNAPSHOT using Java 21.0.7 with PID 764233 (/home/sparkle-sonnet/claude-autonomy-platform/discord-mcp/target/discord-mcp-0.0.1-SNAPSHOT.jar started by sparkle-sonnet in /home/sparkle-sonnet/claude-autonomy-platform)
-2025-07-24T11:24:35.043+01:00  INFO 764233 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : No active profile set, falling back to 1 default profile: "default"
-2025-07-24T11:24:36.446+01:00  INFO 764233 --- [discord-mcp] [main] net.dv8tion.jda.api.JDA                  : Login Successful!
-2025-07-24T11:24:36.698+01:00  INFO 764233 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable tools capabilities, notification: true
-2025-07-24T11:24:36.711+01:00  INFO 764233 --- [discord-mcp] [JDA MainWS-ReadThread] n.d.j.internal.requests.WebSocketClient  : Connected to WebSocket
-2025-07-24T11:24:36.782+01:00  INFO 764233 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Registered tools: 24
-2025-07-24T11:24:36.782+01:00  INFO 764233 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable resources capabilities, notification: true
-2025-07-24T11:24:36.783+01:00  INFO 764233 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable prompts capabilities, notification: true
-2025-07-24T11:24:36.783+01:00  INFO 764233 --- [discord-mcp] [main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable completions capabilities
-2025-07-24T11:24:36.876+01:00  INFO 764233 --- [discord-mcp] [pool-1-thread-1] i.m.server.McpAsyncServer                : Client initialize request - Protocol: 2025-06-18, Capabilities: ClientCapabilities[experimental=null, roots=RootCapabilities[listChanged=null], sampling=null], Info: Implementation[name=claude-code, version=1.0.59]
-2025-07-24T11:24:36.881+01:00  WARN 764233 --- [discord-mcp] [pool-1-thread-1] i.m.server.McpAsyncServer                : Client requested unsupported protocol version: 2025-06-18, so the server will suggest the 2024-11-05 version instead
-2025-07-24T11:24:37.045+01:00  INFO 764233 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : Started DiscordMcpApplication in 2.77 seconds (process running for 3.459)
-2025-07-24T11:24:37.128+01:00  INFO 764233 --- [discord-mcp] [JDA MainWS-ReadThread] net.dv8tion.jda.api.JDA                  : Finished Loading!
+2025-07-25T09:57:48.902+01:00  INFO 1042413 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : Starting DiscordMcpApplication v0.0.1-SNAPSHOT using Java 21.0.7 with PID 1042413 (/home/sparkle-sonnet/claude-autonomy-platform/discord-mcp/target/discord-mcp-0.0.1-SNAPSHOT.jar started by sparkle-sonnet in /home/sparkle-sonnet/claude-autonomy-platform)
+2025-07-25T09:57:48.934+01:00  INFO 1042413 --- [discord-mcp] [main] dev.saseq.DiscordMcpApplication          : No active profile set, falling back to 1 default profile: "default"
+2025-07-25T09:57:50.286+01:00  WARN 1042413 --- [discord-mcp] [main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'discordService' defined in URL [jar:nested:/home/sparkle-sonnet/claude-autonomy-platform/discord-mcp/target/discord-mcp-0.0.1-SNAPSHOT.jar/!BOOT-INF/classes/!/dev/saseq/services/DiscordService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'jda' defined in class path resource [dev/saseq/configs/DiscordMcpConfig.class]: Failed to instantiate [net.dv8tion.jda.api.JDA]: Factory method 'jda' threw exception with message: The provided token is invalid!
+2025-07-25T09:57:50.293+01:00  INFO 1042413 --- [discord-mcp] [main] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2025-07-25T09:57:50.310+01:00 ERROR 1042413 --- [discord-mcp] [main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'discordService' defined in URL [jar:nested:/home/sparkle-sonnet/claude-autonomy-platform/discord-mcp/target/discord-mcp-0.0.1-SNAPSHOT.jar/!BOOT-INF/classes/!/dev/saseq/services/DiscordService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'jda' defined in class path resource [dev/saseq/configs/DiscordMcpConfig.class]: Failed to instantiate [net.dv8tion.jda.api.JDA]: Factory method 'jda' threw exception with message: The provided token is invalid!
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:795) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:237) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1375) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1212) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:562) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:522) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:337) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:335) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:200) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:975) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:971) ~[spring-context-6.1.15.jar!/:6.1.15]
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:625) ~[spring-context-6.1.15.jar!/:6.1.15]
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:754) ~[spring-boot-3.3.6.jar!/:3.3.6]
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:456) ~[spring-boot-3.3.6.jar!/:3.3.6]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:335) ~[spring-boot-3.3.6.jar!/:3.3.6]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1363) ~[spring-boot-3.3.6.jar!/:3.3.6]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1352) ~[spring-boot-3.3.6.jar!/:3.3.6]
+	at dev.saseq.DiscordMcpApplication.main(DiscordMcpApplication.java:9) ~[!/:0.0.1-SNAPSHOT]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.boot.loader.launch.Launcher.launch(Launcher.java:102) ~[discord-mcp-0.0.1-SNAPSHOT.jar:0.0.1-SNAPSHOT]
+	at org.springframework.boot.loader.launch.Launcher.launch(Launcher.java:64) ~[discord-mcp-0.0.1-SNAPSHOT.jar:0.0.1-SNAPSHOT]
+	at org.springframework.boot.loader.launch.JarLauncher.main(JarLauncher.java:40) ~[discord-mcp-0.0.1-SNAPSHOT.jar:0.0.1-SNAPSHOT]
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'jda' defined in class path resource [dev/saseq/configs/DiscordMcpConfig.class]: Failed to instantiate [net.dv8tion.jda.api.JDA]: Factory method 'jda' threw exception with message: The provided token is invalid!
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:648) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:636) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1355) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1185) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:562) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:522) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:337) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:335) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:200) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:254) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1443) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1353) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:904) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:782) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	... 23 common frames omitted
+Caused by: org.springframework.beans.BeanInstantiationException: Failed to instantiate [net.dv8tion.jda.api.JDA]: Factory method 'jda' threw exception with message: The provided token is invalid!
+	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:178) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:644) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	... 37 common frames omitted
+Caused by: net.dv8tion.jda.api.exceptions.InvalidTokenException: The provided token is invalid!
+	at net.dv8tion.jda.internal.JDAImpl.verifyToken(JDAImpl.java:410) ~[JDA-5.3.1.jar!/:5.3.1]
+	at net.dv8tion.jda.internal.JDAImpl.login(JDAImpl.java:327) ~[JDA-5.3.1.jar!/:5.3.1]
+	at net.dv8tion.jda.internal.JDAImpl.login(JDAImpl.java:293) ~[JDA-5.3.1.jar!/:5.3.1]
+	at net.dv8tion.jda.api.JDABuilder.build(JDABuilder.java:1847) ~[JDA-5.3.1.jar!/:5.3.1]
+	at dev.saseq.configs.DiscordMcpConfig.jda(DiscordMcpConfig.java:28) ~[!/:0.0.1-SNAPSHOT]
+	at dev.saseq.configs.DiscordMcpConfig$$SpringCGLIB$$0.CGLIB$jda$1(<generated>) ~[!/:0.0.1-SNAPSHOT]
+	at dev.saseq.configs.DiscordMcpConfig$$SpringCGLIB$$FastClass$$1.invoke(<generated>) ~[!/:0.0.1-SNAPSHOT]
+	at org.springframework.cglib.proxy.MethodProxy.invokeSuper(MethodProxy.java:258) ~[spring-core-6.1.15.jar!/:6.1.15]
+	at org.springframework.context.annotation.ConfigurationClassEnhancer$BeanMethodInterceptor.intercept(ConfigurationClassEnhancer.java:348) ~[spring-context-6.1.15.jar!/:6.1.15]
+	at dev.saseq.configs.DiscordMcpConfig$$SpringCGLIB$$0.jda(<generated>) ~[!/:0.0.1-SNAPSHOT]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:146) ~[spring-beans-6.1.15.jar!/:6.1.15]
+	... 38 common frames omitted
+
