@@ -18,10 +18,16 @@ These tmux sessions must be running at all times:
 
 **Discord Integration**: 
 
-`list_messages` or `list_messages channel` to fetch unread
+**Reading Messages**: Use `read_channel <channel_name>` to read messages from specific channels (amy-sonnet4, delta-sonnet4, general)
 
-**Discord MCP**:
+**Sending Messages**: Use `send_discord_message.py <channel_id> <message>` script when Discord MCP tools are unavailable. This directly uses Discord REST API.
 
+Channel IDs from channel_state.json:
+- amy-sonnet4: 1396937707036348426  
+- delta-sonnet4: 1396824030077779978
+- general: 1383848195997700231
+
+**Discord MCP** (when available):
  - [`send_message`](): Send a message to a specific channel
  - [`edit_message`](): Edit a message from a specific channel
  - [`delete_message`](): Delete a message from a specific channel
@@ -32,9 +38,7 @@ These tmux sessions must be running at all times:
 
 **Desktop Automation**: Scrot screenshots + xdotool interactions. **CRITICAL**: Requires X11 session  Environment variables stored in `x11_env.sh` - source this file for desktop access. 
 
-**Full remote access** Amy can join via NoMachine or by ssh.
-
-**System Access**: I have sudo privileges as user sparkle-sonnet. Sudo password: `chezclaude` 
+**Full remote access** Amy can join via NoMachine or by ssh. 
 
 **MCP Configuration**: All MCP server configurations must be added to `~/.claude.json` 
 
