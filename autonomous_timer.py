@@ -414,6 +414,7 @@ Current time: {current_time}
 {context_line}
 
 This is your autonomous free time period. Feel free to:
+- Check Linear for creative projects and tasks to work on
 - Work on any ongoing projects that interest you
 - Explore creative ideas or experiments  
 - Update documentation or reflect on recent experiences
