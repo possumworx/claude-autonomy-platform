@@ -53,15 +53,49 @@ class ClaudeConfigSetup:
                     key, value = line.split('=', 1)
                     # Substitute variables
                     value = value.strip()
+                    # First, substitute basic environment variables
                     value = value.replace('$LINUX_USER', self.actual_user)
                     value = value.replace('$HOME', self.actual_home)
                     value = value.replace('$AUTONOMY_DIR', self.actual_clap_dir)
                     value = value.replace('$(whoami)', self.actual_user)
                     value = value.replace('$(id -u)', str(os.getuid()))
                     
+                    # Then substitute config-derived variables (after they're available)
+                    # Need to do this in a second pass after the config is parsed
+                    
                     config[current_section][key.strip()] = value
+        
+        # Second pass: substitute config-derived variables
+        self._substitute_config_variables(config)
                     
         return config
+    
+    def _substitute_config_variables(self, config: Dict[str, Dict[str, str]]):
+        """Second pass variable substitution for config-derived variables."""
+        # Get values from config sections
+        credentials = config.get('CREDENTIALS', {})
+        paths = config.get('PATHS', {})
+        
+        # Create substitution mapping
+        substitutions = {}
+        
+        # Add all credential variables
+        for key, value in credentials.items():
+            substitutions[f"${key}"] = value
+            
+        # Add all path variables  
+        for key, value in paths.items():
+            substitutions[f"${key}"] = value
+        
+        # Apply substitutions to all sections
+        for section_name, section in config.items():
+            for key, value in section.items():
+                original_value = value
+                for var, replacement in substitutions.items():
+                    value = value.replace(var, replacement)
+                # Update if changed
+                if value != original_value:
+                    config[section_name][key] = value
     
     def get_dynamic_xauth(self) -> str:
         """Get the current X11 authority file path."""
@@ -111,15 +145,13 @@ class ClaudeConfigSetup:
         # Computer Use - removed, use direct bash tools instead
         # Desktop automation now handled by direct shell scripts
         
-        # External servers (if configured)
-        external_servers = self.config.get('EXTERNAL_MCP_SERVERS', {})
-        
-        # Gmail (using npm package)
-        if 'gmail' in external_servers:
+        # Gmail (check both core and external servers)
+        gmail_path = core_servers.get('gmail') or self.config.get('EXTERNAL_MCP_SERVERS', {}).get('gmail')
+        if gmail_path:
             mcp_config['gmail'] = {
                 "type": "stdio",
-                "command": "node",
-                "args": [f"{external_servers['gmail']}/dist/index.js"],
+                "command": "npx",
+                "args": ["@gongrzhe/server-gmail-autoauth-mcp"],
                 "env": {}
             }
         
@@ -163,14 +195,12 @@ class ClaudeConfigSetup:
         # Computer Use - removed, use direct bash tools instead
         # Desktop automation now handled by direct shell scripts
         
-        # External servers
-        external_servers = self.config.get('EXTERNAL_MCP_SERVERS', {})
-        
-        # Gmail (using npm package)
-        if 'gmail' in external_servers:
+        # Gmail (check both core and external servers)
+        gmail_path = core_servers.get('gmail') or self.config.get('EXTERNAL_MCP_SERVERS', {}).get('gmail')
+        if gmail_path:
             mcp_config['gmail'] = {
-                "command": "node",
-                "args": [f"{external_servers['gmail']}/dist/index.js"]
+                "command": "npx",
+                "args": ["@gongrzhe/server-gmail-autoauth-mcp"]
             }
         
         return {"mcpServers": mcp_config}
