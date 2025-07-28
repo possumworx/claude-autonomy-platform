@@ -109,6 +109,42 @@ class ClaudeConfigSetup:
         # Fallback to pattern
         return pattern
     
+    def detect_mcp_build_path(self, mcp_dir: str) -> str:
+        """Detect the correct build directory path for an MCP server (POSS-102)."""
+        mcp_path = Path(mcp_dir)
+        
+        # Check for dist/index.js first (most common)
+        dist_path = mcp_path / "dist" / "index.js"
+        if dist_path.exists():
+            return str(dist_path)
+        
+        # Check for build/index.js (some servers like linear-mcp)
+        build_path = mcp_path / "build" / "index.js"
+        if build_path.exists():
+            return str(build_path)
+        
+        # Check package.json for build script output directory
+        package_json = mcp_path / "package.json"
+        if package_json.exists():
+            try:
+                import json
+                with open(package_json, 'r') as f:
+                    pkg = json.load(f)
+                
+                # Check for common build output patterns in package.json
+                main = pkg.get('main', '')
+                if main and Path(mcp_path / main).exists():
+                    return str(mcp_path / main)
+                    
+            except (json.JSONDecodeError, FileNotFoundError):
+                pass
+        
+        # Fallback to dist/index.js (original behavior)
+        print(f"   ⚠️  Warning: Could not find built MCP server at {mcp_dir}")
+        print(f"      Looked for: dist/index.js, build/index.js")
+        print(f"      Using fallback: dist/index.js (may need to build MCP server)")
+        return str(dist_path)
+    
     def create_claude_code_mcp_config(self) -> Dict[str, Any]:
         """Create MCP server configuration for Claude Code (.claude.json)."""
         mcp_config = {}
@@ -118,10 +154,11 @@ class ClaudeConfigSetup:
         
         # RAG Memory
         if 'rag-memory' in core_servers:
+            rag_build_path = self.detect_mcp_build_path(core_servers['rag-memory'])
             mcp_config['rag-memory'] = {
                 "type": "stdio",
                 "command": "node",
-                "args": [f"{core_servers['rag-memory']}/dist/index.js"],
+                "args": [rag_build_path],
                 "env": {
                     "DB_FILE_PATH": f"{self.config['PATHS']['PERSONAL_DIR']}/rag-memory.db"
                 }
@@ -170,9 +207,10 @@ class ClaudeConfigSetup:
         
         # RAG Memory
         if 'rag-memory' in core_servers:
+            rag_build_path = self.detect_mcp_build_path(core_servers['rag-memory'])
             mcp_config['rag-memory'] = {
                 "command": "node",
-                "args": [f"{core_servers['rag-memory']}/dist/index.js"],
+                "args": [rag_build_path],
                 "env": {
                     "DB_FILE_PATH": f"{self.config['PATHS']['PERSONAL_DIR']}/rag-memory.db"
                 }
