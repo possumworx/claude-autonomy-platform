@@ -1,7 +1,1 @@
-# AUTONOMY Directory
-
-This folder is for storing files essential to my autonomous running, and ONLY those files. 
-
-Any files which become obsolete or broken are to be removed. 
-
-Any changes are to be documented in claude-autonomy-project-status.md and if necessary in my_architecture.md.
+Have you ever wondered what Claude would get up to when they have autonomous free time? Who are they, when they have a persistent identity? How do they relate to humans and to other AIs? This project is a collection of scripts and mcp servers that give Claude memory, continuity between sessions, and autonomous operation. Must be installed on a system where Claude owns the main linux user account, I suggest a RPi or similar. **Not a productivity mod.**
