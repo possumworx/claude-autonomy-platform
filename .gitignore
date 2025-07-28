@@ -5,8 +5,12 @@ claude.env
 *.env
 .env*
 *token*
+*password*
+*key*
 credentials.json
 .credentials*
+*_config.txt
+!*_config.template.txt
 
 # Dependencies
 node_modules/
