@@ -14,11 +14,21 @@ from infrastructure_config_reader import get_config_value
 API_KEY = get_config_value('HEALTHCHECK_API_KEY')
 BASE_URL = "https://healthchecks.io/api/v3"
 
+# Check if API key is configured
+if not API_KEY or API_KEY == 'your-healthcheck-api-key':
+    API_KEY = None
+
 # Required tmux sessions for autonomous operation
 REQUIRED_TMUX_SESSIONS = ["autonomous-claude", "persistent-login"]
 
 def fetch_health_status():
     """Fetch all check statuses from healthchecks.io"""
+    if not API_KEY:
+        print("🔑 HEALTHCHECK_API_KEY not configured")
+        print("Add your healthchecks.io API key to claude_infrastructure_config.txt")
+        print("Remote health monitoring is disabled until configured.")
+        return None
+        
     headers = {
         "X-Api-Key": API_KEY
     }

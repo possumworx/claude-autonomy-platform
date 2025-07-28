@@ -328,11 +328,15 @@ EOF
     else
         echo "   🔐 Gmail OAuth authentication required..."
         echo ""
+        
+        # Generate OAuth URL using the new integration script
+        OAUTH_URL=$(python3 "$CLAP_DIR/gmail_oauth_integration.py" generate-url | grep "https://accounts.google.com" | sed 's/^   //')
+        
         echo "   📋 To complete Gmail MCP setup:"
         echo "   1. Open this URL in your browser:"
-        echo "      https://accounts.google.com/o/oauth2/auth?client_id=$GOOGLE_CLIENT_ID&redirect_uri=http://localhost:3000/oauth2callback&scope=https://www.googleapis.com/auth/gmail.readonly%20https://www.googleapis.com/auth/gmail.send&response_type=code&access_type=offline"
+        echo "      $OAUTH_URL"
         echo ""
-        echo "   2. Grant permissions and copy the authorization code from the callback URL"
+        echo "   2. Grant Gmail permissions and copy the authorization code"
         echo "   3. The callback URL will look like: http://localhost:3000/oauth2callback?code=YOUR_CODE_HERE"
         echo ""
         
@@ -342,16 +346,17 @@ EOF
         
         if [[ -n "$AUTH_CODE" ]]; then
             echo "   🔄 Exchanging authorization code for tokens..."
-            if node "$CLAP_DIR/exchange_gmail_oauth.js" "$AUTH_CODE"; then
+            if python3 "$CLAP_DIR/gmail_oauth_integration.py" exchange "$AUTH_CODE"; then
                 echo "   ✅ Gmail OAuth authentication completed successfully!"
             else
                 echo "   ⚠️  OAuth token exchange failed. You can complete this later with:"
-                echo "      node $CLAP_DIR/exchange_gmail_oauth.js \"YOUR_AUTH_CODE\""
+                echo "      python3 $CLAP_DIR/gmail_oauth_integration.py exchange \"YOUR_AUTH_CODE\""
             fi
         else
             echo "   ⏭️  Skipping Gmail OAuth setup. To complete later:"
-            echo "      1. Follow the URL above to get authorization code"
-            echo "      2. Run: node $CLAP_DIR/exchange_gmail_oauth.js \"YOUR_AUTH_CODE\""
+            echo "      1. Run: python3 $CLAP_DIR/gmail_oauth_integration.py generate-url"
+            echo "      2. Follow the URL and get authorization code"
+            echo "      3. Run: python3 $CLAP_DIR/gmail_oauth_integration.py exchange \"YOUR_AUTH_CODE\""
         fi
     fi
 else

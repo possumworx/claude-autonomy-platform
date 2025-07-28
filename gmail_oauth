@@ -1,0 +1,8 @@
+#!/bin/bash
+# Gmail OAuth Helper for ClAP
+# Convenient wrapper around gmail_oauth_integration.py
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Simple wrapper to the Python OAuth integration script
+python3 "$SCRIPT_DIR/gmail_oauth_integration.py" "$@"
