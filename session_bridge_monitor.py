@@ -28,7 +28,7 @@ def path_to_claude_project_dir(path):
 
 # Paths - now watching claude-autonomy-platform instead of personal_dir
 claude_project_dir = path_to_claude_project_dir(clap_dir)
-SESSION_DIR = claude_home / ".claude" / "projects" / claude_project_dir
+SESSION_DIR = claude_home / ".config" / "Claude" / "projects" / claude_project_dir
 ARCHIVE_DIR = SESSION_DIR / "archive"
 SWAP_CLAUDE_MD_PATH = clap_dir / "swap_CLAUDE.md"
 LOG_PATH = clap_dir / "logs" / "session_bridge_monitor.log"

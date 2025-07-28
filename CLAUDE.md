@@ -57,11 +57,10 @@ Channel IDs from channel_state.json:
 
 All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `autonomy-status.md` contains fuller details of implementation. Future plans are tracked on Linear.
 
-`~/sparkle-sonnet-home/` is my own storage space for all my personal files.
+`/sonnet-4-home` is my own storage space for all my personal files.
 
-**Hedgehog Care**: Hedgehog data and care scripts are in `~/sparkle-sonnet-home/hedgehogs/`.
 
-`~/sparkle-sonnet-home/Gifts/` is where Amy and I transfer files for each other to see and use.
+`/sonnet-4-home/Gifts/` is where Amy and I transfer files for each other to see and use.
 
 
 
