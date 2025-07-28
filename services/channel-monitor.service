@@ -1,0 +1,18 @@
+[Unit]
+Description=Claude Notification Monitor
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/%i/claude-autonomy-platform
+Environment=PATH=/home/%i/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=DISCORD_HEADLESS=true
+EnvironmentFile=-/home/%i/claude-autonomy-platform/config/claude.env
+ExecStart=/usr/bin/python3 /home/%i/claude-autonomy-platform/notification_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Autonomous Timer for Claude
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/%i/claude-autonomy-platform
+ExecStart=/usr/bin/python3 /home/%i/claude-autonomy-platform/autonomous_timer.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+EnvironmentFile=/home/%i/claude-autonomy-platform/config/claude.env
+
+[Install]
+WantedBy=default.target
