@@ -10,7 +10,8 @@ import subprocess
 from datetime import datetime
 
 # API configuration
-API_KEY = "hcr_icPvO9biFPnjkZfI8PgDNy16zlIV"
+from infrastructure_config_reader import get_config_value
+API_KEY = get_config_value('HEALTHCHECK_API_KEY')
 BASE_URL = "https://healthchecks.io/api/v3"
 
 # Required tmux sessions for autonomous operation

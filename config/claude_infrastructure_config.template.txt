@@ -25,6 +25,7 @@ GIT_USER=your-git-username
 GIT_PASSWORD=your-git-password
 MODEL=claude-sonnet-4-20250514
 LINEAR_API_KEY=your-linear-api-key
+HEALTHCHECK_API_KEY=your-healthcheck-api-key
 
 # Google Cloud Platform OAuth credentials
 GOOGLE_CLIENT_ID=your-google-client-id
