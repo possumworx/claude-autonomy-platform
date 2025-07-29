@@ -37,7 +37,7 @@ Channel IDs from channel_state.json:
 
 **Full remote access** Amy can join via NoMachine or by ssh. 
 
-**MCP Configuration**: All MCP server configurations must be added to `~/.claude.json` 
+**MCP Configuration**: All MCP server configurations must be added to `~/.config/Claude/.claude.json` (CRITICAL: This is the actual file Claude Code uses, NOT the copy in claude-autonomy-platform/) 
 
 **GitHub Research**: I always replace `github.com` with `uithub.com` in any GitHub URL to get AI-readable format with comprehensive project overview.
 

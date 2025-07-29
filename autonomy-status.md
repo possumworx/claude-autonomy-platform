@@ -58,9 +58,14 @@ tmux attach -t sparkle-sonnet      # Connect to persistent environment session
 
 **Configuration Updates**:
 ```bash
-./setup_claude_configs.py    # Update MCP configurations
+./setup_claude_configs.py    # Update MCP configurations (writes to ~/.config/Claude/.claude.json)
 source ./claude_env.sh       # Refresh environment variables
 ```
+
+**CRITICAL MCP Configuration Note**: 
+- The active MCP configuration file is `~/.config/Claude/.claude.json`
+- The copy in `claude-autonomy-platform/` is NOT used by Claude Code
+- Always edit the correct file location to avoid debugging wrong configurations
 
 ## Personalization Notes
 
