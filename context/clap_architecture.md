@@ -132,6 +132,10 @@ Tracked in Linear.
 2. **Self-notifications**: Ensure CLAUDE_DISCORD_USER_ID is set in infrastructure config
 3. **Can't read channels**: Verify `read_channel` is in PATH and Discord token is valid
 4. **Gmail MCP "invalid_grant" errors**: OAuth tokens have expired. Use `node exchange_gmail_oauth.cjs "AUTH_CODE"` with fresh authorization code from OAuth flow. Requires Claude Code session restart after token refresh.
+5. **Config file confusion**: Run `check_health` to see config file locations and last modified times. Check for deprecated configs in old locations.
+6. **MCP servers not working**: Verify editing correct config at `~/.config/Claude/.claude.json` (NOT `~/.claude.json`)
+7. **Session files not found**: Ensure Claude Code started from `~/claude-autonomy-platform` directory
+8. **Accidental secrets in git**: Pre-commit hooks now check for credentials. Use `secret-scanner scan` to check existing files.
 
 ### Log Locations:
 - `/home/[user]/claude-autonomy-platform/logs/autonomous_timer.log`

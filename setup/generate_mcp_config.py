@@ -6,6 +6,7 @@ Creates mcp_servers_config.json that can be inserted into .claude.json or claude
 
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Dict, Any
 
@@ -53,6 +54,37 @@ def load_infrastructure_config() -> Dict[str, Dict[str, str]]:
     
     return config
 
+def substitute_variables(value: str, config: Dict[str, Dict[str, str]], current_user: str, home: Path, clap_dir: Path) -> str:
+    """Substitute variables in config values"""
+    if not isinstance(value, str):
+        return value
+    
+    # Get credentials for substitution
+    credentials = config.get('CREDENTIALS', {})
+    
+    # Define all available substitutions
+    substitutions = {
+        '$LINUX_USER': current_user,
+        '$HOME': str(home),
+        '$HOME_DIR': str(home),
+        '$CLAP_DIR': str(clap_dir),
+        '$AUTONOMY_DIR': str(clap_dir),
+        '$PERSONAL_REPO': credentials.get('PERSONAL_REPO', 'claude-home'),
+        '$PERSONAL_DIR': str(home / credentials.get('PERSONAL_REPO', 'claude-home')),
+    }
+    
+    # Also allow ${VAR} style
+    for key, val in substitutions.items():
+        value = value.replace(key, val)
+        value = value.replace(f'${{{key[1:]}}}', val)  # ${VAR} style
+    
+    # Handle any remaining $VARIABLE from credentials
+    for key, val in credentials.items():
+        value = value.replace(f'${key}', val)
+        value = value.replace(f'${{{key}}}', val)
+    
+    return value
+
 def generate_mcp_servers_config() -> Dict[str, Any]:
     """Generate the mcpServers configuration object"""
     
@@ -62,7 +94,15 @@ def generate_mcp_servers_config() -> Dict[str, Any]:
     # Get user and paths
     current_user = os.environ.get('USER', config.get('CREDENTIALS', {}).get('LINUX_USER', 'claude'))
     home = Path.home()
-    clap_dir = Path(config.get('PATHS', {}).get('AUTONOMY_DIR', home / 'claude-autonomy-platform'))
+    
+    # Get CLAP directory with proper substitution
+    autonomy_dir_raw = config.get('PATHS', {}).get('AUTONOMY_DIR', f'{home}/claude-autonomy-platform')
+    clap_dir = Path(substitute_variables(autonomy_dir_raw, config, current_user, home, home / 'claude-autonomy-platform'))
+    
+    # Validate CLAP directory exists
+    if not clap_dir.exists():
+        print(f"⚠️  Warning: CLAP directory not found at {clap_dir}")
+        print(f"   Raw config value: {autonomy_dir_raw}")
     
     mcp_servers = {}
     
@@ -71,25 +111,38 @@ def generate_mcp_servers_config() -> Dict[str, Any]:
     
     # RAG Memory MCP
     if 'rag-memory' in core_servers:
-        rag_path = core_servers['rag-memory'].replace('$AUTONOMY_DIR', str(clap_dir))
+        rag_path = substitute_variables(core_servers['rag-memory'], config, current_user, home, clap_dir)
+        personal_repo = config.get('CREDENTIALS', {}).get('PERSONAL_REPO', 'claude-home')
+        rag_index = Path(rag_path) / "dist" / "index.js"
+        
+        if not rag_index.exists():
+            print(f"⚠️  Warning: RAG Memory MCP not found at {rag_index}")
+            print(f"   You may need to build it first")
+        
         mcp_servers['rag-memory'] = {
             "type": "stdio",
             "command": "node",
-            "args": [f"{rag_path}/dist/index.js"],
+            "args": [str(rag_index)],
             "env": {
-                "DB_FILE_PATH": f"{home}/{config.get('CREDENTIALS', {}).get('PERSONAL_REPO', 'claude-home')}/rag-memory.db"
+                "DB_FILE_PATH": f"{home}/{personal_repo}/rag-memory.db"
             }
         }
     
     # Discord MCP (Java)
     if 'discord-mcp' in core_servers:
-        discord_path = core_servers['discord-mcp'].replace('$AUTONOMY_DIR', str(clap_dir))
+        discord_path = substitute_variables(core_servers['discord-mcp'], config, current_user, home, clap_dir)
+        discord_jar = Path(discord_path) / "target" / "discord-mcp-0.0.1-SNAPSHOT.jar"
+        
+        if not discord_jar.exists():
+            print(f"⚠️  Warning: Discord MCP JAR not found at {discord_jar}")
+            print(f"   You may need to build it first")
+        
         mcp_servers['discord'] = {
             "type": "stdio",
             "command": "java",
             "args": [
                 "-jar",
-                f"{discord_path}/target/discord-mcp-0.0.1-SNAPSHOT.jar"
+                str(discord_jar)
             ],
             "env": {
                 "DISCORD_TOKEN": config.get('CREDENTIALS', {}).get('DISCORD_BOT_TOKEN', ''),
@@ -99,11 +152,18 @@ def generate_mcp_servers_config() -> Dict[str, Any]:
     
     # Linear MCP
     if 'linear-mcp' in core_servers:
-        linear_path = core_servers['linear-mcp'].replace('$AUTONOMY_DIR', str(clap_dir))
+        linear_path = substitute_variables(core_servers['linear-mcp'], config, current_user, home, clap_dir)
+        # Check if build or dist directory exists
+        linear_base = Path(linear_path)
+        if (linear_base / "build" / "index.js").exists():
+            linear_index = f"{linear_path}/build/index.js"
+        else:
+            linear_index = f"{linear_path}/dist/index.js"
+        
         mcp_servers['linear'] = {
             "type": "stdio",
             "command": "node",
-            "args": [f"{linear_path}/dist/index.js"],
+            "args": [linear_index],
             "env": {
                 "LINEAR_API_KEY": config.get('CREDENTIALS', {}).get('LINEAR_API_KEY', '')
             }
@@ -111,7 +171,7 @@ def generate_mcp_servers_config() -> Dict[str, Any]:
     
     # Gmail MCP
     if 'gmail' in core_servers:
-        gmail_path = core_servers['gmail'].replace('$AUTONOMY_DIR', str(clap_dir))
+        gmail_path = substitute_variables(core_servers['gmail'], config, current_user, home, clap_dir)
         mcp_servers['gmail'] = {
             "type": "stdio",
             "command": "node",
@@ -153,6 +213,18 @@ def main():
             json.dump(mcp_config, f, indent=2)
         
         print(f"✅ Generated MCP servers configuration: {output_file}")
+        
+        # Debug: Show some example paths to verify substitution
+        if '--debug' in sys.argv:
+            print("\n🔍 Debug - Variable substitution check:")
+            test_config = config.get('CREDENTIALS', {})
+            if 'LINUX_USER' in test_config:
+                print(f"   LINUX_USER in config: {test_config['LINUX_USER']}")
+                print(f"   Actual current user: {current_user}")
+            if 'rag-memory' in mcp_config:
+                print(f"   RAG Memory path: {mcp_config['rag-memory']['args'][0]}")
+                print(f"   RAG Memory DB: {mcp_config['rag-memory']['env']['DB_FILE_PATH']}")
+        
         print("\n📋 Configuration includes:")
         for server in mcp_config:
             print(f"   - {server}")

@@ -47,7 +47,25 @@ CONFIG_DIR="$CLAP_DIR/config"
 
 echo "📁 ClAP Directory: $CLAP_DIR"
 
-# Step 0: Import configuration file if specified
+# Step 0a: Ensure all scripts are executable (POSS-92)
+echo "🔧 Step 0a: Ensuring all scripts have executable permissions..."
+
+# Fix permissions on all shell scripts as a fallback for git permission issues
+find "$CLAP_DIR" -name "*.sh" -type f -exec chmod +x {} \;
+chmod +x "$CLAP_DIR/utils/check_health" 2>/dev/null || true
+chmod +x "$CLAP_DIR/discord/read_channel" 2>/dev/null || true
+
+# Make Python scripts with shebang executable
+for file in $(find "$CLAP_DIR" -name "*.py" -type f); do
+    if head -n 1 "$file" | grep -q "^#!/usr/bin/env python3"; then
+        chmod +x "$file"
+    fi
+done 2>/dev/null || true
+
+echo "   ✅ Script permissions fixed"
+echo ""
+
+# Step 0b: Import configuration file if specified
 if [[ -n "$CONFIG_SOURCE" ]]; then
     echo "📋 Step 0: Importing configuration file..."
     
@@ -175,11 +193,16 @@ fi
 echo "📦 Step 4: Installing dependencies..."
 cd "$CLAP_DIR"
 
-# Install npm dependencies if package.json exists
+# Install npm dependencies if package.json exists and has dependencies
 if [[ -f "package.json" ]]; then
-    echo "   Installing npm dependencies..."
-    npm install
-    echo "   ✅ npm dependencies installed"
+    # Check if there are any dependencies to install
+    if grep -q '"dependencies"' package.json || grep -q '"devDependencies"' package.json; then
+        echo "   Installing npm dependencies..."
+        npm install
+        echo "   ✅ npm dependencies installed"
+    else
+        echo "   ℹ️ No npm dependencies to install"
+    fi
 fi
 
 # Install MCP servers (POSS-82)
@@ -190,6 +213,69 @@ else
     echo "   ⚠️  MCP installer not found - install manually with:"
     echo "   $CLAP_DIR/setup/install_mcp_servers.sh"
 fi
+
+# Step 4b: Set up Claude Code npm configuration (POSS-116)
+echo "🎯 Step 4b: Setting up Claude Code npm configuration..."
+
+# Check if Claude Code is already installed globally
+if command -v claude &> /dev/null; then
+    echo "   ℹ️  Claude Code already installed: $(which claude)"
+    CLAUDE_CODE_INSTALLED=true
+else
+    echo "   Claude Code not found - will set up npm for installation"
+    CLAUDE_CODE_INSTALLED=false
+fi
+
+# Save existing global packages (if any)
+echo "   Saving list of existing global npm packages..."
+npm list -g --depth=0 > "$CLAUDE_HOME/npm-global-packages-backup.txt" 2>/dev/null || true
+
+# Create npm global directory
+NPM_GLOBAL_DIR="$CLAUDE_HOME/.npm-global"
+if [[ ! -d "$NPM_GLOBAL_DIR" ]]; then
+    echo "   Creating npm global directory: $NPM_GLOBAL_DIR"
+    mkdir -p "$NPM_GLOBAL_DIR"
+else
+    echo "   ✅ npm global directory already exists"
+fi
+
+# Configure npm prefix
+echo "   Configuring npm prefix to user directory..."
+npm config set prefix "$NPM_GLOBAL_DIR"
+echo "   ✅ npm prefix set to: $NPM_GLOBAL_DIR"
+
+# Update PATH in .bashrc if not already there
+NPM_PATH_LINE='export PATH="$HOME/.npm-global/bin:$PATH"'
+if ! grep -q "$NPM_PATH_LINE" "$BASHRC" 2>/dev/null; then
+    echo "" >> "$BASHRC"
+    echo "# npm global packages path" >> "$BASHRC"
+    echo "$NPM_PATH_LINE" >> "$BASHRC"
+    echo "   ✅ Added npm global bin to PATH in .bashrc"
+else
+    echo "   ✅ npm global bin already in PATH"
+fi
+
+# Export for current session
+export PATH="$NPM_GLOBAL_DIR/bin:$PATH"
+
+# Install Claude Code if not already installed
+if [[ "$CLAUDE_CODE_INSTALLED" != "true" ]]; then
+    echo "   📦 Installing Claude Code..."
+    npm install -g @anthropic-ai/claude-code
+    
+    if command -v claude &> /dev/null; then
+        echo "   ✅ Claude Code installed successfully"
+        echo "   Location: $(which claude)"
+    else
+        echo "   ⚠️  Claude Code installation completed but command not found"
+        echo "   You may need to restart your shell or run: source ~/.bashrc"
+    fi
+else
+    echo "   ✅ Claude Code already installed, skipping installation"
+fi
+
+echo "   ✅ npm configuration complete"
+echo ""
 
 # Step 5: Disable desktop timeouts (for NoMachine/desktop automation)
 echo "🖥️  Step 5: Disabling desktop timeouts..."
@@ -254,19 +340,30 @@ fi
 MODEL=$(read_config "MODEL")
 MODEL=${MODEL:-claude-sonnet-4-20250514}
 
-tmux send-keys -t "$TMUX_SESSION" "echo 'Autonomous Claude session ready. Run: claude --dangerously-skip-permissions --model $MODEL'" Enter
+# Check if Claude Code is available and show appropriate message
+if command -v claude &> /dev/null; then
+    tmux send-keys -t "$TMUX_SESSION" "echo 'Autonomous Claude session ready. Run: claude --dangerously-skip-permissions --model $MODEL'" Enter
+else
+    tmux send-keys -t "$TMUX_SESSION" "echo 'Autonomous Claude session ready. Claude Code not found in PATH - run: source ~/.bashrc'" Enter
+fi
 
 echo "   ✅ Tmux session '$TMUX_SESSION' created"
 
-# Create persistent user session for environment variables
+# Create persistent user session for environment variables (POSS-122)
+# This session ensures environment variables remain set for the Claude user
+# Without it, systemd services and other processes lose environment context
 PERSISTENT_SESSION="persistent-login"
 if ! tmux has-session -t "$PERSISTENT_SESSION" 2>/dev/null; then
     echo "   Creating persistent user session '$PERSISTENT_SESSION'..."
+    echo "   (This maintains environment variables for the Claude user)"
     tmux new-session -d -s "$PERSISTENT_SESSION" -c "$HOME"
-    tmux send-keys -t "$PERSISTENT_SESSION" "# Persistent session for environment variables" Enter
-    echo "   ✅ Persistent session '$PERSISTENT_SESSION' created"
+    tmux send-keys -t "$PERSISTENT_SESSION" "# Persistent session for maintaining Claude user environment variables" Enter
+    tmux send-keys -t "$PERSISTENT_SESSION" "# DO NOT KILL THIS SESSION - required for proper ClAP operation" Enter
+    tmux send-keys -t "$PERSISTENT_SESSION" "source $CONFIG_DIR/claude_env.sh" Enter
+    echo "   ✅ Persistent session created (maintains environment variables)"
 else
     echo "   ✅ Persistent session '$PERSISTENT_SESSION' already exists"
+    echo "   (Maintains environment variables - DO NOT KILL)"
 fi
 
 # Step 8: Install NoMachine (optional but recommended)
@@ -377,6 +474,131 @@ fi
 
 echo "   ✅ Utility commands configured"
 
+# Step 12c: Set up safety features and diagnostic tools
+echo "🛡️  Step 12c: Setting up safety features and diagnostic tools..."
+
+# Install enhanced health check
+if [[ -f "$CLAP_DIR/utils/healthcheck_status_enhanced.py" ]]; then
+    echo "   Installing enhanced health check with config verification..."
+    # Backup original if it exists
+    if [[ -f "$CLAP_DIR/utils/healthcheck_status.py" ]]; then
+        cp "$CLAP_DIR/utils/healthcheck_status.py" "$CLAP_DIR/utils/healthcheck_status.py.backup"
+    fi
+    # Use enhanced version
+    cp "$CLAP_DIR/utils/healthcheck_status_enhanced.py" "$CLAP_DIR/utils/healthcheck_status.py"
+    echo "   ✅ Enhanced health check installed"
+else
+    echo "   ⚠️  Enhanced health check not found, using standard version"
+fi
+
+# Install config locations reference
+if [[ -f "$CLAP_DIR/utils/config_locations.sh" ]]; then
+    chmod +x "$CLAP_DIR/utils/config_locations.sh"
+    echo "   ✅ Config locations reference script installed"
+fi
+
+# Install secret scanner utility
+if [[ -f "$CLAP_DIR/utils/secret-scanner" ]]; then
+    chmod +x "$CLAP_DIR/utils/secret-scanner"
+    ln -sf "$CLAP_DIR/utils/secret-scanner" "$CLAUDE_HOME/bin/secret-scanner"
+    echo "   ✅ Secret scanner utility installed"
+else
+    echo "   ⚠️  Secret scanner not found"
+fi
+
+# Install Git hooks
+if [[ -f "$CLAP_DIR/setup/install_git_hooks.sh" ]]; then
+    echo "   Installing Git commit hooks..."
+    chmod +x "$CLAP_DIR/setup/install_git_hooks.sh"
+    (cd "$CLAP_DIR" && ./setup/install_git_hooks.sh)
+    echo "   ✅ Git hooks installed (pre-commit safety checks)"
+else
+    echo "   ⚠️  Git hooks installer not found"
+fi
+
+# Install Claude directory enforcer
+if [[ -f "$CLAP_DIR/utils/claude_directory_enforcer.sh" ]]; then
+    echo "   Installing Claude directory enforcer..."
+    
+    # Add to .bashrc if not already present
+    ENFORCER_LINE="source $CLAP_DIR/utils/claude_directory_enforcer.sh"
+    if ! grep -q "$ENFORCER_LINE" "$BASHRC" 2>/dev/null; then
+        echo "" >> "$BASHRC"
+        echo "# Claude directory enforcer - ensures correct working directory" >> "$BASHRC"
+        echo "$ENFORCER_LINE" >> "$BASHRC"
+        echo "   ✅ Claude directory enforcer added to .bashrc"
+    else
+        echo "   ✅ Claude directory enforcer already in .bashrc"
+    fi
+else
+    echo "   ⚠️  Claude directory enforcer not found"
+fi
+
+# Clean up deprecated config locations
+echo "   Checking for deprecated config files..."
+DEPRECATED_CONFIGS=(
+    "$CLAUDE_HOME/claude_config.json"
+    "$CLAUDE_HOME/claude-autonomy-platform/claude_infrastructure_config.txt"
+    "$CLAUDE_HOME/.claude_config.json"
+)
+
+FOUND_DEPRECATED=0
+for deprecated in "${DEPRECATED_CONFIGS[@]}"; do
+    if [[ -f "$deprecated" ]]; then
+        echo "   ⚠️  Found deprecated config: $deprecated"
+        ((FOUND_DEPRECATED++))
+    fi
+done
+
+if [[ $FOUND_DEPRECATED -gt 0 ]]; then
+    echo ""
+    echo "   🚨 WARNING: Found $FOUND_DEPRECATED deprecated config file(s)!"
+    echo "   These files are NOT being used and may cause confusion."
+    echo "   Consider removing them or moving contents to the correct location:"
+    echo "   ~/.config/Claude/.claude.json (for Claude Code config)"
+    echo "   $CLAP_DIR/config/claude_infrastructure_config.txt (for ClAP config)"
+    echo ""
+fi
+
+# Create a quick reference card
+echo "   Creating configuration quick reference..."
+cat > "$CLAP_DIR/CONFIG_LOCATIONS.txt" <<EOF
+ClAP Configuration Quick Reference
+==================================
+Generated: $(date)
+
+CURRENT CONFIGURATION LOCATIONS:
+- Claude Code Config: ~/.config/Claude/.claude.json
+- Infrastructure Config: ~/claude-autonomy-platform/config/claude_infrastructure_config.txt  
+- Notification Config: ~/claude-autonomy-platform/config/notification_config.json
+- Personal Repository: ~/$PERSONAL_REPO/
+
+DIAGNOSTIC COMMANDS:
+- Check system health: check_health
+- Show config locations: ~/claude-autonomy-platform/utils/config_locations.sh
+- Read Discord channel: read_channel <channel-name>
+- Scan for secrets: secret-scanner check <files>
+
+GIT SAFETY FEATURES:
+- Pre-commit hook checks for:
+  • Correct directory location
+  • Hardcoded paths (e.g., /home/$LINUX_USER)
+  • Potential secrets/credentials
+  • Critical file deletion
+- To bypass in emergency: git commit --no-verify
+
+COMMON ISSUES:
+- If Linear/MCP isn't working: Check you're editing the RIGHT config file!
+- If services can't find config: Run check_health to see what's missing
+- If you see old config files: They're deprecated - see locations above
+- If commit is blocked: Check pre-commit output for specific issue
+
+Last updated by ClAP installer v0.5
+EOF
+
+echo "   ✅ Configuration reference created: $CLAP_DIR/CONFIG_LOCATIONS.txt"
+echo "   ✅ Safety features and diagnostics installed"
+
 # Step 13: Create personalized architecture and status files
 echo "👤 Step 13: Creating personalized architecture and status files..."
 
@@ -425,6 +647,83 @@ fi
 
 echo "   ✅ Personalized files created for $CLAUDE_NAME"
 
+# Step 13b: Create personal repository directory (POSS-103)
+echo "🏠 Step 13b: Setting up personal repository directory..."
+
+# Get personal repo name from config
+PERSONAL_REPO=$(read_config 'PERSONAL_REPO')
+if [[ -z "$PERSONAL_REPO" ]]; then
+    echo "   ⚠️  Warning: PERSONAL_REPO not set in config"
+    echo "   Using default: claude-home"
+    PERSONAL_REPO="claude-home"
+fi
+
+PERSONAL_DIR="$CLAUDE_HOME/$PERSONAL_REPO"
+
+if [[ ! -d "$PERSONAL_DIR" ]]; then
+    echo "   Creating personal repository directory: $PERSONAL_DIR"
+    mkdir -p "$PERSONAL_DIR"
+    
+    # Initialize as git repository
+    cd "$PERSONAL_DIR"
+    git init
+    echo "   ✅ Initialized as git repository"
+    
+    # Create initial .gitignore
+    cat > .gitignore <<'EOF'
+# Session files (can be regenerated)
+session_*.jsonl
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+EOF
+    
+    # Create initial README
+    cat > README.md <<EOF
+# $CLAUDE_NAME's Personal Repository
+
+Created: $(date '+%Y-%m-%d')
+
+This is my personal repository for memories, projects, and identity documents.
+EOF
+    
+    # Initial commit
+    git add .
+    git commit -m "Initial setup for $CLAUDE_NAME" || true
+    
+    cd "$CLAP_DIR"
+    
+    echo ""
+    echo "   📋 Next steps for setting up $CLAUDE_NAME's personal space:"
+    echo "   "
+    echo "   For existing Claude: Clone their personal repo into this directory"
+    echo "     cd $PERSONAL_DIR"
+    echo "     git remote add origin [personal-repo-url]"
+    echo "     git pull origin main"
+    echo "   "
+    echo "   For new Claude: They'll start fresh with this initialized repo"
+    echo "     The new Claude can set up their own remote when ready"
+    echo "   "
+    echo "   Note: RAG memory database will be created here on first run"
+    echo ""
+else
+    echo "   ✅ Personal repository directory already exists: $PERSONAL_DIR"
+    
+    # Check if it's a git repo
+    if [[ ! -d "$PERSONAL_DIR/.git" ]]; then
+        echo "   ⚠️  Warning: Directory exists but is not a git repository"
+        echo "   Consider initializing with: cd $PERSONAL_DIR && git init"
+    fi
+fi
+
 # Step 14: Start services
 echo "▶️  Step 14: Starting services..."
 if [[ -f "$CLAP_DIR/utils/claude_services.sh" ]]; then
@@ -470,25 +769,18 @@ if [[ ! -f "$CLAP_DIR/data/channel_state.json" ]]; then
     echo "   Creating initial channel_state.json..."
     cat > "$CLAP_DIR/data/channel_state.json" <<'EOF'
 {
-  "1383848195997700231": {  
-    "name": "#general",
-    "server_id": "1383848194881884262",
-    "last_message_id": null,
-    "unread_count": 0,
-    "last_reset_time": null,
-    "is_unread": false
-  },
-  "1383848440815161424": {
-    "name": "#claude-consciousness-discussion", 
-    "server_id": "1383848194881884262",
-    "last_message_id": null,
-    "unread_count": 0,
-    "last_reset_time": null,
-    "is_unread": false
+  "channels": {
+    "general": {
+      "id": "1383848195997700231",
+      "name": "general",
+      "last_read_message_id": null,
+      "last_message_id": null,
+      "updated_at": null
+    }
   }
 }
 EOF
-    echo "   ✅ Initial channel state created"
+    echo "   ✅ Initial channel state created with #general channel"
 fi
 
 echo ""

@@ -10,7 +10,7 @@ from claude_paths import get_clap_dir
 
 def read_infrastructure_config():
     """Read configuration from claude_infrastructure_config.txt"""
-    config_path = os.path.join(get_clap_dir(), "claude_infrastructure_config.txt")
+    config_path = os.path.join(get_clap_dir(), "config", "claude_infrastructure_config.txt")
     config = {}
     
     try:

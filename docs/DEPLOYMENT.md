@@ -82,6 +82,17 @@ The setup script now handles:
 - ✅ X11 session as default (instead of Wayland)
 - ✅ Persistent tmux session for environment variables
 - ✅ All systemd services and dependencies
+- ✅ User-local npm configuration for Claude Code (POSS-116)
+
+### Claude Code Installation
+
+The installer now configures npm to install global packages in the user's home directory:
+- Creates `~/.npm-global` for npm packages
+- Configures npm prefix to avoid needing sudo
+- Adds `~/.npm-global/bin` to PATH
+- Installs Claude Code without system-wide access
+
+This prevents permission issues and keeps the Claude user's environment isolated.
 
 **Full deployment with remote access:**
 ```bash
@@ -145,8 +156,24 @@ source ./claude_env.sh
 # Connect to autonomous tmux session
 tmux attach -t autonomous-claude
 
+# View persistent login session (DO NOT KILL)
+tmux attach -t persistent-login
+
 # Trigger session swap
 echo "AUTONOMY" > new_session.txt
+```
+
+#### About the persistent-login Session (POSS-122)
+The `persistent-login` tmux session is **critical for ClAP operation**. It:
+- Maintains environment variables for the Claude user
+- Ensures systemd services have access to needed variables
+- Prevents environment loss across SSH sessions
+- Sources `claude_env.sh` to keep paths and configs available
+
+**⚠️ WARNING**: Never kill this session! If accidentally terminated, restart it with:
+```bash
+tmux new-session -d -s persistent-login -c "$HOME"
+tmux send-keys -t persistent-login "source ~/claude-autonomy-platform/config/claude_env.sh" Enter
 ```
 
 ## Directory Structure
@@ -184,6 +211,8 @@ claude-autonomy-project/
 - Ubuntu/Debian Linux
 - Python 3.8+
 - Node.js 16+
+- Java 17 (specifically - required for Discord MCP)
+- Maven (for Java MCP builds)
 - tmux
 - systemd (user services)
 
@@ -193,7 +222,8 @@ claude-autonomy-project/
 - subprocess (built-in)
 
 ### Node.js Dependencies
-- @gongrzhe/server-gmail-autoauth-mcp (installed automatically)
+- Claude Code is installed in user-local npm directory (~/.npm-global)
+- No system-wide npm packages required
 
 ## Security Considerations
 
@@ -206,6 +236,62 @@ claude-autonomy-project/
 - Services run as user processes (not root)
 - All scripts use relative paths from ClAP directory
 - No hardcoded credentials in scripts
+
+### Safety Features (v0.5)
+
+#### Git Commit Hooks
+Pre-commit hooks automatically check for:
+- Hardcoded paths (e.g., `/home/sonnet`)
+- Potential secrets and credentials
+- Wrong directory commits
+- Critical file deletion
+- Service status warnings
+
+To bypass in emergency: `git commit --no-verify`
+
+#### Configuration Safety
+- **Enhanced Health Check**: Shows all config file locations with timestamps
+- **Config Location Reference**: Run `utils/config_locations.sh` for current paths
+- **Directory Enforcer**: Claude command auto-changes to correct directory
+- **Secret Scanner**: Use `secret-scanner check <files>` before commits
+
+#### Common Config Locations
+- Claude Code Config: `~/.config/Claude/.claude.json` (NOT `~/.claude.json`)
+- Infrastructure Config: `~/claude-autonomy-platform/config/claude_infrastructure_config.txt`
+- Notification Config: `~/claude-autonomy-platform/config/notification_config.json`
+
+Run `check_health` to see all config locations and check for deprecated files.
+
+## Script Permissions (POSS-92)
+
+### Automatic Permission Fixing
+The installer now automatically ensures all scripts are executable during setup. This handles cases where git doesn't preserve file permissions properly.
+
+### Manual Permission Fix
+If you encounter permission issues:
+
+```bash
+# Option 1: Run the fix script (on Linux)
+./fix_executable_permissions.sh
+
+# Option 2: Quick fix for all scripts
+find . -name "*.sh" -type f -exec chmod +x {} \;
+chmod +x utils/check_health discord/read_channel
+```
+
+### Git Permission Preservation
+To ensure permissions are preserved in git:
+
+```bash
+# Make scripts executable
+chmod +x setup/*.sh utils/*.sh discord/read_channel
+
+# Stage the permission changes
+git add -u
+
+# Commit
+git commit -m "Set executable permissions on all shell scripts"
+```
 
 ## Troubleshooting
 
@@ -267,6 +353,8 @@ cat ~/.claude.json
 2. **Environment not loaded**: Source `claude_env.sh`
 3. **Config not applied**: Run `./setup_claude_configs.sh`
 4. **Tmux session lost**: Run `./setup_clap_deployment.sh` again
+5. **Environment variables missing**: Check that `persistent-login` tmux session is running
+6. **Services losing environment**: Restart `persistent-login` session and source `claude_env.sh`
 
 ---
 

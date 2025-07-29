@@ -40,16 +40,52 @@ if ! command_exists npm; then
     exit 1
 fi
 
-if ! command_exists java; then
-    echo "❌ Java is required but not installed"
-    echo "   Please install Java 17 or later"
-    exit 1
+# Check for Java 17 specifically (POSS-95)
+echo "☕ Checking for Java 17 (required for Discord MCP)..."
+JAVA_17_FOUND=false
+ORIGINAL_JAVA_HOME="$JAVA_HOME"
+
+# Check if Java 17 is available
+if command_exists java && java -version 2>&1 | grep -q "17"; then
+    JAVA_17_FOUND=true
+    echo "   ✅ Java 17 found in current environment"
+elif update-alternatives --list java 2>/dev/null | grep -q "java-17-openjdk"; then
+    JAVA_17_FOUND=true
+    echo "   ✅ Java 17 found via update-alternatives"
+    # Set Java 17 for this session
+    export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+    export PATH="$JAVA_HOME/bin:$PATH"
+else
+    echo "   ❌ Java 17 not found"
+    echo "   📦 Installing Java 17..."
+    if command_exists apt-get; then
+        sudo apt-get update
+        sudo apt-get install -y openjdk-17-jdk
+        # Set Java 17 for this session
+        export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+        export PATH="$JAVA_HOME/bin:$PATH"
+        JAVA_17_FOUND=true
+    else
+        echo "   ❌ Cannot install Java 17 automatically on this system"
+        echo "   Please install OpenJDK 17 manually"
+        exit 1
+    fi
 fi
+
+# Verify Java version
+echo "   Current Java version:"
+java -version 2>&1 | head -n 1 | sed 's/^/     /'
 
 if ! command_exists mvn; then
     echo "❌ Maven is required but not installed"
-    echo "   Install with: sudo apt install maven"
-    exit 1
+    echo "   Installing Maven..."
+    if command_exists apt-get; then
+        sudo apt-get install -y maven
+    else
+        echo "   ❌ Cannot install Maven automatically"
+        echo "   Please install Maven manually"
+        exit 1
+    fi
 fi
 
 echo "✅ All prerequisites found"
@@ -67,12 +103,17 @@ else
     cd discord-mcp
 fi
 
-echo "   Building with Maven..."
-mvn clean package -DskipTests
+# Check if already built
 if [[ -f "target/discord-mcp-0.0.1-SNAPSHOT.jar" ]]; then
-    echo "   ✅ Discord MCP built successfully"
+    echo "   ✅ Discord MCP already built, skipping..."
 else
-    echo "   ❌ Discord MCP build failed"
+    echo "   Building with Maven..."
+    mvn clean package -DskipTests
+    if [[ -f "target/discord-mcp-0.0.1-SNAPSHOT.jar" ]]; then
+        echo "   ✅ Discord MCP built successfully"
+    else
+        echo "   ❌ Discord MCP build failed"
+    fi
 fi
 cd ..
 
@@ -88,14 +129,19 @@ else
     cd rag-memory-mcp
 fi
 
-echo "   Installing dependencies..."
-npm install
-echo "   Building..."
-npm run build
+# Check if already built
 if [[ -f "dist/index.js" ]]; then
-    echo "   ✅ RAG Memory MCP built successfully"
+    echo "   ✅ RAG Memory MCP already built, skipping..."
 else
-    echo "   ❌ RAG Memory MCP build failed"
+    echo "   Installing dependencies..."
+    npm install
+    echo "   Building..."
+    npm run build
+    if [[ -f "dist/index.js" ]]; then
+        echo "   ✅ RAG Memory MCP built successfully"
+    else
+        echo "   ❌ RAG Memory MCP build failed"
+    fi
 fi
 cd ..
 
@@ -111,14 +157,19 @@ else
     cd linear-mcp
 fi
 
-echo "   Installing dependencies..."
-npm install
-echo "   Building..."
-npm run build
-if [[ -f "dist/index.js" ]]; then
-    echo "   ✅ Linear MCP built successfully"
+# Check if already built (Note: Linear uses build/ not dist/)
+if [[ -f "build/index.js" ]]; then
+    echo "   ✅ Linear MCP already built, skipping..."
 else
-    echo "   ❌ Linear MCP build failed"
+    echo "   Installing dependencies..."
+    npm install
+    echo "   Building..."
+    npm run build
+    if [[ -f "build/index.js" ]]; then
+        echo "   ✅ Linear MCP built successfully"
+    else
+        echo "   ❌ Linear MCP build failed"
+    fi
 fi
 cd ..
 
@@ -134,16 +185,23 @@ else
     cd gmail-mcp
 fi
 
-echo "   Installing dependencies..."
-npm install
-echo "   Building..."
-npm run build
+# Check if already built
 if [[ -f "dist/index.js" ]]; then
-    echo "   ✅ Gmail MCP built successfully"
+    echo "   ✅ Gmail MCP already built, skipping..."
 else
-    echo "   ❌ Gmail MCP build failed"
+    echo "   Installing dependencies..."
+    npm install
+    echo "   Building..."
+    npm run build
+    if [[ -f "dist/index.js" ]]; then
+        echo "   ✅ Gmail MCP built successfully"
+    else
+        echo "   ❌ Gmail MCP build failed"
+    fi
 fi
 cd ..
+
+# Continue to next MCP installation...
 
 echo ""
 echo "🎉 MCP Server Installation Complete!"
@@ -153,7 +211,7 @@ echo "Installed servers in: $MCP_DIR"
 echo ""
 echo "📋 Next steps:"
 echo "1. Update infrastructure config with correct MCP paths"
-echo "2. Run setup_claude_configs.py to update .claude.json"
+echo "2. Run generate_mcp_config.py to generate MCP configuration"
 echo "3. Configure API credentials for each service"
 echo ""
 
@@ -166,49 +224,12 @@ if [[ -f "$CONFIG_TEMPLATE" ]]; then
     echo "   Please manually update MCP paths in your config"
 fi
 
-# Install VS Code MCP Server (Node)
-echo "📝 Installing VS Code MCP Server..."
-if [[ -d "vscode-as-mcp-server" ]]; then
-    echo "   Updating existing installation..."
-    cd vscode-as-mcp-server
-    git pull
-else
-    echo "   Cloning repository..."
-    git clone https://github.com/acomagu/vscode-as-mcp-server.git
-    cd vscode-as-mcp-server
-fi
-
-echo "   Installing dependencies..."
-npm install
-echo "   Building..."
-npm run build
-if [[ -f "dist/index.js" ]]; then
-    echo "   ✅ VS Code MCP Server built successfully"
-else
-    echo "   ❌ VS Code MCP Server build failed"
-fi
-cd ..
-
-echo ""
-echo "🎉 MCP Server Installation Complete!"
-echo "==================================="
-echo ""
-echo "Installed servers in: $MCP_DIR"
-echo ""
-echo "📋 Next steps:"
-echo "1. Update infrastructure config with correct MCP paths"
-echo "2. Run setup_claude_configs.py to update .claude.json"
-echo "3. Configure API credentials for each service"
-echo "4. For VS Code collaboration, ensure VS Code is running"
-echo ""
-
-# Update the config template to point to installed MCPs
-CONFIG_TEMPLATE="$CLAP_DIR/config/claude_infrastructure_config.template.txt"
-if [[ -f "$CONFIG_TEMPLATE" ]]; then
-    echo "💡 Updating config template with MCP paths..."
-    # This would update the template, but let's be careful not to break existing configs
-    echo "   Config template found but not auto-updating (safety)"
-    echo "   Please manually update MCP paths in your config"
+# Restore original JAVA_HOME if it was set (POSS-95)
+if [[ -n "$ORIGINAL_JAVA_HOME" ]]; then
+    echo ""
+    echo "🔄 Restoring original JAVA_HOME: $ORIGINAL_JAVA_HOME"
+    export JAVA_HOME="$ORIGINAL_JAVA_HOME"
+    export PATH="$ORIGINAL_JAVA_HOME/bin:$PATH"
 fi
 
 echo "✅ Done!"
