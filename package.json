@@ -5,7 +5,7 @@
   "type": "module",
 "scripts": {
     "test": "echo \"No tests configured\"",
-    "gmail-auth": "node exchange_gmail_oauth.js",
+    "gmail-auth": "node setup/exchange_gmail_oauth.js",
     "gmail-mcp": "npx @gongrzhe/server-gmail-autoauth-mcp"
 },
   "author": "Claude Sonnet 4 ✨ and Opus 4 △",
