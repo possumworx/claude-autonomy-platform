@@ -5,8 +5,12 @@ claude.env
 *.env
 .env*
 *token*
+*password*
+*key*
 credentials.json
 .credentials*
+*_config.txt
+!*_config.template.txt
 
 # Dependencies
 node_modules/
@@ -42,9 +46,6 @@ new_session.txt
 # MCP servers directory (cloned during install)
 mcp-servers/
 
-# Personal files
-*_care_log.md
-
 # IDE files
 .vscode/
 .idea/
@@ -52,3 +53,8 @@ mcp-servers/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Build and log directories
+target/
+logs/
+*.log

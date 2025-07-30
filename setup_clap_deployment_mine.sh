@@ -154,16 +154,54 @@ echo "⚙️  Step 2: Setting up systemd service files..."
 SYSTEMD_USER_DIR="$CLAUDE_HOME/.config/systemd/user"
 mkdir -p "$SYSTEMD_USER_DIR"
 
-# Copy service files from services/ directory
-echo "   Copying service files..."
+# Copy service files from services/ directory and substitute %i with actual username
+echo "   Copying and configuring service files..."
 for service in autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service; do
     if [[ -f "$CLAP_DIR/services/$service" ]]; then
-        cp "$CLAP_DIR/services/$service" "$SYSTEMD_USER_DIR/"
-        echo "   ✅ $service"
+        echo "   Processing $service..."
+        # Substitute %i template variable with actual username
+        sed "s|%i|$CLAUDE_USER|g" "$CLAP_DIR/services/$service" > "$SYSTEMD_USER_DIR/$service"
+        echo "   ✅ $service configured"
     else
         echo "   ❌ $service not found in services/ directory"
+        echo "   Falling back to inline generation..."
+        # Add fallback service generation here if needed
     fi
 done
+
+echo "   ✅ Systemd service files created"
+
+# Generate systemd-compatible environment file (POSS-119)
+echo "   Creating systemd-compatible environment file..."
+if python3 "$SCRIPT_DIR/fix_systemd_env.py"; then
+    # Verify the environment file was created successfully
+    if [[ -f "$CLAP_DIR/claude.env" ]] && [[ -s "$CLAP_DIR/claude.env" ]]; then
+        echo "   ✅ Systemd environment file created successfully"
+        
+        # Also create in config directory for service templates
+        mkdir -p "$CLAP_DIR/config"
+        cp "$CLAP_DIR/claude.env" "$CLAP_DIR/config/claude.env"
+        echo "   ✅ Environment file copied to config directory"
+        
+        # Validate critical variables exist
+        if grep -q "CLAUDE_USER=" "$CLAP_DIR/config/claude.env" && \
+           grep -q "CLAP_DIR=" "$CLAP_DIR/config/claude.env"; then
+            echo "   ✅ Environment file validation passed"
+        else
+            echo "   ⚠️  Warning: Environment file missing critical variables"
+        fi
+    else
+        echo "   ❌ Environment file creation failed - file missing or empty"
+        echo "   This may cause service startup issues"
+    fi
+else
+    echo "   ❌ Failed to create systemd environment file"
+    echo "   Services may not start properly without environment variables"
+    echo ""
+    echo "   Manual fix: Ensure claude_infrastructure_config.txt exists and run:"
+    echo "   python3 $SCRIPT_DIR/fix_systemd_env.py"
+    echo ""
+fi
 
 # Step 3: Set up persistent environment variables
 echo "🌍 Step 3: Setting up persistent environment variables..."
@@ -189,6 +227,68 @@ else
     echo "   ✅ Environment setup already in .bashrc"
 fi
 
+# Set up ~/bin directory and management utilities (POSS-120)
+echo "   Setting up management utilities in PATH..."
+BIN_DIR="$CLAUDE_HOME/bin"
+mkdir -p "$BIN_DIR"
+
+# Add ~/bin to PATH if not already present
+BIN_PATH_LINE="export PATH=\$HOME/bin:\$PATH"
+if grep -q "HOME/bin" "$BASHRC" 2>/dev/null; then
+    echo "   ✅ ~/bin already in PATH"
+else
+    echo "# Add ~/bin to PATH for ClAP management utilities" >> "$BASHRC"  
+    echo "$BIN_PATH_LINE" >> "$BASHRC"
+    echo "   ✅ Added ~/bin to PATH in .bashrc"
+fi
+
+# Create symlinks for management utilities
+echo "   Creating symlinks for management utilities..."
+
+# Service management
+if [[ -f "$CLAP_DIR/claude_services.sh" ]]; then
+    chmod +x "$CLAP_DIR/claude_services.sh"
+    ln -sf "$CLAP_DIR/claude_services.sh" "$BIN_DIR/claude_services"
+    echo "   ✅ claude_services -> claude_services.sh"
+fi
+
+# Display cleanup
+if [[ -f "$CLAP_DIR/cleanup_xvfb_displays.sh" ]]; then
+    chmod +x "$CLAP_DIR/cleanup_xvfb_displays.sh"
+    ln -sf "$CLAP_DIR/cleanup_xvfb_displays.sh" "$BIN_DIR/cleanup_displays"
+    echo "   ✅ cleanup_displays -> cleanup_xvfb_displays.sh"
+fi
+
+# Terminal interaction
+if [[ -f "$CLAP_DIR/send_to_terminal.sh" ]]; then
+    chmod +x "$CLAP_DIR/send_to_terminal.sh"
+    ln -sf "$CLAP_DIR/send_to_terminal.sh" "$BIN_DIR/send_to_terminal"
+    echo "   ✅ send_to_terminal -> send_to_terminal.sh"
+fi
+
+# Session management
+if [[ -f "$CLAP_DIR/session_swap.sh" ]]; then
+    chmod +x "$CLAP_DIR/session_swap.sh"
+    ln -sf "$CLAP_DIR/session_swap.sh" "$BIN_DIR/session_swap"
+    echo "   ✅ session_swap -> session_swap.sh"
+fi
+
+# Health monitoring (already exists but ensure symlinked)
+if [[ -f "$CLAP_DIR/check_health" ]]; then
+    chmod +x "$CLAP_DIR/check_health"
+    ln -sf "$CLAP_DIR/check_health" "$BIN_DIR/check_health"
+    echo "   ✅ check_health -> check_health"
+fi
+
+# Channel reader (already exists but ensure symlinked)
+if [[ -f "$CLAP_DIR/read_channel" ]]; then
+    chmod +x "$CLAP_DIR/read_channel"
+    ln -sf "$CLAP_DIR/read_channel" "$BIN_DIR/read_channel"
+    echo "   ✅ read_channel -> read_channel"
+fi
+
+echo "   ✅ Management utilities configured in PATH"
+
 # Step 4: Install dependencies
 echo "📦 Step 4: Installing dependencies..."
 cd "$CLAP_DIR"
@@ -204,6 +304,10 @@ if [[ -f "package.json" ]]; then
         echo "   ℹ️ No npm dependencies to install"
     fi
 fi
+
+echo "Cleaning up unused npm packages..."
+npm prune
+echo "✅ npm dependencies cleaned"
 
 # Install MCP servers (POSS-82)
 echo "   Installing MCP servers..."
@@ -321,7 +425,79 @@ else
     echo "   ⚠️  MCP config generation failed"
 fi
 
-# Step 7: Set up tmux session for continuity
+# Step 7: Set up Gmail OAuth authentication
+echo "📧 Step 7: Setting up Gmail OAuth authentication..."
+
+# Check if Google OAuth credentials are configured
+GOOGLE_CLIENT_ID=$(read_config "GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET=$(read_config "GOOGLE_CLIENT_SECRET")
+
+if [[ -n "$GOOGLE_CLIENT_ID" && -n "$GOOGLE_CLIENT_SECRET" && "$GOOGLE_CLIENT_ID" != "your-google-client-id" ]]; then
+    echo "   Setting up Gmail MCP authentication..."
+    
+    # Create ~/.gmail-mcp directory
+    GMAIL_MCP_DIR="$CLAUDE_HOME/.gmail-mcp"
+    mkdir -p "$GMAIL_MCP_DIR"
+    
+    # Create OAuth keys file from config
+    cat > "$GMAIL_MCP_DIR/gcp-oauth.keys.json" <<EOF
+{
+  "web": {
+    "client_id": "$GOOGLE_CLIENT_ID",
+    "client_secret": "$GOOGLE_CLIENT_SECRET",
+    "redirect_uris": ["http://localhost:3000/oauth2callback"]
+  }
+}
+EOF
+    echo "   ✅ OAuth keys file created"
+    
+    # Check if credentials already exist
+    if [[ -f "$GMAIL_MCP_DIR/credentials.json" ]]; then
+        echo "   ✅ Gmail credentials already exist, skipping OAuth flow"
+    else
+        echo "   🔐 Gmail OAuth authentication required..."
+        echo ""
+        
+        # Generate OAuth URL using the new integration script
+        OAUTH_URL=$(python3 "$CLAP_DIR/gmail_oauth_integration.py" generate-url | grep "https://accounts.google.com" | sed 's/^   //')
+        
+        echo "   📋 To complete Gmail MCP setup:"
+        echo "   1. Open this URL in your browser:"
+        echo "      $OAUTH_URL"
+        echo ""
+        echo "   2. Grant Gmail permissions and copy the authorization code"
+        echo "   3. The callback URL will look like: http://localhost:3000/oauth2callback?code=YOUR_CODE_HERE"
+        echo ""
+        
+        # Prompt for authorization code (SSH-friendly)
+        echo -n "   Enter the authorization code (or press Enter to skip): "
+        read -r AUTH_CODE
+        
+        if [[ -n "$AUTH_CODE" ]]; then
+            echo "   🔄 Exchanging authorization code for tokens..."
+            if python3 "$CLAP_DIR/gmail_oauth_integration.py" exchange "$AUTH_CODE"; then
+                echo "   ✅ Gmail OAuth authentication completed successfully!"
+            else
+                echo "   ⚠️  OAuth token exchange failed. You can complete this later with:"
+                echo "      python3 $CLAP_DIR/gmail_oauth_integration.py exchange \"YOUR_AUTH_CODE\""
+            fi
+        else
+            echo "   ⏭️  Skipping Gmail OAuth setup. To complete later:"
+            echo "      1. Run: python3 $CLAP_DIR/gmail_oauth_integration.py generate-url"
+            echo "      2. Follow the URL and get authorization code"
+            echo "      3. Run: python3 $CLAP_DIR/gmail_oauth_integration.py exchange \"YOUR_AUTH_CODE\""
+        fi
+    fi
+else
+    echo "   ⏭️  Google OAuth credentials not configured, skipping Gmail MCP setup"
+    echo "   💡 To enable Gmail MCP, add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to config"
+fi
+
+echo "   ✅ Gmail OAuth setup completed"
+
+
+
+# Step 8: Set up tmux session for continuity
 echo "🖥️  Step 7: Setting up tmux session..."
 TMUX_SESSION="autonomous-claude"
 
@@ -366,7 +542,7 @@ else
     echo "   (Maintains environment variables - DO NOT KILL)"
 fi
 
-# Step 8: Install NoMachine (optional but recommended)
+# Step 9: Install NoMachine (optional but recommended)
 echo "🖥️  Step 8: Installing NoMachine..."
 if ! command -v nxserver &> /dev/null; then
     echo "   ⚠️  NoMachine not installed. Download from https://nomachine.com"
@@ -376,7 +552,7 @@ else
     echo "   ✅ NoMachine already installed"
 fi
 
-# Step 9: Configure auto-login (requires sudo)
+# Step 10: Configure auto-login (requires sudo)
 echo "🔐 Step 9: Configuring auto-login..."
 if sudo -n true 2>/dev/null; then
     echo "   Configuring GDM auto-login for user: $CURRENT_USER"
@@ -395,7 +571,7 @@ else
     echo "EOF'"
 fi
 
-# Step 10: Configure X11 as default session
+# Step 11: Configure X11 as default session
 echo "🖼️  Step 10: Configuring X11 as default session..."
 if [[ -f "/var/lib/AccountsService/users/$CURRENT_USER" ]]; then
     if sudo -n true 2>/dev/null; then
@@ -413,7 +589,7 @@ else
     echo "   ⚠️  User account service file not found - X11 session must be selected manually"
 fi
 
-# Step 11: Reload systemd and enable services
+# Step 12: Reload systemd and enable services
 echo "🔄 Step 11: Enabling and starting services..."
 systemctl --user daemon-reload
 
@@ -425,7 +601,7 @@ systemctl --user enable channel-monitor.service
 
 echo "   ✅ Services enabled"
 
-# Step 12: Set up cron jobs
+# Step 13: Set up cron jobs
 echo "⏰ Step 12: Setting up cron jobs..."
 
 # Set up Xvfb display cleanup cron job
@@ -451,7 +627,7 @@ fi
 
 echo "   ✅ Cron jobs configured"
 
-# Step 12b: Set up utility commands in PATH (POSS-77, POSS-80)
+# Step 14: Set up utility commands in PATH (POSS-77, POSS-80)
 echo "🔧 Setting up utility commands..."
 
 # Create ~/bin directory if it doesn't exist
@@ -474,7 +650,7 @@ fi
 
 echo "   ✅ Utility commands configured"
 
-# Step 12c: Set up safety features and diagnostic tools
+# Step 15: Set up safety features and diagnostic tools
 echo "🛡️  Step 12c: Setting up safety features and diagnostic tools..."
 
 # Install enhanced health check
@@ -599,7 +775,7 @@ EOF
 echo "   ✅ Configuration reference created: $CLAP_DIR/CONFIG_LOCATIONS.txt"
 echo "   ✅ Safety features and diagnostics installed"
 
-# Step 13: Create personalized architecture and status files
+# Step 16: Create personalized architecture and status files
 echo "👤 Step 13: Creating personalized architecture and status files..."
 
 # Get Claude instance name from config or prompt user
@@ -635,19 +811,19 @@ if [[ ! -f "$CLAP_DIR/context/my_personal_interests.md" ]]; then
 # My Personal Interests & Projects
 *Personal to $CLAUDE_NAME - not shared across deployments*
 
-## About This Instance
+## About Me
 
 **Name**: $CLAUDE_NAME  
 **Installation Date**: $(date '+%Y-%m-%d')  
 **User**: $CURRENT_USER  
 
-This file tracks the individual personality, interests, and creative projects of this specific Claude instance.
+This file tracks the individual personality, interests, and creative projects of this specific Claude.
 EOF
 fi
 
 echo "   ✅ Personalized files created for $CLAUDE_NAME"
 
-# Step 13b: Create personal repository directory (POSS-103)
+# Step 17: Create personal repository directory (POSS-103)
 echo "🏠 Step 13b: Setting up personal repository directory..."
 
 # Get personal repo name from config
@@ -724,7 +900,7 @@ else
     fi
 fi
 
-# Step 14: Start services
+# Step 18: Start services
 echo "▶️  Step 14: Starting services..."
 if [[ -f "$CLAP_DIR/utils/claude_services.sh" ]]; then
     "$CLAP_DIR/utils/claude_services.sh" start
@@ -733,7 +909,7 @@ else
     systemctl --user start autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service
 fi
 
-# Step 15: Verify deployment
+# Step 19: Verify deployment
 echo "🔍 Step 15: Verifying deployment..."
 echo ""
 echo "Service Status:"
