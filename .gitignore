@@ -57,4 +57,8 @@ Thumbs.db
 # Build and log directories
 target/
 logs/
-*.log
+*.logdata/*
+data/*
+mcp-servers/*
+mcp-servers/*
+data/*
