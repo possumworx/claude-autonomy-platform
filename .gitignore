@@ -1,42 +1,48 @@
 # SENSITIVE FILES - NEVER COMMIT
 ~sparkle-sonnet*/
 ~*/
-claude.env
+.env
+.env.*
 *.env
-.env*
-*token*
-*password*
-*key*
+claude.env
 credentials.json
 .credentials*
 *_config.txt
 !*_config.template.txt
 
+# Be more specific with sensitive patterns to avoid false positives
+*_token.txt
+*_password.txt
+*_key.txt
+private_key*
+secret_key*
+
 # Dependencies
 node_modules/
 npm-debug.log*
 package-lock.json
-mcp-servers/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+venv/
+.venv/
 
 # Temporary files
 *.tmp
 *.temp
 
-# Cache files
-__pycache__/
-*.pyc
-*.pyo
-
 # Logs and runtime data
 logs/*.log
-*.log
 target/logs/
 channel_state.json
 last_seen_message_id.txt
 monitor_debug.log
+.claude/
 
-# Personal configuration (keep templates)
+# Personal configuration
 claude_infrastructure_config.txt
 
 # Session data
@@ -44,7 +50,12 @@ last_autonomy_prompt.txt
 new_session.txt
 
 # MCP servers directory (cloned during install)
-mcp-servers/
+mcp-servers/*
+!mcp-servers/.gitkeep
+
+# Data directory
+data/*
+!data/.gitkeep
 
 # IDE files
 .vscode/
@@ -54,11 +65,5 @@ mcp-servers/
 .DS_Store
 Thumbs.db
 
-# Build and log directories
+# Build directories
 target/
-logs/
-*.logdata/*
-data/*
-mcp-servers/*
-mcp-servers/*
-data/*

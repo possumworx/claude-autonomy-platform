@@ -1,0 +1,2 @@
+# This file ensures the mcp-servers/ directory is tracked in git
+# MCP servers will be cloned here but are gitignored
