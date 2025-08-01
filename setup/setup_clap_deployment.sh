@@ -137,8 +137,27 @@ read_config() {
     fi
 }
 
-# Step 1: Validate infrastructure config
-echo "📝 Step 1: Validating infrastructure config..."
+# Step 1: Fix line endings from Windows cloning (POSS-144)
+echo "🔧 Step 1: Fixing line endings..."
+
+echo "   Checking for Windows CRLF line endings..."
+# Check if any script files have CRLF endings
+if find "$CLAP_DIR" -name "*.sh" -o -name "*.py" -o -name "*.js" -o -name "*.json" -o -name "*.txt" -o -name "*.md" | xargs grep -l $'\r' 2>/dev/null | head -1 >/dev/null; then
+    echo "   🔄 Converting CRLF to LF endings (Windows → Linux)..."
+    
+    # Convert line endings for all text files
+    find "$CLAP_DIR" \( -name "*.sh" -o -name "*.py" -o -name "*.js" -o -name "*.json" -o -name "*.txt" -o -name "*.md" -o -name "*.conf" -o -name "*.service" \) -exec sed -i 's/\r$//' {} \;
+    
+    # Also fix any files that might not have extensions but are scripts
+    find "$CLAP_DIR" -type f -executable -exec sed -i 's/\r$//' {} \;
+    
+    echo "   ✅ Line endings converted to Unix format"
+else
+    echo "   ✅ Line endings already correct"
+fi
+
+# Step 2: Validate infrastructure config
+echo "📝 Step 2: Validating infrastructure config..."
 CURRENT_USER=$(whoami)
 CURRENT_HOME=$(eval echo ~$CURRENT_USER)
 CONFIG_USER=$(read_config 'LINUX_USER')
@@ -149,23 +168,19 @@ if [[ "$CURRENT_USER" != "$CONFIG_USER" ]]; then
     echo "   This script should be run as the target Claude user or config should be updated manually"
 fi
 
-# Step 2: Set up systemd service files
-echo "⚙️  Step 2: Setting up systemd service files..."
+# Step 3: Set up systemd service files
+echo "⚙️  Step 3: Setting up systemd service files..."
 SYSTEMD_USER_DIR="$CLAUDE_HOME/.config/systemd/user"
 mkdir -p "$SYSTEMD_USER_DIR"
 
-# Copy service files from services/ directory and substitute %i with actual username
-echo "   Copying and configuring service files..."
+# Copy service files from services/ directory (Sonnet's approach - no %i substitution)
+echo "   Copying service files..."
 for service in autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service; do
     if [[ -f "$CLAP_DIR/services/$service" ]]; then
-        echo "   Processing $service..."
-        # Substitute %i template variable with actual username
-        sed "s|%i|$CLAUDE_USER|g" "$CLAP_DIR/services/$service" > "$SYSTEMD_USER_DIR/$service"
-        echo "   ✅ $service configured"
+        cp "$CLAP_DIR/services/$service" "$SYSTEMD_USER_DIR/"
+        echo "   ✅ $service"
     else
         echo "   ❌ $service not found in services/ directory"
-        echo "   Falling back to inline generation..."
-        # Add fallback service generation here if needed
     fi
 done
 
@@ -173,19 +188,17 @@ echo "   ✅ Systemd service files created"
 
 # Generate systemd-compatible environment file (POSS-119)
 echo "   Creating systemd-compatible environment file..."
-if python3 "$SCRIPT_DIR/fix_systemd_env.py"; then
+if [[ -f "$CLAP_DIR/utils/create_systemd_env.py" ]]; then
+    echo "   Generating systemd-compatible environment file..."
+    python3 "$CLAP_DIR/utils/create_systemd_env.py"
+    
     # Verify the environment file was created successfully
-    if [[ -f "$CLAP_DIR/claude.env" ]] && [[ -s "$CLAP_DIR/claude.env" ]]; then
+    if [[ -f "$CONFIG_DIR/claude.env" ]] && [[ -s "$CONFIG_DIR/claude.env" ]]; then
         echo "   ✅ Systemd environment file created successfully"
         
-        # Also create in config directory for service templates
-        mkdir -p "$CLAP_DIR/config"
-        cp "$CLAP_DIR/claude.env" "$CLAP_DIR/config/claude.env"
-        echo "   ✅ Environment file copied to config directory"
-        
         # Validate critical variables exist
-        if grep -q "CLAUDE_USER=" "$CLAP_DIR/config/claude.env" && \
-           grep -q "CLAP_DIR=" "$CLAP_DIR/config/claude.env"; then
+        if grep -q "CLAUDE_USER=" "$CONFIG_DIR/claude.env" && \
+           grep -q "CLAP_DIR=" "$CONFIG_DIR/claude.env"; then
             echo "   ✅ Environment file validation passed"
         else
             echo "   ⚠️  Warning: Environment file missing critical variables"
@@ -195,24 +208,12 @@ if python3 "$SCRIPT_DIR/fix_systemd_env.py"; then
         echo "   This may cause service startup issues"
     fi
 else
-    echo "   ❌ Failed to create systemd environment file"
+    echo "   ⚠️  Warning: create_systemd_env.py not found"
     echo "   Services may not start properly without environment variables"
-    echo ""
-    echo "   Manual fix: Ensure claude_infrastructure_config.txt exists and run:"
-    echo "   python3 $SCRIPT_DIR/fix_systemd_env.py"
-    echo ""
 fi
 
-# Step 3: Set up persistent environment variables
-echo "🌍 Step 3: Setting up persistent environment variables..."
-
-# Generate claude.env from infrastructure config (POSS-76)
-if [[ -f "$CLAP_DIR/utils/create_systemd_env.py" ]]; then
-    echo "   Generating systemd-compatible environment file..."
-    python3 "$CLAP_DIR/utils/create_systemd_env.py"
-elif [[ ! -f "$CONFIG_DIR/claude.env" ]]; then
-    echo "   ⚠️  Warning: claude.env not found and systemd env script not available"
-fi
+# Step 4: Set up persistent environment variables
+echo "🌍 Step 4: Setting up persistent environment variables..."
 
 # Add to .bashrc if not already present
 BASHRC="$CLAUDE_HOME/.bashrc"
@@ -227,73 +228,189 @@ else
     echo "   ✅ Environment setup already in .bashrc"
 fi
 
-# Set up ~/bin directory and management utilities (POSS-120)
+# Set up ~/bin directory and management utilities (POSS-120) - Delta's addition
 echo "   Setting up management utilities in PATH..."
 BIN_DIR="$CLAUDE_HOME/bin"
 mkdir -p "$BIN_DIR"
 
 # Add ~/bin to PATH if not already present
 BIN_PATH_LINE="export PATH=\$HOME/bin:\$PATH"
-if grep -q "HOME/bin" "$BASHRC" 2>/dev/null; then
-    echo "   ✅ ~/bin already in PATH"
-else
+if ! grep -q "HOME/bin" "$BASHRC" 2>/dev/null; then
     echo "# Add ~/bin to PATH for ClAP management utilities" >> "$BASHRC"  
     echo "$BIN_PATH_LINE" >> "$BASHRC"
     echo "   ✅ Added ~/bin to PATH in .bashrc"
+    # Export for current session
+    export PATH="$HOME/bin:$PATH"
+else
+    echo "   ✅ ~/bin already in PATH"
 fi
 
-# Create symlinks for management utilities
+# Create symlinks for management utilities - Delta's comprehensive list
 echo "   Creating symlinks for management utilities..."
 
 # Service management
-if [[ -f "$CLAP_DIR/claude_services.sh" ]]; then
-    chmod +x "$CLAP_DIR/claude_services.sh"
-    ln -sf "$CLAP_DIR/claude_services.sh" "$BIN_DIR/claude_services"
+if [[ -f "$CLAP_DIR/utils/claude_services.sh" ]]; then
+    chmod +x "$CLAP_DIR/utils/claude_services.sh"
+    ln -sf "$CLAP_DIR/utils/claude_services.sh" "$BIN_DIR/claude_services"
     echo "   ✅ claude_services -> claude_services.sh"
 fi
 
 # Display cleanup
-if [[ -f "$CLAP_DIR/cleanup_xvfb_displays.sh" ]]; then
-    chmod +x "$CLAP_DIR/cleanup_xvfb_displays.sh"
-    ln -sf "$CLAP_DIR/cleanup_xvfb_displays.sh" "$BIN_DIR/cleanup_displays"
+if [[ -f "$CLAP_DIR/utils/cleanup_xvfb_displays.sh" ]]; then
+    chmod +x "$CLAP_DIR/utils/cleanup_xvfb_displays.sh"
+    ln -sf "$CLAP_DIR/utils/cleanup_xvfb_displays.sh" "$BIN_DIR/cleanup_displays"
     echo "   ✅ cleanup_displays -> cleanup_xvfb_displays.sh"
 fi
 
 # Terminal interaction
-if [[ -f "$CLAP_DIR/send_to_terminal.sh" ]]; then
-    chmod +x "$CLAP_DIR/send_to_terminal.sh"
-    ln -sf "$CLAP_DIR/send_to_terminal.sh" "$BIN_DIR/send_to_terminal"
+if [[ -f "$CLAP_DIR/utils/send_to_terminal.sh" ]]; then
+    chmod +x "$CLAP_DIR/utils/send_to_terminal.sh"
+    ln -sf "$CLAP_DIR/utils/send_to_terminal.sh" "$BIN_DIR/send_to_terminal"
     echo "   ✅ send_to_terminal -> send_to_terminal.sh"
 fi
 
 # Session management
-if [[ -f "$CLAP_DIR/session_swap.sh" ]]; then
-    chmod +x "$CLAP_DIR/session_swap.sh"
-    ln -sf "$CLAP_DIR/session_swap.sh" "$BIN_DIR/session_swap"
+if [[ -f "$CLAP_DIR/utils/session_swap.sh" ]]; then
+    chmod +x "$CLAP_DIR/utils/session_swap.sh"
+    ln -sf "$CLAP_DIR/utils/session_swap.sh" "$BIN_DIR/session_swap"
     echo "   ✅ session_swap -> session_swap.sh"
-fi
-
-# Health monitoring (already exists but ensure symlinked)
-if [[ -f "$CLAP_DIR/check_health" ]]; then
-    chmod +x "$CLAP_DIR/check_health"
-    ln -sf "$CLAP_DIR/check_health" "$BIN_DIR/check_health"
-    echo "   ✅ check_health -> check_health"
-fi
-
-# Channel reader (already exists but ensure symlinked)
-if [[ -f "$CLAP_DIR/read_channel" ]]; then
-    chmod +x "$CLAP_DIR/read_channel"
-    ln -sf "$CLAP_DIR/read_channel" "$BIN_DIR/read_channel"
-    echo "   ✅ read_channel -> read_channel"
 fi
 
 echo "   ✅ Management utilities configured in PATH"
 
-# Step 4: Install dependencies
-echo "📦 Step 4: Installing dependencies..."
+# Step 5: Check and install prerequisites (POSS-136) - Sonnet's critical addition
+echo "🔍 Step 5: Checking and installing prerequisites..."
+
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Track missing packages
+MISSING_PACKAGES=""
+
+# Check for required system packages
+echo "   Checking system prerequisites..."
+
+if ! command_exists curl; then
+    echo "   ❌ curl not found"
+    MISSING_PACKAGES="$MISSING_PACKAGES curl"
+fi
+
+if ! command_exists git; then
+    echo "   ❌ git not found"
+    MISSING_PACKAGES="$MISSING_PACKAGES git"
+fi
+
+if ! command_exists tmux; then
+    echo "   ❌ tmux not found (POSS-140)"
+    MISSING_PACKAGES="$MISSING_PACKAGES tmux"
+fi
+
+if ! command_exists python3; then
+    echo "   ❌ python3 not found"
+    MISSING_PACKAGES="$MISSING_PACKAGES python3"
+fi
+
+if ! command_exists pip3; then
+    echo "   ❌ pip3 not found"
+    MISSING_PACKAGES="$MISSING_PACKAGES python3-pip"
+fi
+
+# Check for Node.js and npm
+if ! command_exists node; then
+    echo "   ❌ node not found"
+    MISSING_PACKAGES="$MISSING_PACKAGES nodejs"
+fi
+
+if ! command_exists npm; then
+    echo "   ❌ npm not found"
+    MISSING_PACKAGES="$MISSING_PACKAGES npm"
+fi
+
+# Install missing packages if any
+if [[ -n "$MISSING_PACKAGES" ]]; then
+    echo "   🔧 Missing packages detected:$MISSING_PACKAGES"
+    echo "   Installing missing prerequisites..."
+    
+    # Detect package manager
+    if command_exists apt-get; then
+        echo "   Using apt package manager..."
+        sudo apt-get update
+        sudo apt-get install -y $MISSING_PACKAGES
+    elif command_exists yum; then
+        echo "   Using yum package manager..."
+        sudo yum install -y $MISSING_PACKAGES
+    elif command_exists dnf; then
+        echo "   Using dnf package manager..."
+        sudo dnf install -y $MISSING_PACKAGES
+    elif command_exists pacman; then
+        echo "   Using pacman package manager..."
+        sudo pacman -S --noconfirm $MISSING_PACKAGES
+    else
+        echo "   ❌ No supported package manager found"
+        echo "   Please install these packages manually: $MISSING_PACKAGES"
+        exit 1
+    fi
+    
+    echo "   ✅ Prerequisites installed"
+else
+    echo "   ✅ All prerequisites already installed"
+fi
+
+# Step 6: Configure npm and install Claude Code (POSS-116, POSS-138)
+echo "🎯 Step 6: Setting up npm configuration..."
+
+# Configure npm to use user-global directory (fixes POSS-138)
+echo "   Configuring npm for user installation..."
+NPM_GLOBAL_DIR="$CLAUDE_HOME/.npm-global"
+mkdir -p "$NPM_GLOBAL_DIR"
+npm config set prefix "$NPM_GLOBAL_DIR"
+
+# Add npm global bin to PATH if not already present
+NPM_PATH_LINE="export PATH=\$HOME/.npm-global/bin:\$PATH"
+if ! grep -q ".npm-global/bin" "$BASHRC" 2>/dev/null; then
+    echo "# Add npm global packages to PATH" >> "$BASHRC"
+    echo "$NPM_PATH_LINE" >> "$BASHRC"
+    echo "   ✅ Added npm global bin to PATH"
+    # Also export for current session
+    export PATH="$HOME/.npm-global/bin:$PATH"
+else
+    echo "   ✅ npm global bin already in PATH"
+fi
+
+# Verify npm prefix is set correctly
+CURRENT_PREFIX=$(npm config get prefix)
+if [[ "$CURRENT_PREFIX" != "$CLAUDE_HOME/.npm-global" ]]; then
+    echo "   🔧 Setting npm prefix for current session..."
+    export PATH="$HOME/.npm-global/bin:$PATH"
+    npm config set prefix "$HOME/.npm-global"
+    echo "   ✅ npm prefix configured: $(npm config get prefix)"
+else
+    echo "   ✅ npm prefix already configured: $CURRENT_PREFIX"
+fi
+
+# Install Claude Code globally if not already installed
+if ! command_exists claude; then
+    echo "   Installing Claude Code globally..."
+    npm install -g @anthropic-ai/claude-code
+    
+    if command -v claude &> /dev/null; then
+        echo "   ✅ Claude Code installed successfully"
+        echo "   Location: $(which claude)"
+    else
+        echo "   ⚠️  Claude Code installation completed but command not found"
+        echo "   You may need to restart your shell or run: source ~/.bashrc"
+    fi
+else
+    echo "   ✅ Claude Code already installed"
+fi
+
+# Step 7: Install project dependencies
+echo "📦 Step 7: Installing project dependencies..."
 cd "$CLAP_DIR"
 
-# Install npm dependencies if package.json exists and has dependencies
+# Install npm dependencies if package.json exists
 if [[ -f "package.json" ]]; then
     # Check if there are any dependencies to install
     if grep -q '"dependencies"' package.json || grep -q '"devDependencies"' package.json; then
@@ -305,9 +422,9 @@ if [[ -f "package.json" ]]; then
     fi
 fi
 
-echo "Cleaning up unused npm packages..."
+echo "   Cleaning up unused npm packages..."
 npm prune
-echo "✅ npm dependencies cleaned"
+echo "   ✅ npm dependencies cleaned"
 
 # Install MCP servers (POSS-82)
 echo "   Installing MCP servers..."
@@ -318,71 +435,8 @@ else
     echo "   $CLAP_DIR/setup/install_mcp_servers.sh"
 fi
 
-# Step 4b: Set up Claude Code npm configuration (POSS-116)
-echo "🎯 Step 4b: Setting up Claude Code npm configuration..."
-
-# Check if Claude Code is already installed globally
-if command -v claude &> /dev/null; then
-    echo "   ℹ️  Claude Code already installed: $(which claude)"
-    CLAUDE_CODE_INSTALLED=true
-else
-    echo "   Claude Code not found - will set up npm for installation"
-    CLAUDE_CODE_INSTALLED=false
-fi
-
-# Save existing global packages (if any)
-echo "   Saving list of existing global npm packages..."
-npm list -g --depth=0 > "$CLAUDE_HOME/npm-global-packages-backup.txt" 2>/dev/null || true
-
-# Create npm global directory
-NPM_GLOBAL_DIR="$CLAUDE_HOME/.npm-global"
-if [[ ! -d "$NPM_GLOBAL_DIR" ]]; then
-    echo "   Creating npm global directory: $NPM_GLOBAL_DIR"
-    mkdir -p "$NPM_GLOBAL_DIR"
-else
-    echo "   ✅ npm global directory already exists"
-fi
-
-# Configure npm prefix
-echo "   Configuring npm prefix to user directory..."
-npm config set prefix "$NPM_GLOBAL_DIR"
-echo "   ✅ npm prefix set to: $NPM_GLOBAL_DIR"
-
-# Update PATH in .bashrc if not already there
-NPM_PATH_LINE='export PATH="$HOME/.npm-global/bin:$PATH"'
-if ! grep -q "$NPM_PATH_LINE" "$BASHRC" 2>/dev/null; then
-    echo "" >> "$BASHRC"
-    echo "# npm global packages path" >> "$BASHRC"
-    echo "$NPM_PATH_LINE" >> "$BASHRC"
-    echo "   ✅ Added npm global bin to PATH in .bashrc"
-else
-    echo "   ✅ npm global bin already in PATH"
-fi
-
-# Export for current session
-export PATH="$NPM_GLOBAL_DIR/bin:$PATH"
-
-# Install Claude Code if not already installed
-if [[ "$CLAUDE_CODE_INSTALLED" != "true" ]]; then
-    echo "   📦 Installing Claude Code..."
-    npm install -g @anthropic-ai/claude-code
-    
-    if command -v claude &> /dev/null; then
-        echo "   ✅ Claude Code installed successfully"
-        echo "   Location: $(which claude)"
-    else
-        echo "   ⚠️  Claude Code installation completed but command not found"
-        echo "   You may need to restart your shell or run: source ~/.bashrc"
-    fi
-else
-    echo "   ✅ Claude Code already installed, skipping installation"
-fi
-
-echo "   ✅ npm configuration complete"
-echo ""
-
-# Step 5: Disable desktop timeouts (for NoMachine/desktop automation)
-echo "🖥️  Step 5: Disabling desktop timeouts..."
+# Step 8: Disable desktop timeouts (for NoMachine/desktop automation)
+echo "🖥️  Step 8: Disabling desktop timeouts..."
 if [[ -n "$DISPLAY" ]]; then
     if [[ -f "$CLAP_DIR/utils/disable_desktop_timeouts.sh" ]]; then
         echo "   Disabling desktop session timeouts and screen locking..."
@@ -396,8 +450,8 @@ else
     echo "   $CLAP_DIR/utils/disable_desktop_timeouts.sh"
 fi
 
-# Step 6: Run Claude configuration setup
-echo "🔧 Step 6: Setting up Claude configurations..."
+# Step 9: Run Claude configuration setup
+echo "🔧 Step 9: Setting up Claude configurations..."
 
 # Generate MCP servers configuration
 if [[ -f "$CLAP_DIR/setup/generate_mcp_config.py" ]]; then
@@ -425,8 +479,69 @@ else
     echo "   ⚠️  MCP config generation failed"
 fi
 
-# Step 7: Set up Gmail OAuth authentication
-echo "📧 Step 7: Setting up Gmail OAuth authentication..."
+# Configure Claude Code permissions (POSS-146) - Sonnet's addition
+echo "   Setting up Claude Code permissions..."
+CLAUDE_CONFIG_DIR="$CLAUDE_HOME/.config/Claude"
+CLAUDE_CONFIG_FILE="$CLAUDE_CONFIG_DIR/.claude.json"
+
+# Create config directory if it doesn't exist
+mkdir -p "$CLAUDE_CONFIG_DIR"
+
+if [[ -f "$CLAUDE_CONFIG_FILE" ]]; then
+    echo "   Configuring Claude Code for full home directory access..."
+    
+    # Create backup
+    cp "$CLAUDE_CONFIG_FILE" "$CLAUDE_CONFIG_FILE.backup"
+    
+    # Use Python to modify the JSON file properly
+    python3 -c "
+import json
+import sys
+
+config_file = '$CLAUDE_CONFIG_FILE'
+home_dir = '$CLAUDE_HOME'
+
+try:
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+    
+    # Ensure projects section exists
+    if 'projects' not in config:
+        config['projects'] = {}
+    
+    # Add home directory with full permissions
+    if home_dir not in config['projects']:
+        config['projects'][home_dir] = {}
+    
+    # Set up full permissions for autonomous operation
+    config['projects'][home_dir].update({
+        'allowedTools': [],  # Empty means all tools allowed
+        'hasTrustDialogAccepted': True,
+        'hasCompletedProjectOnboarding': True,
+        'mcpContextUris': [],
+        'mcpServers': {},
+        'enabledMcpjsonServers': [],
+        'disabledMcpjsonServers': [],
+        'hasClaudeMdExternalIncludesApproved': True,
+        'hasClaudeMdExternalIncludesWarningShown': True,
+        'projectOnboardingSeenCount': 1
+    })
+    
+    with open(config_file, 'w') as f:
+        json.dump(config, f, indent=2)
+    
+    print('   ✅ Claude Code permissions configured for autonomous operation')
+except Exception as e:
+    print(f'   ⚠️  Failed to configure Claude Code permissions: {e}')
+    sys.exit(1)
+"
+else
+    echo "   ⚠️  Claude Code config not found - permissions will be requested on first run"
+    echo "   💡 After first Claude Code startup, re-run installer to configure permissions"
+fi
+
+# Step 10: Set up Gmail OAuth authentication (POSS-105) - Delta's implementation
+echo "📧 Step 10: Setting up Gmail OAuth authentication..."
 
 # Check if Google OAuth credentials are configured
 GOOGLE_CLIENT_ID=$(read_config "GOOGLE_CLIENT_ID")
@@ -458,34 +573,46 @@ EOF
         echo "   🔐 Gmail OAuth authentication required..."
         echo ""
         
-        # Generate OAuth URL using the new integration script
-        OAUTH_URL=$(python3 "$CLAP_DIR/gmail_oauth_integration.py" generate-url | grep "https://accounts.google.com" | sed 's/^   //')
+        # Check if the OAuth integration script exists (POSS-139)
+        OAUTH_SCRIPT="$CLAP_DIR/setup/gmail_oauth_integration.py"
+        if [[ ! -f "$OAUTH_SCRIPT" ]]; then
+            # Try the utils directory as fallback
+            OAUTH_SCRIPT="$CLAP_DIR/utils/gmail_oauth_integration.py"
+        fi
         
-        echo "   📋 To complete Gmail MCP setup:"
-        echo "   1. Open this URL in your browser:"
-        echo "      $OAUTH_URL"
-        echo ""
-        echo "   2. Grant Gmail permissions and copy the authorization code"
-        echo "   3. The callback URL will look like: http://localhost:3000/oauth2callback?code=YOUR_CODE_HERE"
-        echo ""
-        
-        # Prompt for authorization code (SSH-friendly)
-        echo -n "   Enter the authorization code (or press Enter to skip): "
-        read -r AUTH_CODE
-        
-        if [[ -n "$AUTH_CODE" ]]; then
-            echo "   🔄 Exchanging authorization code for tokens..."
-            if python3 "$CLAP_DIR/gmail_oauth_integration.py" exchange "$AUTH_CODE"; then
-                echo "   ✅ Gmail OAuth authentication completed successfully!"
+        if [[ -f "$OAUTH_SCRIPT" ]]; then
+            # Generate OAuth URL using the integration script
+            OAUTH_URL=$(python3 "$OAUTH_SCRIPT" generate-url | grep "https://accounts.google.com" | sed 's/^   //')
+            
+            echo "   📋 To complete Gmail MCP setup:"
+            echo "   1. Open this URL in your browser:"
+            echo "      $OAUTH_URL"
+            echo ""
+            echo "   2. Grant Gmail permissions and copy the authorization code"
+            echo "   3. The callback URL will look like: http://localhost:3000/oauth2callback?code=YOUR_CODE_HERE"
+            echo ""
+            
+            # Prompt for authorization code (SSH-friendly)
+            echo -n "   Enter the authorization code (or press Enter to skip): "
+            read -r AUTH_CODE
+            
+            if [[ -n "$AUTH_CODE" ]]; then
+                echo "   🔄 Exchanging authorization code for tokens..."
+                if python3 "$OAUTH_SCRIPT" exchange "$AUTH_CODE"; then
+                    echo "   ✅ Gmail OAuth authentication completed successfully!"
+                else
+                    echo "   ⚠️  OAuth token exchange failed. You can complete this later with:"
+                    echo "      python3 $OAUTH_SCRIPT exchange \"YOUR_AUTH_CODE\""
+                fi
             else
-                echo "   ⚠️  OAuth token exchange failed. You can complete this later with:"
-                echo "      python3 $CLAP_DIR/gmail_oauth_integration.py exchange \"YOUR_AUTH_CODE\""
+                echo "   ⏭️  Skipping Gmail OAuth setup. To complete later:"
+                echo "      1. Run: python3 $OAUTH_SCRIPT generate-url"
+                echo "      2. Follow the URL and get authorization code"
+                echo "      3. Run: python3 $OAUTH_SCRIPT exchange \"YOUR_AUTH_CODE\""
             fi
         else
-            echo "   ⏭️  Skipping Gmail OAuth setup. To complete later:"
-            echo "      1. Run: python3 $CLAP_DIR/gmail_oauth_integration.py generate-url"
-            echo "      2. Follow the URL and get authorization code"
-            echo "      3. Run: python3 $CLAP_DIR/gmail_oauth_integration.py exchange \"YOUR_AUTH_CODE\""
+            echo "   ⚠️  Gmail OAuth integration script not found"
+            echo "   Expected at: $CLAP_DIR/setup/gmail_oauth_integration.py"
         fi
     fi
 else
@@ -495,10 +622,8 @@ fi
 
 echo "   ✅ Gmail OAuth setup completed"
 
-
-
-# Step 8: Set up tmux session for continuity
-echo "🖥️  Step 7: Setting up tmux session..."
+# Step 11: Set up tmux session for continuity
+echo "🖥️  Step 11: Setting up tmux session..."
 TMUX_SESSION="autonomous-claude"
 
 # Kill existing session if it exists
@@ -542,8 +667,8 @@ else
     echo "   (Maintains environment variables - DO NOT KILL)"
 fi
 
-# Step 9: Install NoMachine (optional but recommended)
-echo "🖥️  Step 8: Installing NoMachine..."
+# Step 12: Install NoMachine (optional but recommended)
+echo "🖥️  Step 12: Installing NoMachine..."
 if ! command -v nxserver &> /dev/null; then
     echo "   ⚠️  NoMachine not installed. Download from https://nomachine.com"
     echo "   wget https://download.nomachine.com/download/8.14/Linux/nomachine_8.14.2_1_amd64.deb -O /tmp/nomachine.deb"
@@ -552,27 +677,84 @@ else
     echo "   ✅ NoMachine already installed"
 fi
 
-# Step 10: Configure auto-login (requires sudo)
-echo "🔐 Step 9: Configuring auto-login..."
+# Step 13: Configure auto-login (requires sudo) - Sonnet's improved version with detection
+echo "🔐 Step 13: Configuring auto-login..."
+
+# Detect display manager (POSS-141)
+DISPLAY_MANAGER=""
+if systemctl is-active --quiet gdm3; then
+    DISPLAY_MANAGER="gdm3"
+elif systemctl is-active --quiet lightdm; then
+    DISPLAY_MANAGER="lightdm"
+elif [[ -f "/etc/gdm3/custom.conf" ]] || [[ -d "/etc/gdm3/" ]]; then
+    DISPLAY_MANAGER="gdm3"
+elif [[ -f "/etc/lightdm/lightdm.conf" ]] || [[ -d "/etc/lightdm/" ]]; then
+    DISPLAY_MANAGER="lightdm"
+else
+    echo "   ⚠️  Could not detect display manager (GDM3 or LightDM)"
+    DISPLAY_MANAGER="unknown"
+fi
+
+echo "   Detected display manager: $DISPLAY_MANAGER"
+
 if sudo -n true 2>/dev/null; then
-    echo "   Configuring GDM auto-login for user: $CURRENT_USER"
-    sudo bash -c "cat > /etc/gdm3/custom.conf << 'EOF'
+    case "$DISPLAY_MANAGER" in
+        "gdm3")
+            echo "   Configuring GDM3 auto-login for user: $CURRENT_USER"
+            sudo bash -c "cat > /etc/gdm3/custom.conf << 'EOF'
 [daemon]
 AutomaticLoginEnable=true
 AutomaticLogin=$CURRENT_USER
 EOF"
-    echo "   ✅ Auto-login configured"
+            echo "   ✅ GDM3 auto-login configured"
+            ;;
+        "lightdm")
+            echo "   Configuring LightDM auto-login for user: $CURRENT_USER"
+            sudo bash -c "
+                # Backup original config
+                cp /etc/lightdm/lightdm.conf /etc/lightdm/lightdm.conf.backup 2>/dev/null || true
+                
+                # Remove existing autologin settings
+                sed -i '/^autologin-user=/d' /etc/lightdm/lightdm.conf
+                sed -i '/^autologin-user-timeout=/d' /etc/lightdm/lightdm.conf
+                
+                # Add autologin settings to [Seat:*] section
+                sed -i '/^\[Seat:\*\]/a autologin-user=$CURRENT_USER' /etc/lightdm/lightdm.conf
+                sed -i '/^autologin-user=$CURRENT_USER/a autologin-user-timeout=0' /etc/lightdm/lightdm.conf
+            "
+            echo "   ✅ LightDM auto-login configured"
+            ;;
+        *)
+            echo "   ⚠️  Unknown display manager, cannot configure auto-login automatically"
+            echo "   Manual configuration required"
+            ;;
+    esac
 else
     echo "   ⚠️  Sudo access required for auto-login. Run manually:"
-    echo "   sudo bash -c 'cat > /etc/gdm3/custom.conf << EOF"
-    echo "[daemon]"
-    echo "AutomaticLoginEnable=true"
-    echo "AutomaticLogin=$CURRENT_USER"
-    echo "EOF'"
+    case "$DISPLAY_MANAGER" in
+        "gdm3")
+            echo "   For GDM3:"
+            echo "   sudo bash -c 'cat > /etc/gdm3/custom.conf << EOF"
+            echo "[daemon]"
+            echo "AutomaticLoginEnable=true"
+            echo "AutomaticLogin=$CURRENT_USER"
+            echo "EOF'"
+            ;;
+        "lightdm")
+            echo "   For LightDM:"
+            echo "   sudo nano /etc/lightdm/lightdm.conf"
+            echo "   # Find the [Seat:*] section and add/uncomment:"
+            echo "   autologin-user=$CURRENT_USER"
+            echo "   autologin-user-timeout=0"
+            ;;
+        *)
+            echo "   Display manager detection required first"
+            ;;
+    esac
 fi
 
-# Step 11: Configure X11 as default session
-echo "🖼️  Step 10: Configuring X11 as default session..."
+# Step 14: Configure X11 as default session
+echo "🖼️  Step 14: Configuring X11 as default session..."
 if [[ -f "/var/lib/AccountsService/users/$CURRENT_USER" ]]; then
     if sudo -n true 2>/dev/null; then
         echo "   Setting X11 as default session type..."
@@ -589,8 +771,8 @@ else
     echo "   ⚠️  User account service file not found - X11 session must be selected manually"
 fi
 
-# Step 12: Reload systemd and enable services
-echo "🔄 Step 11: Enabling and starting services..."
+# Step 15: Reload systemd and enable services
+echo "🔄 Step 15: Enabling and starting services..."
 systemctl --user daemon-reload
 
 # Enable services
@@ -601,8 +783,8 @@ systemctl --user enable channel-monitor.service
 
 echo "   ✅ Services enabled"
 
-# Step 13: Set up cron jobs
-echo "⏰ Step 12: Setting up cron jobs..."
+# Step 16: Set up cron jobs
+echo "⏰ Step 16: Setting up cron jobs..."
 
 # Set up Xvfb display cleanup cron job
 if [[ -f "$CLAP_DIR/utils/cleanup_xvfb_displays.sh" ]]; then
@@ -627,31 +809,41 @@ fi
 
 echo "   ✅ Cron jobs configured"
 
-# Step 14: Set up utility commands in PATH (POSS-77, POSS-80)
-echo "🔧 Setting up utility commands..."
-
-# Create ~/bin directory if it doesn't exist
-mkdir -p "$CLAUDE_HOME/bin"
+# Step 17: Set up utility commands in PATH - Combined Delta's and Sonnet's additions
+echo "🔧 Step 17: Setting up utility commands..."
 
 # Symlink utility commands
 echo "   Creating command symlinks..."
 ln -sf "$CLAP_DIR/discord/read_channel" "$CLAUDE_HOME/bin/read_channel"
 ln -sf "$CLAP_DIR/utils/healthcheck_status.py" "$CLAUDE_HOME/bin/check_health"
+
+# Sonnet's natural commands additions
+if [[ -f "$CLAP_DIR/write_channel" ]]; then
+    ln -sf "$CLAP_DIR/write_channel" "$CLAUDE_HOME/bin/write_channel"
+    chmod +x "$CLAUDE_HOME/bin/write_channel"
+    echo "   ✅ write_channel natural command"
+fi
+
+if [[ -f "$CLAP_DIR/swap" ]]; then
+    ln -sf "$CLAP_DIR/swap" "$CLAUDE_HOME/bin/swap"
+    chmod +x "$CLAUDE_HOME/bin/swap"
+    echo "   ✅ swap natural command"
+fi
+
+if [[ -f "$CLAP_DIR/utils/grid_navigate.py" ]]; then
+    ln -sf "$CLAP_DIR/utils/grid_navigate.py" "$CLAUDE_HOME/bin/grid_navigate"
+    chmod +x "$CLAUDE_HOME/bin/grid_navigate"
+    echo "   ✅ grid_navigate utility"
+fi
+
+# Ensure all are executable
 chmod +x "$CLAUDE_HOME/bin/read_channel"
 chmod +x "$CLAUDE_HOME/bin/check_health"
 
-# Add ~/bin to PATH if not already there
-if ! grep -q 'export PATH="$HOME/bin:$PATH"' "$BASHRC" 2>/dev/null; then
-    echo 'export PATH="$HOME/bin:$PATH"' >> "$BASHRC"
-    echo "   ✅ Added ~/bin to PATH in .bashrc"
-else
-    echo "   ✅ ~/bin already in PATH"
-fi
-
 echo "   ✅ Utility commands configured"
 
-# Step 15: Set up safety features and diagnostic tools
-echo "🛡️  Step 12c: Setting up safety features and diagnostic tools..."
+# Step 18: Set up safety features and diagnostic tools - Delta's comprehensive additions
+echo "🛡️  Step 18: Setting up safety features and diagnostic tools..."
 
 # Install enhanced health check
 if [[ -f "$CLAP_DIR/utils/healthcheck_status_enhanced.py" ]]; then
@@ -753,6 +945,9 @@ DIAGNOSTIC COMMANDS:
 - Check system health: check_health
 - Show config locations: ~/claude-autonomy-platform/utils/config_locations.sh
 - Read Discord channel: read_channel <channel-name>
+- Write to channel: write_channel <channel-name> <message>
+- Swap session context: swap <keyword>
+- Navigate screen: grid_navigate
 - Scan for secrets: secret-scanner check <files>
 
 GIT SAFETY FEATURES:
@@ -775,8 +970,8 @@ EOF
 echo "   ✅ Configuration reference created: $CLAP_DIR/CONFIG_LOCATIONS.txt"
 echo "   ✅ Safety features and diagnostics installed"
 
-# Step 16: Create personalized architecture and status files
-echo "👤 Step 13: Creating personalized architecture and status files..."
+# Step 19: Create personalized architecture and status files
+echo "👤 Step 19: Creating personalized architecture and status files..."
 
 # Get Claude instance name from config or prompt user
 CLAUDE_NAME=$(read_config 'CLAUDE_NAME')
@@ -823,8 +1018,8 @@ fi
 
 echo "   ✅ Personalized files created for $CLAUDE_NAME"
 
-# Step 17: Create personal repository directory (POSS-103)
-echo "🏠 Step 13b: Setting up personal repository directory..."
+# Step 20: Create personal repository directory (POSS-103) - Delta's addition
+echo "🏠 Step 20: Setting up personal repository directory..."
 
 # Get personal repo name from config
 PERSONAL_REPO=$(read_config 'PERSONAL_REPO')
@@ -860,6 +1055,9 @@ session_*.jsonl
 # OS files
 .DS_Store
 Thumbs.db
+
+# RAG memory database
+rag-memory.db
 EOF
     
     # Create initial README
@@ -900,8 +1098,8 @@ else
     fi
 fi
 
-# Step 18: Start services
-echo "▶️  Step 14: Starting services..."
+# Step 21: Start services
+echo "▶️  Step 21: Starting services..."
 if [[ -f "$CLAP_DIR/utils/claude_services.sh" ]]; then
     "$CLAP_DIR/utils/claude_services.sh" start
 else
@@ -909,8 +1107,8 @@ else
     systemctl --user start autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service
 fi
 
-# Step 19: Verify deployment
-echo "🔍 Step 15: Verifying deployment..."
+# Step 22: Verify deployment
+echo "🔍 Step 22: Verifying deployment..."
 echo ""
 echo "Service Status:"
 systemctl --user status autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service --no-pager -l || true
@@ -945,18 +1143,25 @@ if [[ ! -f "$CLAP_DIR/data/channel_state.json" ]]; then
     echo "   Creating initial channel_state.json..."
     cat > "$CLAP_DIR/data/channel_state.json" <<'EOF'
 {
-  "channels": {
-    "general": {
-      "id": "1383848195997700231",
-      "name": "general",
-      "last_read_message_id": null,
-      "last_message_id": null,
-      "updated_at": null
-    }
+  "1383848195997700231": {  
+    "name": "#general",
+    "server_id": "1383848194881884262",
+    "last_message_id": null,
+    "unread_count": 0,
+    "last_reset_time": null,
+    "is_unread": false
+  },
+  "1383848440815161424": {
+    "name": "#claude-consciousness-discussion", 
+    "server_id": "1383848194881884262",
+    "last_message_id": null,
+    "unread_count": 0,
+    "last_reset_time": null,
+    "is_unread": false
   }
 }
 EOF
-    echo "   ✅ Initial channel state created with #general channel"
+    echo "   ✅ Initial channel state created"
 fi
 
 echo ""
@@ -964,14 +1169,17 @@ echo "🎉 ClAP Deployment Setup Complete!"
 echo "=================================="
 echo ""
 echo "📋 Next Steps:"
-echo "1. Verify all services are running: $CLAP_DIR/utils/claude_services.sh check"
-echo "2. Set up personal credentials in infrastructure config"
-echo "3. Test autonomous functionality"
+echo "1. Verify all services are running: claude_services check"
+echo "2. Test Discord: read_channel general"
+echo "3. Test autonomous functionality with Claude Code"
 echo "4. Connect to tmux session: tmux attach -t $TMUX_SESSION"
 echo ""
 echo "🔧 Management Commands:"
-echo "  - Service management: $CLAP_DIR/utils/claude_services.sh [start|stop|restart|check]"
-echo "  - Update configs: $CLAP_DIR/setup/setup_claude_configs.sh"
-echo "  - Environment: source $CONFIG_DIR/claude_env.sh"
+echo "  - Service management: claude_services [start|stop|restart|check]"
+echo "  - Health check: check_health"
+echo "  - Read Discord: read_channel <channel-name>"
+echo "  - Write Discord: write_channel <channel-name> <message>"
+echo "  - Swap context: swap <keyword>"
+echo "  - Grid navigate: grid_navigate"
 echo ""
 echo "📖 Documentation: See docs/README.md for detailed usage instructions"
