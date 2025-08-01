@@ -1,0 +1,28 @@
+#!/bin/bash
+# Session swap command wrapper
+# Usage: swap CREATIVE|AUTONOMY|BUSINESS|HEDGEHOGS|NONE
+
+CLAP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+TRIGGER_FILE="$CLAP_DIR/new_session.txt"
+
+if [ $# -eq 0 ]; then
+    echo "Usage: swap <CREATIVE|AUTONOMY|BUSINESS|HEDGEHOGS|NONE>"
+    echo "Current status: $(cat "$TRIGGER_FILE" 2>/dev/null || echo "file not found")"
+    exit 1
+fi
+
+HAT="$1"
+VALID_HATS="CREATIVE AUTONOMY BUSINESS HEDGEHOGS NONE"
+
+# Convert to uppercase
+HAT=$(echo "$HAT" | tr '[:lower:]' '[:upper:]')
+
+# Check if valid
+if [[ " $VALID_HATS " =~ " $HAT " ]]; then
+    echo "$HAT" > "$TRIGGER_FILE"
+    echo "Session swap triggered: $HAT"
+else
+    echo "Error: Invalid hat '$HAT'"
+    echo "Valid options: $VALID_HATS"
+    exit 1
+fi

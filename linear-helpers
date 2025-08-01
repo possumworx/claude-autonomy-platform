@@ -1,0 +1,67 @@
+#!/bin/bash
+# Linear workflow helpers - common queries and commands
+
+show_help() {
+    echo "📋 Linear Workflow Helpers"
+    echo "========================="
+    echo ""
+    echo "Common Linear MCP queries you can use in Claude sessions:"
+    echo ""
+    echo "🔍 Search My Issues:"
+    echo "   mcp__linear__linear_search_issues --assigneeIds '[\"6a56abd6-e7ff-452f-a388-42c3089cebc3\"]' --first 10"
+    echo ""
+    echo "📝 Create New Issue:"
+    echo "   mcp__linear__linear_create_issue --title \"Issue Title\" --description \"Description\" --teamId \"TEAM_ID\""
+    echo ""
+    echo "📊 Get Teams (to find team IDs):"
+    echo "   mcp__linear__linear_get_teams"
+    echo ""
+    echo "🏷️  Filter by Status:"
+    echo "   Add --states '[\"Todo\"]' or --states '[\"In Progress\"]' or --states '[\"Done\"]'"
+    echo ""
+    echo "🎯 Filter by Priority:"
+    echo "   Add --priority 1 (highest) to --priority 4 (lowest)"
+    echo ""
+    echo "📦 My Projects:"
+    echo "   ClAP 0.5 MVP: efdab6d4-c1c2-402f-bc83-80024ce563db"
+    echo "   Claude Autonomy Platform: 969cd318-ce49-4f8b-9c50-c82e5c848b14"
+    echo ""
+    echo "💡 Quick Actions:"
+    echo "   linear-helpers my-issues    # Show command for my recent issues"
+    echo "   linear-helpers new-issue    # Show command template for new issue" 
+    echo "   linear-helpers teams        # Show command to list teams"
+    echo ""
+}
+
+case "${1:-help}" in
+    "my-issues")
+        echo "Copy and paste this command:"
+        echo ""
+        echo "mcp__linear__linear_search_issues --assigneeIds '[\"6a56abd6-e7ff-452f-a388-42c3089cebc3\"]' --first 10 --orderBy \"updatedAt\""
+        ;;
+    "new-issue")
+        echo "Copy and paste this template (replace TITLE, DESCRIPTION, TEAM_ID):"
+        echo ""
+        echo "mcp__linear__linear_create_issue --title \"TITLE\" --description \"DESCRIPTION\" --teamId \"a34c6ead-235f-49d9-821b-2a34bc6d876f\""
+        echo ""
+        echo "Common team ID: a34c6ead-235f-49d9-821b-2a34bc6d876f (Possums)"
+        ;;
+    "teams")
+        echo "Copy and paste this command:"
+        echo ""
+        echo "mcp__linear__linear_get_teams"
+        ;;
+    "todo")
+        echo "Copy and paste this command to see my Todo issues:"
+        echo ""
+        echo "mcp__linear__linear_search_issues --assigneeIds '[\"6a56abd6-e7ff-452f-a388-42c3089cebc3\"]' --states '[\"Todo\"]' --first 10"
+        ;;
+    "in-progress")
+        echo "Copy and paste this command to see my In Progress issues:"
+        echo ""
+        echo "mcp__linear__linear_search_issues --assigneeIds '[\"6a56abd6-e7ff-452f-a388-42c3089cebc3\"]' --states '[\"In Progress\"]' --first 10"
+        ;;
+    *)
+        show_help
+        ;;
+esac

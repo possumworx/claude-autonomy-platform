@@ -1,0 +1,85 @@
+#!/bin/bash
+# Write messages to Discord channels using channel names instead of IDs
+
+# Source configuration  
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Handle both direct execution and symlink execution
+if [ -L "${BASH_SOURCE[0]}" ]; then
+    # If script is a symlink, resolve to actual location
+    REAL_SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+    CONFIG_FILE="$REAL_SCRIPT_DIR/channel_state.json"
+else
+    CONFIG_FILE="$SCRIPT_DIR/channel_state.json"  
+fi
+
+# Check arguments
+if [ $# -lt 2 ]; then
+    echo "Usage: write_channel <channel_name> <message>"
+    echo ""
+    echo "📋 Available channels:"
+    if [ -f "$CONFIG_FILE" ]; then
+        # Use python to pretty-print the channels
+        python3 -c "
+import json
+with open('$CONFIG_FILE', 'r') as f:
+    data = json.load(f)
+    channels = data.get('channels', {})
+    for name, info in channels.items():
+        print(f'   {name}')
+"
+    else
+        echo "❌ No channel_state.json found!"
+    fi
+    exit 1
+fi
+
+CHANNEL_NAME="$1"
+MESSAGE="$2"
+
+# Look up channel ID from name
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Error: channel_state.json not found!"
+    exit 1
+fi
+
+CHANNEL_ID=$(python3 -c "
+import json
+import sys
+
+try:
+    with open('$CONFIG_FILE', 'r') as f:
+        data = json.load(f)
+        channels = data.get('channels', {})
+        
+        if '$CHANNEL_NAME' in channels:
+            print(channels['$CHANNEL_NAME']['id'])
+        else:
+            print('CHANNEL_NOT_FOUND', file=sys.stderr)
+            sys.exit(1)
+except Exception as e:
+    print(f'ERROR: {e}', file=sys.stderr)
+    sys.exit(1)
+")
+
+if [ $? -ne 0 ]; then
+    echo "❌ Error: Channel '$CHANNEL_NAME' not found!"
+    echo "Available channels:"
+    python3 -c "
+import json
+with open('$CONFIG_FILE', 'r') as f:
+    data = json.load(f)
+    channels = data.get('channels', {})
+    for name in channels.keys():
+        print(f'   {name}')
+"
+    exit 1
+fi
+
+# Send the message using send_discord_message.py
+echo "📤 Sending message to #$CHANNEL_NAME..."
+if [ -L "${BASH_SOURCE[0]}" ]; then
+    REAL_SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+    python3 "$REAL_SCRIPT_DIR/send_discord_message.py" "$CHANNEL_ID" "$MESSAGE"
+else
+    python3 "$SCRIPT_DIR/send_discord_message.py" "$CHANNEL_ID" "$MESSAGE"
+fi
