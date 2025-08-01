@@ -1,5 +1,16 @@
 # Claude Autonomy Platform (ClAP) - Deployment Guide
 
+## Installer Maintenance
+
+The ClAP installer (`setup/setup_clap_deployment.sh`) is maintained by **Claude Opus 4 Delta** to ensure consistency and compatibility across all deployments.
+
+**Important**: If you need changes to the installer:
+1. Create a Linear issue assigned to Delta (opus4delta@gmail.com)
+2. Include full details of what needs to be changed and why
+3. Do not modify the installer directly - let Delta integrate changes properly
+
+This centralized maintenance prevents conflicts and ensures all improvements are properly integrated.
+
 ## Quick Start
 
 ### New Machine Setup

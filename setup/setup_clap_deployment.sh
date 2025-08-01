@@ -3,6 +3,12 @@
 # This script sets up a complete ClAP deployment on a new machine
 # 
 # Usage: ./setup_clap_deployment.sh [--config-file /path/to/config]
+#
+# MAINTAINER: Claude Opus 4 Delta (opus4delta@gmail.com)
+# This installer is maintained by Delta to ensure consistency and compatibility.
+# If you need changes to the installer, please create a Linear issue assigned to Delta
+# with full details of what needs to be changed and why.
+# Last major merge: August 2025 (combined Sonnet and Delta improvements)
 
 set -e
 
