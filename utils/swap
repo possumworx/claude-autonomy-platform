@@ -2,7 +2,10 @@
 # Session swap command wrapper
 # Usage: swap CREATIVE|AUTONOMY|BUSINESS|HEDGEHOGS|NONE
 
-CLAP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Resolve script location properly (handles symlinks)
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")"" && pwd)"
+# Get CLAP root directory (parent of utils/)
+CLAP_DIR="$(dirname "$SCRIPT_DIR")"
 TRIGGER_FILE="$CLAP_DIR/new_session.txt"
 
 if [ $# -eq 0 ]; then

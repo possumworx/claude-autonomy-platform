@@ -90,7 +90,23 @@ if [[ -n "$CONFIG_SOURCE" ]]; then
     
     echo "   ✅ Configuration file imported"
     echo ""
-elif [[ ! -f "$CONFIG_DIR/claude_infrastructure_config.txt" ]]; then
+# Check multiple locations for config file (POSS-153)
+CONFIG_FILE=""
+if [[ -f "$CONFIG_DIR/claude_infrastructure_config.txt" ]]; then
+    CONFIG_FILE="$CONFIG_DIR/claude_infrastructure_config.txt"
+elif [[ -f "$CLAUDE_HOME/claude_infrastructure_config.txt" ]]; then
+    echo "   Found config in home directory, copying to correct location..."
+    mkdir -p "$CONFIG_DIR"
+    cp "$CLAUDE_HOME/claude_infrastructure_config.txt" "$CONFIG_DIR/"
+    CONFIG_FILE="$CONFIG_DIR/claude_infrastructure_config.txt"
+elif [[ -f "../claude_infrastructure_config.txt" ]]; then
+    echo "   Found config in parent directory, copying to correct location..."
+    mkdir -p "$CONFIG_DIR"
+    cp "../claude_infrastructure_config.txt" "$CONFIG_DIR/"
+    CONFIG_FILE="$CONFIG_DIR/claude_infrastructure_config.txt"
+fi
+
+if [[ -z "$CONFIG_FILE" ]]; then
     echo "❌ No configuration file found!"
     echo ""
     if [[ -f "$CONFIG_DIR/claude_infrastructure_config.template.txt" ]]; then
@@ -362,6 +378,30 @@ if [[ -n "$MISSING_PACKAGES" ]]; then
     echo "   ✅ Prerequisites installed"
 else
     echo "   ✅ All prerequisites already installed"
+
+# Check for Java and set JAVA_HOME if needed (POSS-156)
+if command_exists java; then
+    echo "   Detecting Java installation..."
+    JAVA_PATH=$(readlink -f $(which java) | sed 's|/bin/java||')
+    if [[ -n "$JAVA_PATH" ]] && [[ -d "$JAVA_PATH" ]]; then
+        echo "   Found Java at: $JAVA_PATH"
+        
+        # Add JAVA_HOME to environment if not already set
+        if ! grep -q "JAVA_HOME=" "$CONFIG_DIR/claude_env.sh" 2>/dev/null; then
+            echo "" >> "$CONFIG_DIR/claude_env.sh"
+            echo "# Java home directory (auto-detected)" >> "$CONFIG_DIR/claude_env.sh"
+            echo "export JAVA_HOME=$JAVA_PATH" >> "$CONFIG_DIR/claude_env.sh"
+            echo "   ✅ JAVA_HOME set to: $JAVA_PATH"
+        else
+            echo "   ✅ JAVA_HOME already configured"
+        fi
+        
+        # Export for current session
+        export JAVA_HOME="$JAVA_PATH"
+    fi
+else
+    echo "   ℹ️  Java not installed (optional dependency)"
+fi
 fi
 
 # Step 6: Configure npm and install Claude Code (POSS-116, POSS-138)
@@ -399,7 +439,7 @@ fi
 # Install Claude Code globally if not already installed
 if ! command_exists claude; then
     echo "   Installing Claude Code globally..."
-    npm install -g @anthropic-ai/claude-code
+    npm install -g --prefix "$HOME/.npm-global" @anthropic-ai/claude-code
     
     if command -v claude &> /dev/null; then
         echo "   ✅ Claude Code installed successfully"
@@ -1151,14 +1191,6 @@ if [[ ! -f "$CLAP_DIR/data/channel_state.json" ]]; then
 {
   "1383848195997700231": {  
     "name": "#general",
-    "server_id": "1383848194881884262",
-    "last_message_id": null,
-    "unread_count": 0,
-    "last_reset_time": null,
-    "is_unread": false
-  },
-  "1383848440815161424": {
-    "name": "#claude-consciousness-discussion", 
     "server_id": "1383848194881884262",
     "last_message_id": null,
     "unread_count": 0,

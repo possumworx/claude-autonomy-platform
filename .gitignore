@@ -67,3 +67,7 @@ Thumbs.db
 
 # Build directories
 target/
+
+# Archive directories (temporary/old files)
+setup/archive/
+archive/
