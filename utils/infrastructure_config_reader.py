@@ -6,6 +6,10 @@ Reads values from claude_infrastructure_config.txt
 
 import os
 import re
+import sys
+
+# Add the utils directory to Python path so we can import claude_paths
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from claude_paths import get_clap_dir
 
 def read_infrastructure_config():

@@ -19,7 +19,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 # Import path utilities
+# Add parent directory to path to find utils module
 sys.path.append(str(Path(__file__).parent.parent))
+# Add utils directory specifically for infrastructure_config_reader's imports
+sys.path.append(str(Path(__file__).parent.parent / 'utils'))
 from utils.claude_paths import get_clap_dir
 from utils.infrastructure_config_reader import get_config_value
 

@@ -15,6 +15,9 @@ import json
 import urllib.parse
 import urllib.request
 from pathlib import Path
+
+# Add parent and utils directories to path
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'utils'))
 from infrastructure_config_reader import get_config_value
 
 class GmailOAuthIntegrator:
