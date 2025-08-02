@@ -402,7 +402,6 @@ if command_exists java; then
 else
     echo "   ℹ️  Java not installed (optional dependency)"
 fi
-fi
 
 # Step 6: Configure npm and install Claude Code (POSS-116, POSS-138)
 echo "🎯 Step 6: Setting up npm configuration..."
