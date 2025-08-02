@@ -5,7 +5,7 @@
 
 # Load path utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/claude_env.sh"
+source "$SCRIPT_DIR/../config/claude_env.sh"
 
 # Function to read values from infrastructure config
 read_config() {
@@ -31,10 +31,13 @@ git commit -m "Autonomous session backup - $(date '+%Y-%m-%d %H:%M:%S')"
 git push origin main
 echo "[SESSION_SWAP] Backup complete!"
 
+# Return to CLAP directory after git operations
+cd "$CLAP_DIR"
+
 echo "[SESSION_SWAP] Updating context with keyword: $KEYWORD"
 # Temporarily write keyword for context builder
 echo "$KEYWORD" > "$CLAP_DIR/new_session.txt"
-python3 "$CLAP_DIR/project_session_context_builder.py"
+python3 "$CLAP_DIR/context/project_session_context_builder.py"
 # Reset to FALSE after context building
 echo "FALSE" > "$CLAP_DIR/new_session.txt"
 
