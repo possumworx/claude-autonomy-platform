@@ -378,6 +378,7 @@ if [[ -n "$MISSING_PACKAGES" ]]; then
     echo "   ✅ Prerequisites installed"
 else
     echo "   ✅ All prerequisites already installed"
+fi
 
 # Check for Java and set JAVA_HOME if needed (POSS-156)
 if command_exists java; then
