@@ -197,12 +197,13 @@ echo "⚙️  Step 3: Setting up systemd service files..."
 SYSTEMD_USER_DIR="$CLAUDE_HOME/.config/systemd/user"
 mkdir -p "$SYSTEMD_USER_DIR"
 
-# Copy service files from services/ directory (Sonnet's approach - no %i substitution)
-echo "   Copying service files..."
+# Copy and process service files with %i substitution
+echo "   Copying and processing service files..."
 for service in autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service; do
     if [[ -f "$CLAP_DIR/services/$service" ]]; then
-        cp "$CLAP_DIR/services/$service" "$SYSTEMD_USER_DIR/"
-        echo "   ✅ $service"
+        # Copy and replace %i with actual username
+        sed "s/%i/$CURRENT_USER/g" "$CLAP_DIR/services/$service" > "$SYSTEMD_USER_DIR/$service"
+        echo "   ✅ $service (replaced %i with $CURRENT_USER)"
     else
         echo "   ❌ $service not found in services/ directory"
     fi
