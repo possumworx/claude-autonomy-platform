@@ -90,8 +90,9 @@ if [[ -n "$CONFIG_SOURCE" ]]; then
     
     echo "   ✅ Configuration file imported"
     echo ""
-# Check multiple locations for config file (POSS-153)
-CONFIG_FILE=""
+else
+    # Check multiple locations for config file (POSS-153)
+    CONFIG_FILE=""
 if [[ -f "$CONFIG_DIR/claude_infrastructure_config.txt" ]]; then
     CONFIG_FILE="$CONFIG_DIR/claude_infrastructure_config.txt"
 elif [[ -f "$CLAUDE_HOME/claude_infrastructure_config.txt" ]]; then
@@ -130,6 +131,7 @@ if [[ -z "$CONFIG_FILE" ]]; then
         echo "Example: $0 --config-file ~/claude-configs/claude-v2-config.txt"
     fi
     exit 1
+fi
 fi
 
 # Load path utilities (if claude_env.sh exists)
