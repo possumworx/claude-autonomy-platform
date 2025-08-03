@@ -924,7 +924,13 @@ else
 fi
 
 # Install Git hooks
-if [[ -f "$CLAP_DIR/setup/install_git_hooks.sh" ]]; then
+# Try the fixed version first, fall back to original if not found
+if [[ -f "$CLAP_DIR/setup/install_git_hooks_fixed.sh" ]]; then
+    echo "   Installing Git commit hooks (fixed version)..."
+    chmod +x "$CLAP_DIR/setup/install_git_hooks_fixed.sh"
+    (cd "$CLAP_DIR" && ./setup/install_git_hooks_fixed.sh)
+    echo "   ✅ Git hooks installed (pre-commit safety checks)"
+elif [[ -f "$CLAP_DIR/setup/install_git_hooks.sh" ]]; then
     echo "   Installing Git commit hooks..."
     chmod +x "$CLAP_DIR/setup/install_git_hooks.sh"
     (cd "$CLAP_DIR" && ./setup/install_git_hooks.sh)
