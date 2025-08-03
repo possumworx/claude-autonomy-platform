@@ -1,8 +1,8 @@
 #!/bin/bash
 # Read Discord channel messages using the channel-based system
 
-# Source configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Source configuration - resolve symlinks first
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 CLAP_ROOT="$(dirname "$SCRIPT_DIR")"
 CONFIG_FILE="$CLAP_ROOT/data/channel_state.json"
 
