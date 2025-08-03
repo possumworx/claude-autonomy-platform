@@ -68,6 +68,10 @@ Thumbs.db
 # Build directories
 target/
 
+# Personal/instance-specific files
+context/my_personal_interests.md
+context/swap_CLAUDE.md
+
 # Archive directories (temporary/old files)
 setup/archive/
 archive/

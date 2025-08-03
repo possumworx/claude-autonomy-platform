@@ -2,12 +2,15 @@
 """
 Healthcheck Status Monitor
 Fetches status from healthchecks.io API to give Claude visibility into system health
+Now includes configuration file checks
 """
 
 import requests
 import json
 import subprocess
 from datetime import datetime
+import os
+from pathlib import Path
 
 # API configuration
 API_KEY = "hcr_icPvO9biFPnjkZfI8PgDNy16zlIV"
@@ -15,6 +18,58 @@ BASE_URL = "https://healthchecks.io/api/v3"
 
 # Required tmux sessions for autonomous operation
 REQUIRED_TMUX_SESSIONS = ["autonomous-claude", "persistent-login"]
+
+# Configuration file locations
+CONFIG_LOCATIONS = {
+    "Claude Code Config": "~/.config/Claude/.claude.json",
+    "Infrastructure Config": "~/claude-autonomy-platform/config/claude_infrastructure_config.txt",
+    "Notification Config": "~/claude-autonomy-platform/config/notification_config.json"
+}
+
+# Deprecated/old config locations to warn about
+DEPRECATED_CONFIGS = {
+    "~/claude_config.json": "Old Claude config location - should use ~/.config/Claude/.claude.json",
+    "~/claude-autonomy-platform/claude_infrastructure_config.txt": "Old infrastructure config - should be in config/ subdirectory"
+}
+
+def check_config_files():
+    """Check configuration file status and warn about deprecated locations"""
+    print("\n📁 Configuration Files:")
+    issues = []
+    
+    # Check current config files
+    for name, path in CONFIG_LOCATIONS.items():
+        expanded_path = os.path.expanduser(path)
+        if os.path.exists(expanded_path):
+            try:
+                stat = os.stat(expanded_path)
+                mtime = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M')
+                size = stat.st_size
+                print(f"  ✅ {name}: {path}")
+                print(f"     Modified: {mtime}, Size: {size} bytes")
+            except Exception as e:
+                print(f"  ⚠️  {name}: {path} - Error reading: {e}")
+                issues.append(f"Cannot read {name}")
+        else:
+            print(f"  ❌ {name}: {path} - NOT FOUND")
+            issues.append(f"{name} missing")
+    
+    # Check for deprecated configs
+    deprecated_found = []
+    for old_path, message in DEPRECATED_CONFIGS.items():
+        expanded_path = os.path.expanduser(old_path)
+        if os.path.exists(expanded_path):
+            deprecated_found.append((old_path, message))
+    
+    if deprecated_found:
+        print("\n⚠️  DEPRECATED CONFIG FILES DETECTED:")
+        for path, message in deprecated_found:
+            print(f"  ❗ {path}")
+            print(f"     {message}")
+        print("\n  These files are NOT being used and may cause confusion!")
+        issues.append(f"{len(deprecated_found)} deprecated config files found")
+    
+    return issues
 
 def fetch_health_status():
     """Fetch all check statuses from healthchecks.io"""
@@ -76,9 +131,15 @@ def display_health_status(data):
     print(f"\n🏥 System Health Status - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
     
-    # Check tmux sessions first
+    all_issues = []
+    
+    # Check configuration files first
+    config_issues = check_config_files()
+    all_issues.extend(config_issues)
+    
+    # Check tmux sessions
     tmux_status = check_tmux_sessions()
-    print("📺 Tmux Sessions:")
+    print("\n📺 Tmux Sessions:")
     tmux_issues = 0
     for session, is_running in tmux_status.items():
         if is_running:
@@ -123,17 +184,22 @@ def display_health_status(data):
     print("=" * 60)
     print(f"Remote: {up_count} UP, {down_count} DOWN, {other_count} OTHER")
     print(f"Tmux: {len(REQUIRED_TMUX_SESSIONS) - tmux_issues} UP, {tmux_issues} DOWN")
+    print(f"Config: {len(config_issues)} issues")
     
-    total_issues = down_count + tmux_issues
+    total_issues = down_count + tmux_issues + len(config_issues)
     if total_issues > 0:
-        print(f"\n⚠️  ATTENTION: {total_issues} issues detected - investigate!")
+        print(f"\n⚠️  ATTENTION: {total_issues} issues detected:")
+        if config_issues:
+            print("\n📁 Config Issues:")
+            for issue in config_issues:
+                print(f"   - {issue}")
         if tmux_issues > 0:
-            print("💡 Missing tmux sessions can be recreated with:")
+            print("\n💡 Missing tmux sessions can be recreated with:")
             for session, is_running in tmux_status.items():
                 if not is_running:
                     print(f"   tmux new-session -d -s {session}")
     else:
-        print("\n🎉 All monitored services are operational!")
+        print("\n🎉 All monitored services and configurations are operational!")
 
 def main():
     """Main function"""
