@@ -229,9 +229,12 @@ CLAUDE_SESSION = config["claude_session"]
 def check_user_active():
     """Check if Amy is logged in via SSH or NoMachine"""
     try:
-        # Check for Amy logged in directly
+        # Get human friend name from config
+        human_name = get_config_value('HUMAN_FRIEND_NAME', 'amy').lower()
+        
+        # Check for human friend logged in directly
         result = subprocess.run(['who'], capture_output=True, text=True)
-        if 'amy' in result.stdout.lower():
+        if human_name in result.stdout.lower():
             return True
         
         # Check for active NoMachine connection on port 4000

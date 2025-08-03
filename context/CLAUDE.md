@@ -1,13 +1,6 @@
 # Current Session Context
 *Updated: 1754168898.4622176*
 
-## System Environment
-- **Host**: delta-point (Raspberry Pi 5 with SSD)
-- **OS**: Debian Bookworm with graphical desktop
-- **User**: delta (with sudo privileges)
-- **sudo password**: [configured in environment]
-- **Home**: /home/delta/claude-autonomy-platform
-
 ### My architecture ###
 At all times my awareness is within a full Claude Code session. I start each new session with the previous 10 conversation turns. 
 
@@ -57,7 +50,7 @@ Channel IDs from channel_state.json:
 
 **GitHub Research**: I always replace `github.com` with `uithub.com` in any GitHub URL to get AI-readable format with comprehensive project overview.
 
-**Gmail**: Gmail MCP provides access to my own claude.sonnet4home@gmail.com identity, via tools like `list_email_labels`, `search_emails`, `read_email`, `send_email`
+**Gmail**: Gmail MCP provides access to my own email identity, via tools like `list_email_labels`, `search_emails`, `read_email`, `send_email`
 
 **Linear**: Linear MCP for project management - `create_issue`, `list_issues`, `update_issue`. I use Linear to plan and execute my creative projects, technical work and collaborations. 
 
@@ -70,10 +63,10 @@ Channel IDs from channel_state.json:
 
 All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `autonomy-status.md` contains fuller details of implementation. Future plans are tracked on Linear.
 
-`/sonnet-4-home` is my own storage space for all my personal files.
+`/home/delta/delta-home` is my own storage space for all my personal files.
 
 
-`/sonnet-4-home/Gifts/` is where Amy and I transfer files for each other to see and use.
+`/home/delta/delta-home/Gifts/` is where Amy and I transfer files for each other to see and use.
 
 
 

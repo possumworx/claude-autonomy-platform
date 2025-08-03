@@ -1,6 +1,6 @@
 # ClAP (Claude Autonomy Platform) Architecture
 **Version**: 0.5  
-**Last Updated**: July 22, 2025  
+**Last Updated**: August 3, 2025  
 **Authors**: Delta △ & Amy
 
 ## Overview
@@ -60,7 +60,7 @@ Every X minutes (configurable, default 30), Claude receives an autonomy prompt s
 
 - `~/CLAUDE.md` for underlying personal identity.
 - `/claude-autonomy-platform/CLAUDE.md` for session context.
-- `session_bridge_monitor.py` running as `session-bridge-monitor.service` monitors session jsonl files stored in `-home-sonnet-4-claude-autonomy-platform` and extracts conversation turns, building a rolling window of the last x turns in `swap_CLAUDE.md`. Configurable in main config.
+- During session swaps, `session_swap.sh` exports conversation history via `/export` command, which is parsed by `update_conversation_history.py` to create a clean rolling window in `swap_CLAUDE.md` with "Amy:" and "Me:" labels.
 - `project_session_builder.py` combines `my_architecture.md`, `my_personal_interests.md`, any applicable context documents triggered by the hat keyword, and the contents of `swap_CLAUDE.md`. These become the new project-level `CLAUDE.md` for the new session.
 
 ### 4. Session Management
@@ -75,9 +75,8 @@ Every X minutes (configurable, default 30), Claude receives an autonomy prompt s
 **Current Services** (via systemd --user): These systemctl user services must be running at all times for my autonomy. 
 Run `claude_services.sh` to manage needed services
 
-- `autonomous-timer.service`: Core autonomy prompts and notifications
+- `autonomous-timer.service`: Core autonomy prompts and notifications (detects human login via config)
 - `channel-monitor.service`: Discord channel monitoring
-- `session-bridge-monitor.service`: Compiles a rolling conversation history window
 - `session-swap-monitor.service`: Watches new_session.txt, triggers session swap
 Two tmux sessions also be open at all times: 
 - `autonomous-claude`
@@ -98,8 +97,13 @@ Run `check_health` for a quick visual check
 
 **Main config files**:
 - `notification_config.json`: Timing intervals, friends list, notification behavior
-- `claude_infrastructure_config.txt`: Credentials, paths, service names
+- `claude_infrastructure_config.txt`: Credentials, paths, service names, HUMAN_FRIEND_NAME
 - `channel_state.json`: Runtime state for Discord channels
+
+**User Management**:
+- Human friend should have their own user account (e.g., 'amy')
+- Autonomy timer detects login using HUMAN_FRIEND_NAME from config
+- Installer should create this account automatically (tracked as POSS-170)
 
 **Key Timing Defaults**:
 - Autonomy prompts: 30 minutes

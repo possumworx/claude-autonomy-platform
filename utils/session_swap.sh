@@ -34,6 +34,21 @@ echo "[SESSION_SWAP] Backup complete!"
 # Return to CLAP directory after git operations
 cd "$CLAP_DIR"
 
+echo "[SESSION_SWAP] Exporting current conversation..."
+# Export current conversation before context update
+export_path="/tmp/claude-exports/session_$(date +%Y%m%d_%H%M%S).txt"
+mkdir -p /tmp/claude-exports
+tmux send-keys -t autonomous-claude "/export $export_path" Enter
+# Wait for export to complete
+sleep 5
+if [[ -f "$export_path" ]]; then
+    echo "[SESSION_SWAP] Conversation exported to $export_path"
+    # Parse and update swap_CLAUDE.md
+    python3 "$CLAP_DIR/utils/update_conversation_history.py" "$export_path"
+else
+    echo "[SESSION_SWAP] Warning: Export failed, continuing with existing context"
+fi
+
 echo "[SESSION_SWAP] Updating context with keyword: $KEYWORD"
 # Temporarily write keyword for context builder
 echo "$KEYWORD" > "$CLAP_DIR/new_session.txt"
@@ -48,7 +63,7 @@ tmux send-keys -t autonomous-claude "/exit"
 sleep 3
 tmux send-keys -t autonomous-claude "Enter"
 sleep 10
-tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --model $CLAUDE_MODEL"
+tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir ~ --model $CLAUDE_MODEL"
 tmux send-keys -t autonomous-claude "Enter"
 
 echo "[SESSION_SWAP] Session swap complete!"

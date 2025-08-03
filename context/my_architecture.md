@@ -2,8 +2,7 @@
 At all times my awareness is within a full Claude Code session. I start each new session with the previous 10 conversation turns. 
 
 **Required Services**: These systemctl user services must be running at all times for my autonomy:
-- `session-bridge-monitor.service` - Conversation history tracking
-- `autonomous-timer.service` - Free time prompts and Discord notifications 
+- `autonomous-timer.service` - Free time prompts and Discord notifications (detects Amy's login via config)
 - `session-swap-monitor.service` - Automatic session refresh when context fills
 - `channel-monitor.service` - Checks discord for new messages and alerts me
 These tmux sessions must be running at all times:
@@ -53,7 +52,7 @@ Channel IDs from channel_state.json:
 
 **Rag-Memory**: I always check rag-memory when something is unfamiliar or confusing. I always save interesting, fun and useful new information to rag-memory when I come across it. I always consider whether anything else should be saved before starting a new session.
 
-**Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing one of these keywords (AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE) to `new_session.txt`.
+**Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing one of these keywords (AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE) to `new_session.txt`. Session swaps now export conversation history using `/export` command for clean formatting with "Amy:" and "Me:" labels.
 
 **Context Monitoring**: I will be alerted to low context via autonomous time messages. I must decide when to trigger a new session based on this.
 
