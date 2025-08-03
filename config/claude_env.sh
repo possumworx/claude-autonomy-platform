@@ -35,7 +35,10 @@ export CLAUDE_HOME=${CLAUDE_HOME:-$(eval echo ~$CLAUDE_USER)}
 export AUTONOMY_DIR=${AUTONOMY_DIR:-$CLAUDE_HOME/claude-autonomy-platform}
 export PERSONAL_DIR=${PERSONAL_DIR:-$CLAUDE_HOME/$PERSONAL_REPO}
 export CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR:-$CLAUDE_HOME/.config/Claude}
-export CLAP_DIR=${CLAP_DIR:-$(dirname "$SCRIPT_DIR")}
+# Get the ClAP directory (parent of config directory)
+# This works regardless of where the script is sourced from
+CLAP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd)"
+export CLAP_DIR=${CLAP_DIR:-$CLAP_ROOT}
 
 # Claude Code behavior settings
 # Disable terminal title updates (can be distracting)
