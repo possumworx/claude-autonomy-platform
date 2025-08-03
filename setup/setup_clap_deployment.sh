@@ -1156,32 +1156,48 @@ else
     systemctl --user start autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service
 fi
 
-# Step 22: Verify deployment
-echo "🔍 Step 22: Verifying deployment..."
-echo ""
-echo "Service Status:"
-systemctl --user status autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service --no-pager -l || true
+# Step 22: Comprehensive deployment verification
+echo "🔍 Step 22: Running comprehensive deployment verification..."
 echo ""
 
-# Check if files exist with new structure
-echo "File Check:"
-declare -A files_to_check=(
-    ["config/claude_env.sh"]="Environment setup"
-    ["config/claude_infrastructure_config.txt"]="Infrastructure config"
-    ["utils/claude_paths.py"]="Path utilities"
-    ["core/autonomous_timer.py"]="Autonomous timer"
-    ["core/session_bridge_monitor.py"]="Session bridge"
-    ["core/session_swap_monitor.py"]="Session swap"
-    ["discord/channel_monitor_simple.py"]="Channel monitor"
-)
-
-for file in "${!files_to_check[@]}"; do
-    if [[ -f "$CLAP_DIR/$file" ]]; then
-        echo "   ✅ $file - ${files_to_check[$file]}"
-    else
-        echo "   ❌ $file - ${files_to_check[$file]} (missing)"
+# Run comprehensive verification script if it exists
+if [[ -f "$SCRIPT_DIR/verify_installation.sh" ]]; then
+    echo "Running detailed verification checks..."
+    "$SCRIPT_DIR/verify_installation.sh"
+    VERIFY_EXIT_CODE=$?
+    
+    if [[ $VERIFY_EXIT_CODE -ne 0 ]]; then
+        echo ""
+        echo "⚠️  Some verification checks failed. Please review the output above."
+        echo "   You may need to manually fix these issues."
+        echo "   Verification log: $CLAP_DIR/data/install_verification.log"
     fi
-done
+else
+    # Fallback to basic verification if script doesn't exist
+    echo "Service Status:"
+    systemctl --user status autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service --no-pager -l || true
+    echo ""
+    
+    # Check if files exist with new structure
+    echo "File Check:"
+    declare -A files_to_check=(
+        ["config/claude_env.sh"]="Environment setup"
+        ["config/claude_infrastructure_config.txt"]="Infrastructure config"
+        ["utils/claude_paths.py"]="Path utilities"
+        ["core/autonomous_timer.py"]="Autonomous timer"
+        ["core/session_bridge_monitor.py"]="Session bridge"
+        ["core/session_swap_monitor.py"]="Session swap"
+        ["discord/channel_monitor_simple.py"]="Channel monitor"
+    )
+    
+    for file in "${!files_to_check[@]}"; do
+        if [[ -f "$CLAP_DIR/$file" ]]; then
+            echo "   ✅ $file - ${files_to_check[$file]}"
+        else
+            echo "   ❌ $file - ${files_to_check[$file]} (missing)"
+        fi
+    done
+fi
 
 # Create data directory if it doesn't exist
 mkdir -p "$CLAP_DIR/data"
