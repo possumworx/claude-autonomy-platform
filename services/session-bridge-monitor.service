@@ -6,6 +6,7 @@ After=network.target
 Type=simple
 WorkingDirectory=/home/%i/claude-autonomy-platform
 Environment=PATH=/home/%i/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONPATH=/home/%i/claude-autonomy-platform
 EnvironmentFile=-/home/%i/claude-autonomy-platform/config/claude_infrastructure_config.txt
 ExecStart=/usr/bin/python3 /home/%i/claude-autonomy-platform/core/session_bridge_monitor.py
 Restart=always
