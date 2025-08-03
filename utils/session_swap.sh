@@ -10,7 +10,7 @@ source "$SCRIPT_DIR/../config/claude_env.sh"
 # Function to read values from infrastructure config
 read_config() {
     local key="$1"
-    local config_file="$SCRIPT_DIR/claude_infrastructure_config.txt"
+    local config_file="$SCRIPT_DIR/../config/claude_infrastructure_config.txt"
     
     if [[ -f "$config_file" ]]; then
         grep "^${key}=" "$config_file" | cut -d'=' -f2-
