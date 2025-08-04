@@ -374,8 +374,33 @@ def update_last_autonomy_time():
     except Exception as e:
         log_message(f"Error updating last autonomy time: {e}")
 
+def export_conversation():
+    """Export current conversation for session continuity"""
+    try:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        export_path = f"context/session_{timestamp}.txt"
+        
+        # Send export command
+        subprocess.run(['tmux', 'send-keys', '-t', CLAUDE_SESSION, '/export'], check=True)
+        time.sleep(1)
+        subprocess.run(['tmux', 'send-keys', '-t', CLAUDE_SESSION, export_path], check=True)
+        time.sleep(1)
+        subprocess.run(['tmux', 'send-keys', '-t', CLAUDE_SESSION, 'Enter'], check=True)
+        
+        # Give export time to complete
+        time.sleep(3)
+        
+        log_message(f"Exported conversation to {export_path}")
+        return True
+    except Exception as e:
+        log_message(f"Error exporting conversation: {e}")
+        return False
+
 def send_autonomy_prompt():
     """Send a free time autonomy prompt, adapted based on context level"""
+    # Export conversation first for session continuity
+    export_conversation()
+    
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
     token_info = get_token_percentage()
     

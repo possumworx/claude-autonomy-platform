@@ -11,7 +11,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from core.conversation_collector import parse_export_file, update_swap_claude_md
+from utils.conversation_history_utils import parse_export_file, update_swap_claude_md
 
 def main():
     if len(sys.argv) != 2:
