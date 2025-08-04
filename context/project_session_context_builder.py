@@ -20,7 +20,7 @@ def build_claude_md():
     
     architecture_file = autonomy_dir / "my_architecture.md"
     swap_file = autonomy_dir / "swap_CLAUDE.md"
-    claude_md_file = autonomy_dir / "CLAUDE.md"
+    claude_md_file = home_dir / "CLAUDE.md"
     new_session_file = autonomy_dir / "new_session.txt"
     
     try:

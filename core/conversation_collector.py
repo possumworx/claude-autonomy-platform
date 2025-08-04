@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
 Conversation Collector
-Periodically exports Claude conversations to maintain history for session transitions
+Periodically exports Claude conversations to maintain a rolling history.
+These exports are used by session_swap.sh to update swap_CLAUDE.md during transitions.
+
+This service only creates exports - it does not update swap_CLAUDE.md directly.
 """
 
 import os
@@ -21,8 +24,8 @@ claude_home, personal_dir, autonomy_dir = get_claude_paths()
 clap_dir = get_clap_dir()
 
 # Paths
-EXPORT_DIR = Path("/tmp/claude-exports")
-SWAP_CLAUDE_MD_PATH = clap_dir / "context" / "swap_CLAUDE.md"
+EXPORT_DIR = clap_dir / "context"
+SWAP_CLAUDE_MD_PATH = clap_dir / "context/swap_CLAUDE.md"
 LOG_PATH = clap_dir / "data" / "conversation_collector.log"
 
 def log(message):
@@ -233,11 +236,7 @@ def monitor_loop():
             export_path = export_current_session()
             
             if export_path:
-                # Parse the export
-                turns = parse_export_file(export_path)
-                
-                # Update swap_CLAUDE.md
-                update_swap_claude_md(turns)
+                log(f"Export completed: {export_path}")
                 
                 # Cleanup old exports (once per loop is fine)
                 cleanup_old_exports()
@@ -251,8 +250,8 @@ def monitor_loop():
 
 if __name__ == "__main__":
     # Ensure directories exist
-    EXPORT_DIR.mkdir(exist_ok=True)
-    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     
     # Run monitoring
     monitor_loop()

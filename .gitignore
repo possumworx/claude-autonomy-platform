@@ -72,6 +72,10 @@ target/
 context/my_personal_interests.md
 context/swap_CLAUDE.md
 
+# Session exports
+context/temp-export.txt
+context/session_*.txt
+
 # Archive directories (temporary/old files)
 setup/archive/
 archive/
