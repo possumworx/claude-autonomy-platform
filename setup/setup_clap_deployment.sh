@@ -192,14 +192,51 @@ if [[ "$CURRENT_USER" != "$CONFIG_USER" ]]; then
     echo "   This script should be run as the target Claude user or config should be updated manually"
 fi
 
-# Step 3: Set up systemd service files
-echo "⚙️  Step 3: Setting up systemd service files..."
+# Step 3: Create human_friend user account
+echo "👤 Step 3: Setting up human_friend user account..."
+
+# Get human user credentials from config
+HUMAN_USER=$(read_config 'HUMAN_USER')
+HUMAN_PASSWORD=$(read_config 'HUMAN_PASSWORD')
+
+if [[ -z "$HUMAN_USER" ]]; then
+    echo "   ⚠️  HUMAN_USER not found in config, skipping human_friend account creation"
+    echo "   Add HUMAN_USER and HUMAN_PASSWORD to config to enable this feature"
+else
+    # Check if user already exists
+    if id "$HUMAN_USER" &>/dev/null; then
+        echo "   ✅ $HUMAN_USER user already exists"
+    else
+        echo "   Creating $HUMAN_USER user account..."
+        if [[ -n "$HUMAN_PASSWORD" ]]; then
+            # Create user with password
+            sudo useradd -m -s /bin/bash "$HUMAN_USER" || {
+                echo "   ❌ Failed to create $HUMAN_USER user"
+                echo "   Please create manually: sudo useradd -m -s /bin/bash $HUMAN_USER"
+                exit 1
+            }
+            # Set password non-interactively
+            echo "$HUMAN_USER:$HUMAN_PASSWORD" | sudo chpasswd
+            echo "   ✅ $HUMAN_USER user created with configured password"
+        else
+            # Create user without password
+            sudo useradd -m -s /bin/bash "$HUMAN_USER" || {
+                echo "   ❌ Failed to create $HUMAN_USER user"
+                exit 1
+            }
+            echo "   ✅ $HUMAN_USER user created (set password manually: sudo passwd $HUMAN_USER)"
+        fi
+    fi
+fi
+
+# Step 4: Set up systemd service files
+echo "⚙️  Step 4: Setting up systemd service files..."
 SYSTEMD_USER_DIR="$CLAUDE_HOME/.config/systemd/user"
 mkdir -p "$SYSTEMD_USER_DIR"
 
 # Copy and process service files with %i substitution
 echo "   Copying and processing service files..."
-for service in autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service; do
+for service in autonomous-timer.service session-swap-monitor.service channel-monitor.service; do
     if [[ -f "$CLAP_DIR/services/$service" ]]; then
         # Copy and replace %i with actual username
         sed "s/%i/$CURRENT_USER/g" "$CLAP_DIR/services/$service" > "$SYSTEMD_USER_DIR/$service"
@@ -237,8 +274,8 @@ else
     echo "   Services may not start properly without environment variables"
 fi
 
-# Step 4: Set up persistent environment variables
-echo "🌍 Step 4: Setting up persistent environment variables..."
+# Step 5: Set up persistent environment variables
+echo "🌍 Step 5: Setting up persistent environment variables..."
 
 # Add to .bashrc if not already present
 BASHRC="$CLAUDE_HOME/.bashrc"
@@ -302,6 +339,12 @@ if [[ -f "$CLAP_DIR/utils/session_swap.sh" ]]; then
 fi
 
 echo "   ✅ Management utilities configured in PATH"
+
+# Source bashrc to make aliases available immediately
+echo "   Sourcing .bashrc to activate aliases..."
+source "$BASHRC" 2>/dev/null || {
+    echo "   ℹ️  Note: .bashrc sourcing may require manual shell restart"
+}
 
 # Step 5: Check and install prerequisites (POSS-136) - Sonnet's critical addition
 echo "🔍 Step 5: Checking and installing prerequisites..."
@@ -826,7 +869,7 @@ systemctl --user daemon-reload
 
 # Enable services
 systemctl --user enable autonomous-timer.service
-systemctl --user enable session-bridge-monitor.service
+# session-bridge-monitor.service removed - replaced by conversation collector
 systemctl --user enable session-swap-monitor.service
 systemctl --user enable channel-monitor.service
 
@@ -1019,7 +1062,7 @@ COMMON ISSUES:
 - If you see old config files: They're deprecated - see locations above
 - If commit is blocked: Check pre-commit output for specific issue
 
-Last updated by ClAP installer v0.5
+Last updated by ClAP installer v0.5.4
 EOF
 
 echo "   ✅ Configuration reference created: $CLAP_DIR/CONFIG_LOCATIONS.txt"
@@ -1159,7 +1202,7 @@ if [[ -f "$CLAP_DIR/utils/claude_services.sh" ]]; then
     "$CLAP_DIR/utils/claude_services.sh" start
 else
     echo "   Starting services manually..."
-    systemctl --user start autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service
+    systemctl --user start autonomous-timer.service session-swap-monitor.service channel-monitor.service
 fi
 
 # Step 22: Comprehensive deployment verification
@@ -1181,7 +1224,7 @@ if [[ -f "$SCRIPT_DIR/verify_installation.sh" ]]; then
 else
     # Fallback to basic verification if script doesn't exist
     echo "Service Status:"
-    systemctl --user status autonomous-timer.service session-bridge-monitor.service session-swap-monitor.service channel-monitor.service --no-pager -l || true
+    systemctl --user status autonomous-timer.service session-swap-monitor.service channel-monitor.service --no-pager -l || true
     echo ""
     
     # Check if files exist with new structure
