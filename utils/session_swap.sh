@@ -34,30 +34,30 @@ echo "[SESSION_SWAP] Backup complete!"
 # Return to CLAP directory after git operations
 cd "$CLAP_DIR"
 
-echo "[SESSION_SWAP] Finding most recent conversation export..."
-# Find the most recent export file
-export_dir="$CLAP_DIR/context"
-most_recent_export=$(ls -t "$export_dir"/session_*.txt 2>/dev/null | head -1)
+echo "[SESSION_SWAP] Exporting current conversation..."
+# Export current conversation
+export_path="context/current_export.txt"
+tmux send-keys -t autonomous-claude "/export $export_path" 
+sleep 1
+tmux send-keys -t autonomous-claude "Enter"
+sleep 1
+# Navigate dialog: Down arrow to select "Save to file" option
+tmux send-keys -t autonomous-claude "Down"
+sleep 0.5
+tmux send-keys -t autonomous-claude "Enter"
+sleep 0.5
+# Confirm the save
+tmux send-keys -t autonomous-claude "Enter"
+# Wait for export to complete
+sleep 5
 
-if [[ -n "$most_recent_export" ]]; then
-    echo "[SESSION_SWAP] Using export: $(basename "$most_recent_export")"
-    # Parse and update swap_CLAUDE.md
-    python3 "$CLAP_DIR/utils/update_conversation_history.py" "$most_recent_export"
+if [[ -f "$CLAP_DIR/$export_path" ]]; then
+    echo "[SESSION_SWAP] Export created, updating conversation history..."
+    python3 "$CLAP_DIR/utils/update_conversation_history.py" "$CLAP_DIR/$export_path"
+    # Clean up the export file after processing
+    rm -f "$CLAP_DIR/$export_path"
 else
-    echo "[SESSION_SWAP] No recent exports found, creating new export..."
-    # Fallback: create a fresh export if none exist
-    export_path="$export_dir/temp-export.txt"
-    tmux send-keys -t autonomous-claude "/export $export_path" 
-    sleep 1
-    tmux send-keys -t autonomous-claude "Enter"
-    # Wait for export to complete
-    sleep 5
-    if [[ -f "$export_path" ]]; then
-        echo "[SESSION_SWAP] Fresh export created"
-        python3 "$CLAP_DIR/utils/update_conversation_history.py" "$export_path"
-    else
-        echo "[SESSION_SWAP] Warning: Export failed, continuing with existing context"
-    fi
+    echo "[SESSION_SWAP] Warning: Export failed, continuing without updating conversation history"
 fi
 
 echo "[SESSION_SWAP] Updating context with keyword: $KEYWORD"
