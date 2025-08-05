@@ -29,6 +29,9 @@ GMAIL_DOB=dd.mm.yyyy
 HUMAN_PASSWORD=visitclaude
 GIT_USER=your-git-username
 GIT_PASSWORD=your-git-password
+# GitHub Personal Access Token for CLI operations (create at https://github.com/settings/tokens)
+# Required scopes: repo, workflow, read:org (for PR creation and management)
+GITHUB_TOKEN=your-github-personal-access-token
 MODEL=claude-sonnet-4-20250514
 LINEAR_API_KEY=your-linear-api-key
 HEALTHCHECK_API_KEY=your-healthcheck-api-key
