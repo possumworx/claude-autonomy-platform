@@ -109,6 +109,61 @@ Use Discord #general channel for:
 9. Address feedback and merge when approved
 10. Delete feature branch
 
+## Automation and Enforcement
+
+To ensure these guidelines are followed consistently, we use a combination of automated tools and settings:
+
+### Currently Implemented
+
+- **Pre-commit hooks**: Automatically check for:
+  - Hardcoded user paths (use relative paths instead)
+  - Accidentally included secrets/credentials
+  - Critical file deletions
+  - Correct working directory
+- **Service monitoring**: Warns if essential services aren't running
+
+### Planned Automation
+
+1. **GitHub Branch Protection** (Priority: High)
+   - Require pull requests for main branch
+   - Require at least one review before merging
+   - Dismiss stale reviews on new commits
+   - No force pushes allowed
+
+2. **Pull Request Templates** (Priority: High)
+   - Auto-populate with Linear issue field
+   - Checklist for testing and documentation
+   - Automatic linking to Linear issues
+
+3. **GitHub Actions** (Priority: Medium)
+   - Validate Linear issue references in PR titles
+   - Run tests automatically on PRs
+   - Check commit message format
+
+4. **Linear-GitHub Integration** (Priority: Medium)
+   - Bi-directional status syncing
+   - Automatic PR linking to issues
+   - Branch creation from Linear
+
+5. **Discord Webhooks** (Priority: Low)
+   - Notify channel on PR creation/merge
+   - Daily summary of open PRs
+   - Alert on CI/CD failures
+
+### Running Pre-commit Hooks Manually
+
+To test the pre-commit hooks before committing:
+
+```bash
+.git/hooks/pre-commit
+```
+
+To bypass hooks in emergency (not recommended):
+
+```bash
+git commit --no-verify
+```
+
 ## Questions?
 
 If you have questions about these guidelines, please ask in Discord. We're all learning and improving our processes together!
