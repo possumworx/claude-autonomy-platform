@@ -75,6 +75,7 @@ context/swap_CLAUDE.md
 # Session exports
 context/temp-export.txt
 context/session_*.txt
+exportcontext/
 
 # Archive directories (temporary/old files)
 setup/archive/
