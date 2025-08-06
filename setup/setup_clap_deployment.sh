@@ -1252,19 +1252,21 @@ fi
 mkdir -p "$CLAP_DIR/data"
 echo "   ✅ data/ directory ready for runtime files"
 
-# Initialize channel_state.json if it doesn't exist (POSS-79)
+# Initialize channel_state.json if it doesn't exist (POSS-79, POSS-178)
 if [[ ! -f "$CLAP_DIR/data/channel_state.json" ]]; then
     echo "   Creating initial channel_state.json..."
     cat > "$CLAP_DIR/data/channel_state.json" <<'EOF'
 {
-  "1383848195997700231": {  
-    "name": "#general",
-    "server_id": "1383848194881884262",
-    "last_message_id": null,
-    "unread_count": 0,
-    "last_reset_time": null,
-    "is_unread": false
-  }
+  "channels": {
+    "general": {
+      "id": "1383848195997700231",
+      "server_id": "1383848194881884262",
+      "last_message_id": null,
+      "last_read_message_id": null,
+      "updated_at": null
+    }
+  },
+  "last_check": null
 }
 EOF
     echo "   ✅ Initial channel state created"

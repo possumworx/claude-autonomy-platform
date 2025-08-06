@@ -36,7 +36,7 @@ def insert_mcp_config_to_claude_json(mcp_config: dict, claude_json_path: Path) -
         # Create backup
         backup_file(claude_json_path)
         
-        # Insert MCP servers
+        # Insert MCP servers (replaces any existing to fix outdated paths - POSS-177)
         claude_config['projects'][project_path]['mcpServers'] = mcp_config
         
         # Write back
@@ -61,7 +61,7 @@ def insert_mcp_config_to_desktop(mcp_config: dict, desktop_config_path: Path) ->
         else:
             desktop_config = {}
         
-        # Insert MCP servers
+        # Insert MCP servers (replaces any existing to fix outdated paths - POSS-177)
         desktop_config['mcpServers'] = mcp_config
         
         # Write
