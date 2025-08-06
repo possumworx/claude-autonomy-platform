@@ -179,19 +179,8 @@ def generate_mcp_servers_config() -> Dict[str, Any]:
             "env": {}
         }
     
-    # Filesystem MCP (built-in)
-    mcp_servers['filesystem'] = {
-        "type": "stdio",
-        "command": "npx",
-        "args": ["@modelcontextprotocol/server-filesystem", str(home)]
-    }
-    
-    # Super Shell MCP (for system commands)
-    mcp_servers['super-shell'] = {
-        "type": "stdio",
-        "command": "npx",
-        "args": ["@mattpearce/mcp-server-super-shell"]
-    }
+    # Note: Removed filesystem and super-shell MCP servers (POSS-177)
+    # Claude Code has built-in file and command tools that make these redundant
     
     return mcp_servers
 
