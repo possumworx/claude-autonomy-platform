@@ -17,7 +17,7 @@ echo "🚀 Running ClAP pre-commit checks..."
 
 # Check 1: Verify we're in claude-autonomy-platform directory
 # Look for files that actually exist at the root level
-if [[ ! -f "CLAUDE.md" ]] || [[ ! -d "setup" ]] || [[ ! -f "package.json" ]]; then
+if [[ ! -d "setup" ]] || [[ ! -f "package.json" ]] || [[ ! -f ".pre-commit-config.yaml" ]]; then
     echo "❌ ERROR: Not in claude-autonomy-platform directory!"
     echo "   Current directory: $(pwd)"
     echo "   Please cd to claude-autonomy-platform before committing"
