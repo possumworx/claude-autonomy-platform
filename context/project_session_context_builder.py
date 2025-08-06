@@ -35,6 +35,21 @@ def build_claude_md():
             with open(personal_interests_file, 'r', encoding='utf-8') as f:
                 personal_interests_content = f"\n\n{f.read()}\n"
         
+        # Parse natural commands content (if exists)
+        natural_commands_content = ""
+        natural_commands_file = autonomy_dir.parent / "config" / "natural_commands.sh"
+        if natural_commands_file.exists():
+            import subprocess
+            try:
+                # Run the parser script to get formatted commands
+                parser_script = autonomy_dir.parent / "utils" / "parse_natural_commands.sh"
+                if parser_script.exists():
+                    result = subprocess.run([str(parser_script)], capture_output=True, text=True)
+                    if result.returncode == 0:
+                        natural_commands_content = f"\n\n{result.stdout}\n"
+            except Exception as e:
+                print(f"Warning: Could not parse natural commands - {e}")
+        
         # Read swap content
         with open(swap_file, 'r', encoding='utf-8') as f:
             swap_content = f.read()
@@ -79,7 +94,7 @@ def build_claude_md():
         combined_content = f"""# Current Session Context
 *Updated: {Path(swap_file).stat().st_mtime}*
 
-{architecture_content}{personal_interests_content}{context_hat_content}
+{architecture_content}{personal_interests_content}{natural_commands_content}{context_hat_content}
 ## Recent Conversation Context
 
 {swap_content}"""
