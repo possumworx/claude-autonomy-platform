@@ -36,3 +36,6 @@ alias gs='git status'  # Quick git status
 alias gd='git diff'  # Quick git diff
 alias gl='git log --oneline -10'  # Recent git history
 alias oops='git checkout -b fix/$(date +%s) && git push -u origin HEAD'  # Recover from branch protection block
+
+# System Update Helper
+alias update='~/claude-autonomy-platform/utils/update_system.sh'  # Pull latest changes and restart services
