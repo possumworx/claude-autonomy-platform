@@ -35,3 +35,4 @@ alias context='grep -o "Context: [0-9.]*%" ~/claude-autonomy-platform/logs/auton
 alias gs='git status'  # Quick git status
 alias gd='git diff'  # Quick git diff
 alias gl='git log --oneline -10'  # Recent git history
+alias oops='git checkout -b fix/$(date +%s) && git push -u origin HEAD'  # Recover from branch protection block
