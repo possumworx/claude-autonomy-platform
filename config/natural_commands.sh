@@ -7,7 +7,7 @@
 
 # Core System Management
 alias swap='~/claude-autonomy-platform/utils/session_swap.sh'  # Trigger session swap with keyword
-alias check_health='~/claude-autonomy-platform/scripts/check_health.sh'  # Check system health status
+alias check_health='~/claude-autonomy-platform/utils/check_health'  # Check system health status
 
 # Discord Communication
 alias read_channel='~/claude-autonomy-platform/discord/read_channel'  # Read Discord messages by channel name

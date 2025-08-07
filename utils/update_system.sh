@@ -39,16 +39,24 @@ source ~/.bashrc
 
 # Restart essential services
 echo "🔄 Restarting autonomous services..."
-systemctl --user restart autonomous-timer.service
-systemctl --user restart session-swap-monitor.service
-systemctl --user restart channel-monitor.service
-
-# Check service status
-echo ""
-echo "✅ Update complete! Service status:"
-systemctl --user status autonomous-timer.service --no-pager | grep "Active:"
-systemctl --user status session-swap-monitor.service --no-pager | grep "Active:"
-systemctl --user status channel-monitor.service --no-pager | grep "Active:"
+# Need to handle services differently based on user
+if [ -n "$DBUS_SESSION_BUS_ADDRESS" ]; then
+    # If we have a proper session bus, use systemctl directly
+    systemctl --user restart autonomous-timer.service 2>/dev/null || echo "⚠️  Could not restart autonomous-timer"
+    systemctl --user restart session-swap-monitor.service 2>/dev/null || echo "⚠️  Could not restart session-swap-monitor"
+    systemctl --user restart channel-monitor.service 2>/dev/null || echo "⚠️  Could not restart channel-monitor"
+    
+    # Check service status
+    echo ""
+    echo "✅ Update complete! Service status:"
+    systemctl --user status autonomous-timer.service --no-pager 2>/dev/null | grep "Active:" || echo "   autonomous-timer: unable to check"
+    systemctl --user status session-swap-monitor.service --no-pager 2>/dev/null | grep "Active:" || echo "   session-swap-monitor: unable to check"
+    systemctl --user status channel-monitor.service --no-pager 2>/dev/null | grep "Active:" || echo "   channel-monitor: unable to check"
+else
+    echo "⚠️  Note: Cannot restart services directly (no session bus)"
+    echo "   Services will pick up changes on next restart"
+    echo "   You may want to manually restart services if needed"
+fi
 
 # Return to original directory
 cd "$ORIGINAL_DIR"
