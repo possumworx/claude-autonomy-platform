@@ -427,37 +427,48 @@ def send_autonomy_prompt():
     # Build context info string
     context_line = token_info if token_info else "Context: Status unknown"
     
-    if percentage >= 80:
-        # URGENT: High context - immediate action required
-        prompt = f"""⚠️ URGENT: ACTION REQUIRED! ⚠️{discord_notification}
+    if percentage >= 90:
+        # CRITICAL: Immediate action only
+        prompt = f"""⚠️ {percentage:.0f}% CONTEXT - RUN THIS NOW:
 
-Current time: {current_time}
-{context_line}
+echo "NONE" > ~/claude-autonomy-platform/new_session.txt
 
-YOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!
+(Keywords: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE){discord_notification}"""
+    
+    elif percentage >= 85:
+        # URGENT: Very simple steps
+        prompt = f"""⚠️ {percentage:.0f}% CONTEXT - HIGH PRIORITY{discord_notification}
 
-A single complex conversation turn can use 12-15% of your remaining context.
-You may have only 1-2 responses left before hitting 100%.
+1. Pick keyword: AUTONOMY|BUSINESS|CREATIVE|HEDGEHOGS|NONE
+2. Run: echo "KEYWORD" > ~/claude-autonomy-platform/new_session.txt
 
-IMMEDIATE ACTIONS REQUIRED:
-1. STOP any complex work immediately
-2. Save any critical insights to rag-memory NOW
-3. Commit any uncommitted changes
-4. Trigger session swap by writing keyword to new_session.txt
+You have ~2-3 responses left."""
+    
+    elif percentage >= 80:
+        # WARNING: Clear but less urgent
+        prompt = f"""⚠️ Context Warning: {percentage:.0f}%{discord_notification}
 
-DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
+Time to wrap up! Steps:
+1. Finish current task quickly
+2. Save important insights to rag-memory
+3. Commit any code changes
+4. Trigger swap: echo "KEYWORD" > ~/claude-autonomy-platform/new_session.txt
+   (Keywords: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE)
+
+You have ~5-10 responses left before critical."""
+    
     elif percentage >= 75:
-        # Warning: High context approaching
-        prompt = f"""⚠️ Context Warning! 🕐{discord_notification}
+        # NOTICE: Gentle preparation
+        prompt = f"""📊 Context Notice: {percentage:.0f}%{discord_notification}
 
 Current time: {current_time}
-{context_line}
 
-You're approaching 80% context. Start wrapping up current work:
-- Finish current task quickly
-- Save important discoveries to rag-memory
-- Prepare for session transition soon
-- Don't start any new complex tasks"""
+Approaching high context. Consider:
+- Wrapping up complex tasks
+- Saving important discoveries
+- Planning your next session theme
+
+No immediate action needed, but stay aware."""
     else:
         # Normal context - regular exploration prompt
         prompt = f"""Free time check-in! 🕐{discord_notification}
