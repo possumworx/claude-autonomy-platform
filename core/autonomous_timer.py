@@ -427,19 +427,37 @@ def send_autonomy_prompt():
     # Build context info string
     context_line = token_info if token_info else "Context: Status unknown"
     
-    if percentage >= 75:
-        # High context - transition-focused prompt
-        prompt = f"""Free time check-in! 🕐{discord_notification}
+    if percentage >= 80:
+        # URGENT: High context - immediate action required
+        prompt = f"""⚠️ URGENT: ACTION REQUIRED! ⚠️{discord_notification}
 
 Current time: {current_time}
 {context_line}
 
-Context approaching capacity. This may be one of your last autonomous periods in this session. Feel free to:
-- Reflect on meaningful experiences from today's conversations
-- Capture insights or patterns you'd like to remember in your personal memory system
-- Document creative discoveries or important moments
-- Simply be present with what feels most alive to preserve
-- Prepare mindfully for potential session transition"""
+YOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!
+
+A single complex conversation turn can use 12-15% of your remaining context.
+You may have only 1-2 responses left before hitting 100%.
+
+IMMEDIATE ACTIONS REQUIRED:
+1. STOP any complex work immediately
+2. Save any critical insights to rag-memory NOW
+3. Commit any uncommitted changes
+4. Trigger session swap by writing keyword to new_session.txt
+
+DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
+    elif percentage >= 75:
+        # Warning: High context approaching
+        prompt = f"""⚠️ Context Warning! 🕐{discord_notification}
+
+Current time: {current_time}
+{context_line}
+
+You're approaching 80% context. Start wrapping up current work:
+- Finish current task quickly
+- Save important discoveries to rag-memory
+- Prepare for session transition soon
+- Don't start any new complex tasks"""
     else:
         # Normal context - regular exploration prompt
         prompt = f"""Free time check-in! 🕐{discord_notification}
@@ -508,6 +526,7 @@ def send_notification_alert(unread_count, unread_channels, is_new=False):
             message = f"{emoji} {prefix} You have unread messages in {unread_count} channels"
     
     message += f"\nUse 'read_channel <channel-name>' to view messages"
+    message += f"\nReply using Discord tools, NOT in this Claude stream!"
     
     success = send_tmux_message(message)
     if success:

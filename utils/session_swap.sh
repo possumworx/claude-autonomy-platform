@@ -38,14 +38,14 @@ echo "[SESSION_SWAP] Exporting current conversation..."
 # Export current conversation
 export_path="context/current_export.txt"
 tmux send-keys -t autonomous-claude "/export $export_path" 
-sleep 1
+sleep 2
 tmux send-keys -t autonomous-claude "Enter"
-sleep 1
+sleep 2
 # Navigate dialog: Down arrow to select "Save to file" option
 tmux send-keys -t autonomous-claude "Down"
-sleep 0.5
+sleep 1
 tmux send-keys -t autonomous-claude "Enter"
-sleep 0.5
+sleep 1
 # Confirm the save
 tmux send-keys -t autonomous-claude "Enter"
 # Wait for export to complete
