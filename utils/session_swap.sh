@@ -24,6 +24,10 @@ CLAUDE_MODEL=${CLAUDE_MODEL:-claude-sonnet-4-20250514}
 KEYWORD=${1:-"NONE"}
 echo "[SESSION_SWAP] Context keyword: $KEYWORD"
 
+# Wait for any ongoing Claude responses to complete
+echo "[SESSION_SWAP] Waiting for Claude to finish current response..."
+sleep 10
+
 echo "[SESSION_SWAP] Backing up work to git..."
 cd "$PERSONAL_DIR"
 git add -A
