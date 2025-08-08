@@ -81,7 +81,7 @@ def main():
                         result = subprocess.run([SCRIPT_PATH, content], 
                                               capture_output=True, 
                                               text=True, 
-                                              timeout=30)
+                                              timeout=60)
                         log(f"Session swap completed. Return code: {result.returncode}")
                         if result.stdout:
                             log(f"Output: {result.stdout}")

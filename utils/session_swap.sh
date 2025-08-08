@@ -24,6 +24,10 @@ CLAUDE_MODEL=${CLAUDE_MODEL:-claude-sonnet-4-20250514}
 KEYWORD=${1:-"NONE"}
 echo "[SESSION_SWAP] Context keyword: $KEYWORD"
 
+# Wait for any ongoing Claude responses to complete
+echo "[SESSION_SWAP] Waiting for Claude to finish current response..."
+sleep 10
+
 echo "[SESSION_SWAP] Backing up work to git..."
 cd "$PERSONAL_DIR"
 git add -A
@@ -35,6 +39,13 @@ echo "[SESSION_SWAP] Backup complete!"
 cd "$CLAP_DIR"
 
 echo "[SESSION_SWAP] Exporting current conversation..."
+# First ensure Claude is in the correct directory using shell command
+tmux send-keys -t autonomous-claude '!'
+sleep 0.5
+tmux send-keys -t autonomous-claude "cd $CLAP_DIR"
+sleep 0.5
+tmux send-keys -t autonomous-claude "Enter"
+sleep 1
 # Export current conversation
 export_path="context/current_export.txt"
 tmux send-keys -t autonomous-claude "/export $export_path" 
@@ -73,8 +84,9 @@ sleep 3
 tmux send-keys -t autonomous-claude "/exit"
 sleep 3
 tmux send-keys -t autonomous-claude "Enter"
-sleep 10
-tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir ~ --model $CLAUDE_MODEL"
+# Wait longer for Claude to fully exit and bash prompt to be ready
+sleep 20
+tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL"
 tmux send-keys -t autonomous-claude "Enter"
 
 echo "[SESSION_SWAP] Session swap complete!"
