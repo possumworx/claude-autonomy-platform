@@ -36,8 +36,10 @@ cd "$CLAP_DIR"
 
 echo "[SESSION_SWAP] Exporting current conversation..."
 # First ensure Claude is in the correct directory using shell command
-tmux send-keys -t autonomous-claude "\!cd $CLAP_DIR"
-sleep 1
+tmux send-keys -t autonomous-claude "!"
+sleep 0.5
+tmux send-keys -t autonomous-claude "cd $CLAP_DIR"
+sleep 0.5
 tmux send-keys -t autonomous-claude "Enter"
 sleep 1
 # Export current conversation
