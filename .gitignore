@@ -81,3 +81,5 @@ exportcontext/
 # Archive directories (temporary/old files)
 setup/archive/
 archive/
+# Personal files (not architecture which is shared)
+context/swap_CLAUDE.md
