@@ -65,8 +65,8 @@ sleep 5
 if [[ -f "$CLAP_DIR/$export_path" ]]; then
     echo "[SESSION_SWAP] Export created, updating conversation history..."
     python3 "$CLAP_DIR/utils/update_conversation_history.py" "$CLAP_DIR/$export_path"
-    # Clean up the export file after processing
-    rm -f "$CLAP_DIR/$export_path"
+    # Keep the export file as fallback for next run
+    echo "[SESSION_SWAP] Export preserved at $export_path for reference"
 else
     echo "[SESSION_SWAP] Warning: Export failed, continuing without updating conversation history"
 fi
