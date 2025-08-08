@@ -80,7 +80,8 @@ sleep 3
 tmux send-keys -t autonomous-claude "/exit"
 sleep 3
 tmux send-keys -t autonomous-claude "Enter"
-sleep 10
+# Wait longer for Claude to fully exit and bash prompt to be ready
+sleep 20
 tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL"
 tmux send-keys -t autonomous-claude "Enter"
 
