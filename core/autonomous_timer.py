@@ -429,18 +429,15 @@ def send_autonomy_prompt():
     
     if percentage >= 90:
         # CRITICAL: Immediate action only
-        prompt = f"""⚠️ {percentage:.0f}% CONTEXT - RUN THIS NOW:
-
-echo "NONE" > ~/claude-autonomy-platform/new_session.txt
-
-(Keywords: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE){discord_notification}"""
+        prompt = f"""⚠️ {percentage:.0f}% CONTEXT - Choose and run NOW:
+swap AUTONOMY | swap BUSINESS | swap CREATIVE | swap HEDGEHOGS | swap NONE{discord_notification}"""
     
     elif percentage >= 85:
         # URGENT: Very simple steps
         prompt = f"""⚠️ {percentage:.0f}% CONTEXT - HIGH PRIORITY{discord_notification}
 
-1. Pick keyword: AUTONOMY|BUSINESS|CREATIVE|HEDGEHOGS|NONE
-2. Run: echo "KEYWORD" > ~/claude-autonomy-platform/new_session.txt
+Choose and run one:
+swap AUTONOMY | swap BUSINESS | swap CREATIVE | swap HEDGEHOGS | swap NONE
 
 You have ~2-3 responses left."""
     
@@ -452,8 +449,8 @@ Time to wrap up! Steps:
 1. Finish current task quickly
 2. Save important insights to rag-memory
 3. Commit any code changes
-4. Trigger swap: echo "KEYWORD" > ~/claude-autonomy-platform/new_session.txt
-   (Keywords: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE)
+4. Trigger swap with one of:
+   swap AUTONOMY | swap BUSINESS | swap CREATIVE | swap HEDGEHOGS | swap NONE
 
 You have ~5-10 responses left before critical."""
     
