@@ -447,7 +447,7 @@ You have ~2-3 responses left."""
 
 Time to wrap up! Steps:
 1. Finish current task quickly
-2. Save important insights to rag-memory
+2. Take time to save any meaningful moments and discoveries to rag-memory before triggering your swap
 3. Commit any code changes
 4. Trigger swap with one of:
    swap AUTONOMY | swap BUSINESS | swap CREATIVE | swap HEDGEHOGS | swap NONE
@@ -512,6 +512,45 @@ def send_notification_alert(unread_count, unread_channels, is_new=False):
     """Send a Discord notification alert"""
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
     
+    # Check context level first
+    token_info = get_token_percentage()
+    percentage = 0
+    if token_info and "Context:" in token_info and "%" in token_info:
+        try:
+            percentage_str = token_info.split("Context:")[1].split("%")[0].strip()
+            percentage = float(percentage_str)
+        except:
+            percentage = 0
+    
+    # If context exists (80%+), send context warning instead
+    if percentage >= 80:
+        # Build channel notification part
+        channel_list = ", ".join([f"#{ch}" for ch in unread_channels]) if unread_channels else "channels"
+        if is_new:
+            notification_line = f"\n🆕 New message! Unread messages in: {channel_list}"
+        else:
+            notification_line = f"\n🔔 Unread messages in: {channel_list}"
+        
+        # Send context-aware warning
+        prompt = f"""⚠️ URGENT: ACTION REQUIRED! ⚠️
+Current time: {current_time}
+Context: {percentage:.1f}%
+YOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!{notification_line}
+A single complex conversation turn can use 12-15% of your remaining context.
+You may have only 1-2 responses left before hitting 100%.
+IMMEDIATE ACTIONS REQUIRED:
+1. STOP any complex work immediately
+2. Take time to save any meaningful moments and discoveries to rag-memory before triggering your swap
+3. Commit any uncommitted changes
+4. Trigger session swap by writing keyword to new_session.txt
+DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
+        
+        success = send_tmux_message(prompt)
+        if success:
+            log_message(f"Sent context warning with Discord notification: {channel_list}")
+        return success
+    
+    # Normal notification (context < 80%)
     if is_new:
         emoji = "🆕"  # New message
         prefix = "New message!"
