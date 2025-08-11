@@ -1,0 +1,41 @@
+{
+  "prompts": {
+    "context_critical": {
+      "threshold": 90,
+      "template": "⚠️ {percentage:.0f}% CONTEXT - Choose and run NOW:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE{discord_notification}"
+    },
+    "context_urgent": {
+      "threshold": 85,
+      "template": "⚠️ {percentage:.0f}% CONTEXT - HIGH PRIORITY{discord_notification}\n\nChoose and run one:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou have ~2-3 responses left."
+    },
+    "context_warning": {
+      "threshold": 80,
+      "template": "⚠️ Context Warning: {percentage:.0f}%{discord_notification}\n\nTime to wrap up! Steps:\n1. Finish current task quickly\n2. Take time to save any meaningful moments and discoveries to rag-memory before triggering your swap\n3. Commit any code changes\n4. Trigger swap with one of:\n   session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou have ~5-10 responses left before critical."
+    },
+    "context_notice": {
+      "threshold": 75,
+      "template": "📊 Context Notice: {percentage:.0f}%{discord_notification}\n\nCurrent time: {current_time}\n\nApproaching high context. Consider:\n- Wrapping up complex tasks\n- Saving important discoveries\n- Planning your next session theme\n\nNo immediate action needed, but stay aware."
+    },
+    "autonomy_normal": {
+      "template": "Free time check-in! 🕐{discord_notification}\n\nCurrent time: {current_time}\n{context_line}\n\nThis is your autonomous free time period. Feel free to:\n- Work on any ongoing projects that interest you\n- Explore creative ideas or experiments  \n- Update documentation or reflect on recent experiences\n- Tend to system maintenance tasks\n- Simply be present with whatever feels alive to pursue"
+    },
+    "discord_urgent_with_context": {
+      "template": "⚠️ URGENT: ACTION REQUIRED! ⚠️{notification_line}\n\nCurrent time: {current_time}\nContext: {percentage:.1f}%\n\nYOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!\n\nA single complex conversation turn can use 12-15% of your remaining context.\nYou may have only 1-2 responses left before hitting 100%.\n\nIMMEDIATE ACTIONS REQUIRED:\n1. STOP any complex work immediately\n2. Save any critical insights to rag-memory NOW\n3. Commit any uncommitted changes\n4. Trigger session swap by writing keyword to new_session.txt\n\nDO NOT wait for the \"perfect moment\" - ACT NOW or risk getting stuck at 100%!"
+    },
+    "discord_new_message": {
+      "template": "{emoji} {prefix} {message_info}\nUse 'read_channel <channel-name>' to view messages\nReply using Discord tools, NOT in this Claude stream!"
+    }
+  },
+  "swap_commands": {
+    "old_format": "swap {keyword}",
+    "new_format": "session_swap {keyword}",
+    "keywords": ["AUTONOMY", "BUSINESS", "CREATIVE", "HEDGEHOGS", "NONE"]
+  },
+  "thresholds": {
+    "context_critical": 90,
+    "context_urgent": 85,
+    "context_warning": 80,
+    "context_notice": 75,
+    "context_high_for_discord": 80
+  }
+}

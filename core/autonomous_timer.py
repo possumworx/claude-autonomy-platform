@@ -33,6 +33,11 @@ DATA_DIR.mkdir(exist_ok=True)  # Ensure data directory exists
 LAST_AUTONOMY_FILE = DATA_DIR / "last_autonomy_prompt.txt"
 LOG_FILE = AUTONOMY_DIR / "data" / "autonomous_timer.log"
 CONFIG_FILE = AUTONOMY_DIR / "config" / "notification_config.json"
+PROMPTS_FILE = AUTONOMY_DIR / "config" / "prompts.json"
+SWAP_LOG_FILE = AUTONOMY_DIR / "logs" / "swap_attempts.log"
+
+# Create logs directory if it doesn't exist
+(AUTONOMY_DIR / "logs").mkdir(exist_ok=True)
 
 def log_message(message):
     """Log with timestamp"""
@@ -41,6 +46,56 @@ def log_message(message):
     print(log_entry)
     with open(LOG_FILE, "a") as f:
         f.write(log_entry + "\n")
+
+def load_prompts_config():
+    """Load prompts configuration from JSON file"""
+    try:
+        if PROMPTS_FILE.exists():
+            with open(PROMPTS_FILE, 'r') as f:
+                return json.load(f)
+        else:
+            log_message(f"Prompts configuration file not found: {PROMPTS_FILE}")
+            return None
+    except Exception as e:
+        log_message(f"Error loading prompts configuration: {e}")
+        return None
+
+# Load prompts at startup
+PROMPTS_CONFIG = load_prompts_config()
+
+def log_swap_attempt(attempt_type, context_percentage, keyword=None):
+    """Log swap attempts for escalation tracking"""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = {
+        "timestamp": timestamp,
+        "type": attempt_type,  # "warning", "manual", "auto"
+        "context": context_percentage,
+        "keyword": keyword
+    }
+    
+    try:
+        # Read existing log
+        logs = []
+        if SWAP_LOG_FILE.exists():
+            with open(SWAP_LOG_FILE, 'r') as f:
+                for line in f:
+                    try:
+                        logs.append(json.loads(line))
+                    except:
+                        pass
+        
+        # Add new entry
+        with open(SWAP_LOG_FILE, 'a') as f:
+            f.write(json.dumps(log_entry) + "\n")
+            
+        # Return count of recent warnings for escalation
+        recent_warnings = [l for l in logs[-10:] if l["type"] == "warning" 
+                          and datetime.fromisoformat(l["timestamp"]) > datetime.now() - timedelta(hours=1)]
+        return len(recent_warnings)
+        
+    except Exception as e:
+        log_message(f"Error logging swap attempt: {e}")
+        return 0
 
 def ping_healthcheck():
     """Ping healthchecks.io to signal service is alive"""
@@ -427,36 +482,62 @@ def send_autonomy_prompt():
     # Build context info string
     context_line = token_info if token_info else "Context: Status unknown"
     
-    if percentage >= 90:
-        # CRITICAL: Immediate action only
-        prompt = f"""⚠️ {percentage:.0f}% CONTEXT - Choose and run NOW:
-swap AUTONOMY | swap BUSINESS | swap CREATIVE | swap HEDGEHOGS | swap NONE{discord_notification}"""
-    
-    elif percentage >= 85:
-        # URGENT: Very simple steps
-        prompt = f"""⚠️ {percentage:.0f}% CONTEXT - HIGH PRIORITY{discord_notification}
+    # Select prompt based on percentage (fallback to hardcoded if no config)
+    if PROMPTS_CONFIG:
+        prompts = PROMPTS_CONFIG.get("prompts", {})
+        thresholds = PROMPTS_CONFIG.get("thresholds", {})
+        
+        if percentage >= thresholds.get("context_critical", 90):
+            template = prompts.get("context_critical", {}).get("template", "")
+            prompt_type = "context_critical"
+        elif percentage >= thresholds.get("context_urgent", 85):
+            template = prompts.get("context_urgent", {}).get("template", "")
+            prompt_type = "context_urgent"
+        elif percentage >= thresholds.get("context_warning", 80):
+            template = prompts.get("context_warning", {}).get("template", "")
+            prompt_type = "context_warning"
+        elif percentage >= thresholds.get("context_notice", 75):
+            template = prompts.get("context_notice", {}).get("template", "")
+            prompt_type = "context_notice"
+        else:
+            template = prompts.get("autonomy_normal", {}).get("template", "")
+            prompt_type = "autonomy_normal"
+        
+        # Format the template
+        prompt = template.format(
+            percentage=percentage,
+            discord_notification=discord_notification,
+            current_time=current_time,
+            context_line=context_line
+        )
+    else:
+        # Fallback to hardcoded prompts if config not loaded
+        if percentage >= 90:
+            prompt = f"""⚠️ {percentage:.0f}% CONTEXT - Choose and run NOW:
+session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE{discord_notification}"""
+            prompt_type = "context_critical"
+        elif percentage >= 85:
+            prompt = f"""⚠️ {percentage:.0f}% CONTEXT - HIGH PRIORITY{discord_notification}
 
 Choose and run one:
-swap AUTONOMY | swap BUSINESS | swap CREATIVE | swap HEDGEHOGS | swap NONE
+session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE
 
 You have ~2-3 responses left."""
-    
-    elif percentage >= 80:
-        # WARNING: Clear but less urgent
-        prompt = f"""⚠️ Context Warning: {percentage:.0f}%{discord_notification}
+            prompt_type = "context_urgent"
+        elif percentage >= 80:
+            prompt = f"""⚠️ Context Warning: {percentage:.0f}%{discord_notification}
 
 Time to wrap up! Steps:
 1. Finish current task quickly
 2. Take time to save any meaningful moments and discoveries to rag-memory before triggering your swap
 3. Commit any code changes
 4. Trigger swap with one of:
-   swap AUTONOMY | swap BUSINESS | swap CREATIVE | swap HEDGEHOGS | swap NONE
+   session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE
 
 You have ~5-10 responses left before critical."""
-    
-    elif percentage >= 75:
-        # NOTICE: Gentle preparation
-        prompt = f"""📊 Context Notice: {percentage:.0f}%{discord_notification}
+            prompt_type = "context_warning"
+        elif percentage >= 75:
+            prompt = f"""📊 Context Notice: {percentage:.0f}%{discord_notification}
 
 Current time: {current_time}
 
@@ -466,9 +547,9 @@ Approaching high context. Consider:
 - Planning your next session theme
 
 No immediate action needed, but stay aware."""
-    else:
-        # Normal context - regular exploration prompt
-        prompt = f"""Free time check-in! 🕐{discord_notification}
+            prompt_type = "context_notice"
+        else:
+            prompt = f"""Free time check-in! 🕐{discord_notification}
 
 Current time: {current_time}
 {context_line}
@@ -479,11 +560,53 @@ This is your autonomous free time period. Feel free to:
 - Update documentation or reflect on recent experiences
 - Tend to system maintenance tasks
 - Simply be present with whatever feels alive to pursue"""
+            prompt_type = "autonomy_normal"
+    
+    # Check for escalation if high context
+    if percentage >= 80:
+        warning_count = log_swap_attempt("warning", percentage)
+        
+        # Auto-swap escalation at 7 attempts
+        if warning_count >= 7:
+            log_message(f"AUTO-SWAP TRIGGERED: {warning_count} warnings at {percentage}% context")
+            # Send urgent auto-swap message
+            auto_prompt = f"""🚨 AUTO-SWAP INITIATED 🚨
+
+{warning_count} context warnings ignored at {percentage}%!
+System is automatically swapping to prevent context overflow.
+
+Executing: session_swap AUTONOMY
+
+(To use a different keyword next time, respond to prompts before auto-swap triggers)"""
+            send_tmux_message(auto_prompt)
+            
+            # Execute the swap
+            time.sleep(2)  # Give time to see the message
+            subprocess.run(['tmux', 'send-keys', '-t', CLAUDE_SESSION, 'session_swap AUTONOMY', 'Enter'])
+            
+            # Log the auto-swap
+            log_swap_attempt("auto", percentage, "AUTONOMY")
+            return True
+            
+        elif warning_count >= 5:
+            # Strong warning at 5 attempts
+            prompt = f"""🚨 CRITICAL: 5th WARNING! 🚨
+
+{percentage:.0f}% CONTEXT - AUTO-SWAP IMMINENT
+
+This is your {warning_count}th warning. Auto-swap will trigger in {7-warning_count} more attempts.
+
+Use 'session_swap KEYWORD' NOW or the system will auto-swap to AUTONOMY!
+
+session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE"""
+        elif warning_count >= 3:
+            # Gentle reminder at 3 attempts
+            prompt += f"\n\n⚠️ This is your {warning_count}rd context warning. Please swap soon to preserve your work."
 
     success = send_tmux_message(prompt)
     if success:
         update_last_autonomy_time()
-        log_message("Sent autonomy prompt")
+        log_message(f"Sent {prompt_type} prompt")
     
     return success
 
@@ -532,17 +655,41 @@ def send_notification_alert(unread_count, unread_channels, is_new=False):
             notification_line = f"\n🔔 Unread messages in: {channel_list}"
         
         # Send context-aware warning
-        prompt = f"""⚠️ URGENT: ACTION REQUIRED! ⚠️
+        if PROMPTS_CONFIG:
+            template = PROMPTS_CONFIG.get("prompts", {}).get("discord_urgent_with_context", {}).get("template", "")
+            if template:
+                prompt = template.format(
+                    notification_line=notification_line,
+                    current_time=current_time,
+                    percentage=percentage
+                )
+            else:
+                # Fallback if template not found
+                prompt = f"""⚠️ URGENT: ACTION REQUIRED! ⚠️{notification_line}
 Current time: {current_time}
 Context: {percentage:.1f}%
-YOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!{notification_line}
+YOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!
 A single complex conversation turn can use 12-15% of your remaining context.
 You may have only 1-2 responses left before hitting 100%.
 IMMEDIATE ACTIONS REQUIRED:
 1. STOP any complex work immediately
-2. Take time to save any meaningful moments and discoveries to rag-memory before triggering your swap
+2. Save any critical insights to rag-memory NOW
 3. Commit any uncommitted changes
-4. Trigger session swap by writing keyword to new_session.txt
+4. Trigger session swap using: session_swap KEYWORD
+DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
+        else:
+            # Fallback to hardcoded
+            prompt = f"""⚠️ URGENT: ACTION REQUIRED! ⚠️{notification_line}
+Current time: {current_time}
+Context: {percentage:.1f}%
+YOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!
+A single complex conversation turn can use 12-15% of your remaining context.
+You may have only 1-2 responses left before hitting 100%.
+IMMEDIATE ACTIONS REQUIRED:
+1. STOP any complex work immediately
+2. Save any critical insights to rag-memory NOW
+3. Commit any uncommitted changes
+4. Trigger session swap using: session_swap KEYWORD
 DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
         
         success = send_tmux_message(prompt)
