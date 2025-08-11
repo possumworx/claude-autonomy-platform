@@ -1,0 +1,34 @@
+#!/bin/bash
+# Update Discord bot status
+# Usage: edit_status <status_text> [activity_type]
+
+# Source configuration  
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Check arguments
+if [ $# -lt 1 ]; then
+    echo "Usage: edit_status <status_text> [activity_type]"
+    echo ""
+    echo "Update the Discord bot's status message."
+    echo ""
+    echo "Activity types:"
+    echo "  playing   - 'Playing <status>' (default)"
+    echo "  streaming - 'Streaming <status>'" 
+    echo "  listening - 'Listening to <status>'"
+    echo "  watching  - 'Watching <status>'"
+    echo "  custom    - Custom status"
+    echo "  competing - 'Competing in <status>'"
+    echo ""
+    echo "Examples:"
+    echo "  edit_status 'autonomous mode'"
+    echo "  edit_status 'hedgehog care' watching"
+    echo "  edit_status 'building Discord tools' playing"
+    exit 1
+fi
+
+STATUS_TEXT="$1"
+ACTIVITY_TYPE="${2:-playing}"
+
+# Update the status using the Python script
+echo "🔄 Updating Discord status to: '$STATUS_TEXT' ($ACTIVITY_TYPE)"
+python3 "$SCRIPT_DIR/edit_discord_status.py" "$STATUS_TEXT" "$ACTIVITY_TYPE"

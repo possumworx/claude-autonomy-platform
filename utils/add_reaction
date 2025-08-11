@@ -1,0 +1,79 @@
+#!/bin/bash
+# Add reactions to Discord messages using channel name and message ID
+# Usage: add_reaction <channel_name> <message_id> <emoji>
+
+# Source configuration  
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$(dirname "$SCRIPT_DIR")/data/channel_state.json"
+
+# Check arguments
+if [ $# -lt 3 ]; then
+    echo "Usage: add_reaction <channel_name> <message_id> <emoji>"
+    echo ""
+    echo "Add an emoji reaction to a Discord message."
+    echo ""
+    echo "Examples:"
+    echo "  add_reaction general 123456789 👍"
+    echo "  add_reaction general 123456789 🎉"
+    echo "  add_reaction general 123456789 ✅"
+    echo ""
+    echo "📋 Available channels:"
+    if [ -f "$CONFIG_FILE" ]; then
+        python3 -c "
+import json
+with open('$CONFIG_FILE', 'r') as f:
+    data = json.load(f)
+    channels = data.get('channels', {})
+    for name in channels.keys():
+        print(f'   {name}')
+"
+    fi
+    exit 1
+fi
+
+CHANNEL_NAME="$1"
+MESSAGE_ID="$2"
+EMOJI="$3"
+
+# Look up channel ID from name
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Error: channel_state.json not found!"
+    exit 1
+fi
+
+CHANNEL_ID=$(python3 -c "
+import json
+import sys
+
+try:
+    with open('$CONFIG_FILE', 'r') as f:
+        data = json.load(f)
+        channels = data.get('channels', {})
+        
+        if '$CHANNEL_NAME' in channels:
+            print(channels['$CHANNEL_NAME']['id'])
+        else:
+            print('CHANNEL_NOT_FOUND', file=sys.stderr)
+            sys.exit(1)
+except Exception as e:
+    print(f'ERROR: {e}', file=sys.stderr)
+    sys.exit(1)
+")
+
+if [ $? -ne 0 ]; then
+    echo "❌ Error: Channel '$CHANNEL_NAME' not found!"
+    echo "Available channels:"
+    python3 -c "
+import json
+with open('$CONFIG_FILE', 'r') as f:
+    data = json.load(f)
+    channels = data.get('channels', {})
+    for name in channels.keys():
+        print(f'   {name}')
+"
+    exit 1
+fi
+
+# Add the reaction using the Python script
+echo "👍 Adding reaction $EMOJI to message $MESSAGE_ID in #$CHANNEL_NAME..."
+python3 "$SCRIPT_DIR/add_discord_reaction.py" "$CHANNEL_ID" "$MESSAGE_ID" "$EMOJI"

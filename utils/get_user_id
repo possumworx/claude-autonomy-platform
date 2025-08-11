@@ -1,0 +1,25 @@
+#!/bin/bash
+# Get Discord user ID by username for @mentions
+# Usage: get_user_id <username>
+
+# Source configuration  
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Check arguments
+if [ $# -lt 1 ]; then
+    echo "Usage: get_user_id <username>"
+    echo ""
+    echo "Get a Discord user ID by username for @mentions."
+    echo ""
+    echo "Examples:"
+    echo "  get_user_id amy"
+    echo "  get_user_id delta"
+    echo ""
+    echo "Output format: <@user_id> for direct use in messages"
+    exit 1
+fi
+
+USERNAME="$1"
+
+# Get the user ID using the Python script
+python3 "$SCRIPT_DIR/get_discord_user_id.py" "$USERNAME"
