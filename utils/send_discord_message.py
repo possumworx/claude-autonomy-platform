@@ -7,20 +7,17 @@ Based on the read_channel_api.py pattern
 import sys
 import requests
 import json
-from pathlib import Path
+import os
 
-# Load Discord token
-INFRA_CONFIG = Path.home() / "claude-autonomy-platform" / "claude_infrastructure_config.txt"
+# Add the utils directory to Python path for infrastructure_config_reader
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from infrastructure_config_reader import get_config_value
+
 DISCORD_API_BASE = "https://discord.com/api/v10"
 
 def load_discord_token():
     """Load Discord bot token from infrastructure config"""
-    if INFRA_CONFIG.exists():
-        with open(INFRA_CONFIG, 'r') as f:
-            for line in f:
-                if line.startswith('DISCORD_TOKEN='):
-                    return line.split('=', 1)[1].strip()
-    return None
+    return get_config_value('DISCORD_TOKEN')
 
 def send_message(channel_id, message):
     """Send a message to a channel using Discord API"""
