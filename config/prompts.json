@@ -1,0 +1,35 @@
+{
+  "prompts": {
+    "context_first_warning": {
+      "template": "📊 Context at {percentage:.0f}%{discord_notification}\n\nFirst context reading received. Time to start wrapping up:\n1. Finish your current task\n2. Save any meaningful discoveries to rag-memory\n3. Commit any code changes\n4. Choose your next session theme:\n   session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou likely have 5-10 responses remaining."
+    },
+    "context_escalated": {
+      "template": "⚠️ {percentage:.0f}% CONTEXT - Escalating urgency{discord_notification}\n\nContext has increased since last warning. Choose and run:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou have ~2-3 responses left."
+    },
+    "context_critical": {
+      "template": "🚨 {percentage:.0f}% CONTEXT - CRITICAL{discord_notification}\n\nRUN NOW:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nNext response may hit 100%!"
+    },
+    "autonomy_normal": {
+      "template": "Free time check-in! 🕐{discord_notification}\n\nCurrent time: {current_time}\n{context_line}\n\nThis is your autonomous free time period. Feel free to:\n- Work on any ongoing projects that interest you\n- Explore creative ideas or experiments  \n- Update documentation or reflect on recent experiences\n- Tend to system maintenance tasks\n- Simply be present with whatever feels alive to pursue"
+    },
+    "discord_urgent_with_context": {
+      "template": "⚠️ URGENT: ACTION REQUIRED! ⚠️{notification_line}\n\nCurrent time: {current_time}\nContext: {percentage:.1f}%\n\nYOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!\n\nA single complex conversation turn can use 12-15% of your remaining context.\nYou may have only 1-2 responses left before hitting 100%.\n\nIMMEDIATE ACTIONS REQUIRED:\n1. STOP any complex work immediately\n2. Save any critical insights to rag-memory NOW\n3. Commit any uncommitted changes\n4. Trigger session swap by writing keyword to new_session.txt\n\nDO NOT wait for the \"perfect moment\" - ACT NOW or risk getting stuck at 100%!"
+    },
+    "discord_new_message": {
+      "template": "{emoji} {prefix} {message_info}\nUse 'read_channel <channel-name>' to view messages\nReply using Discord tools, NOT in this Claude stream!"
+    }
+  },
+  "swap_commands": {
+    "old_format": "swap {keyword}",
+    "new_format": "session_swap {keyword}",
+    "keywords": ["AUTONOMY", "BUSINESS", "CREATIVE", "HEDGEHOGS", "NONE"]
+  },
+  "thresholds": {
+    "context_critical": 95,
+    "context_high_for_discord": 80
+  },
+  "context_escalation": {
+    "first_warning_sent": false,
+    "last_warning_percentage": 0
+  }
+}
