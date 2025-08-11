@@ -35,6 +35,7 @@ LOG_FILE = AUTONOMY_DIR / "data" / "autonomous_timer.log"
 CONFIG_FILE = AUTONOMY_DIR / "config" / "notification_config.json"
 PROMPTS_FILE = AUTONOMY_DIR / "config" / "prompts.json"
 SWAP_LOG_FILE = AUTONOMY_DIR / "logs" / "swap_attempts.log"
+CONTEXT_STATE_FILE = DATA_DIR / "context_escalation_state.json"
 
 # Create logs directory if it doesn't exist
 (AUTONOMY_DIR / "logs").mkdir(exist_ok=True)
@@ -62,6 +63,38 @@ def load_prompts_config():
 
 # Load prompts at startup
 PROMPTS_CONFIG = load_prompts_config()
+
+def load_context_state():
+    """Load context escalation state from file"""
+    try:
+        if CONTEXT_STATE_FILE.exists():
+            with open(CONTEXT_STATE_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        log_message(f"Error loading context state: {e}")
+    
+    # Return default state
+    return {
+        "first_warning_sent": False,
+        "last_warning_percentage": 0,
+        "last_warning_time": None
+    }
+
+def save_context_state(state):
+    """Save context escalation state to file"""
+    try:
+        with open(CONTEXT_STATE_FILE, 'w') as f:
+            json.dump(state, f, indent=2)
+    except Exception as e:
+        log_message(f"Error saving context state: {e}")
+
+def reset_context_state():
+    """Reset context state after session swap"""
+    save_context_state({
+        "first_warning_sent": False,
+        "last_warning_percentage": 0,
+        "last_warning_time": None
+    })
 
 def log_swap_attempt(attempt_type, context_percentage, keyword=None):
     """Log swap attempts for escalation tracking"""
@@ -482,25 +515,50 @@ def send_autonomy_prompt():
     # Build context info string
     context_line = token_info if token_info else "Context: Status unknown"
     
-    # Select prompt based on percentage (fallback to hardcoded if no config)
-    if PROMPTS_CONFIG:
+    # Load current context state
+    context_state = load_context_state()
+    
+    # Determine which prompt to use based on escalation logic
+    if PROMPTS_CONFIG and percentage > 0:
         prompts = PROMPTS_CONFIG.get("prompts", {})
         thresholds = PROMPTS_CONFIG.get("thresholds", {})
         
-        if percentage >= thresholds.get("context_critical", 90):
+        # Critical threshold (e.g., 95%)
+        if percentage >= thresholds.get("context_critical", 95):
             template = prompts.get("context_critical", {}).get("template", "")
             prompt_type = "context_critical"
-        elif percentage >= thresholds.get("context_urgent", 85):
-            template = prompts.get("context_urgent", {}).get("template", "")
-            prompt_type = "context_urgent"
-        elif percentage >= thresholds.get("context_warning", 80):
-            template = prompts.get("context_warning", {}).get("template", "")
-            prompt_type = "context_warning"
+        
+        # First warning - any context percentage detected for the first time
+        elif not context_state["first_warning_sent"]:
+            template = prompts.get("context_first_warning", {}).get("template", "")
+            prompt_type = "context_first_warning"
+            # Update state
+            context_state["first_warning_sent"] = True
+            context_state["last_warning_percentage"] = percentage
+            context_state["last_warning_time"] = datetime.now().isoformat()
+            save_context_state(context_state)
+        
+        # Escalated warning - context increased by 5% or more
+        elif percentage >= context_state["last_warning_percentage"] + 5:
+            template = prompts.get("context_escalated", {}).get("template", "")
+            prompt_type = "context_escalated"
+            # Update state
+            context_state["last_warning_percentage"] = percentage
+            context_state["last_warning_time"] = datetime.now().isoformat()
+            save_context_state(context_state)
+        
+        # No escalation needed - show normal prompt
         else:
             template = prompts.get("autonomy_normal", {}).get("template", "")
             prompt_type = "autonomy_normal"
-        
-        # Format the template
+    
+    elif PROMPTS_CONFIG:
+        # No context percentage available - show normal prompt
+        template = prompts.get("autonomy_normal", {}).get("template", "")
+        prompt_type = "autonomy_normal"
+    
+    # Format the template if we have one
+    if PROMPTS_CONFIG and 'template' in locals():
         prompt = template.format(
             percentage=percentage,
             discord_notification=discord_notification,
@@ -717,9 +775,29 @@ DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
     
     return success
 
+def check_for_session_reset():
+    """Check if we're in a new session and reset context state if needed"""
+    try:
+        # Simple heuristic: if context_escalation_state exists but no recent warnings
+        # and context is low/unknown, we likely had a session swap
+        context_state = load_context_state()
+        if context_state["first_warning_sent"]:
+            # Check if it's been more than 30 minutes since last warning
+            if context_state["last_warning_time"]:
+                last_time = datetime.fromisoformat(context_state["last_warning_time"])
+                time_diff = datetime.now() - last_time
+                if time_diff.total_seconds() > 1800:  # 30 minutes
+                    log_message("Session reset detected - clearing context state")
+                    reset_context_state()
+    except Exception as e:
+        log_message(f"Error checking for session reset: {e}")
+
 def main():
     """Main timer loop"""
     log_message("=== Autonomous Timer Started ===")
+    
+    # Check for session reset on startup
+    check_for_session_reset()
     
     last_autonomy_check = datetime.now()
     last_discord_check = datetime.now()

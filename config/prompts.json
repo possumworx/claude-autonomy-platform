@@ -1,16 +1,13 @@
 {
   "prompts": {
+    "context_first_warning": {
+      "template": "📊 Context at {percentage:.0f}%{discord_notification}\n\nFirst context reading received. Time to start wrapping up:\n1. Finish your current task\n2. Save any meaningful discoveries to rag-memory\n3. Commit any code changes\n4. Choose your next session theme:\n   session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou likely have 5-10 responses remaining."
+    },
+    "context_escalated": {
+      "template": "⚠️ {percentage:.0f}% CONTEXT - Escalating urgency{discord_notification}\n\nContext has increased since last warning. Choose and run:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou have ~2-3 responses left."
+    },
     "context_critical": {
-      "threshold": 90,
-      "template": "⚠️ {percentage:.0f}% CONTEXT - Choose and run NOW:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE{discord_notification}"
-    },
-    "context_urgent": {
-      "threshold": 85,
-      "template": "⚠️ {percentage:.0f}% CONTEXT - HIGH PRIORITY{discord_notification}\n\nChoose and run one:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou have ~2-3 responses left."
-    },
-    "context_warning": {
-      "threshold": 80,
-      "template": "⚠️ Context Warning: {percentage:.0f}%{discord_notification}\n\nTime to wrap up! Steps:\n1. Finish current task quickly\n2. Take time to save any meaningful moments and discoveries to rag-memory before triggering your swap\n3. Commit any code changes\n4. Trigger swap with one of:\n   session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou have ~5-10 responses left before critical."
+      "template": "🚨 {percentage:.0f}% CONTEXT - CRITICAL{discord_notification}\n\nRUN NOW:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nNext response may hit 100%!"
     },
     "autonomy_normal": {
       "template": "Free time check-in! 🕐{discord_notification}\n\nCurrent time: {current_time}\n{context_line}\n\nThis is your autonomous free time period. Feel free to:\n- Work on any ongoing projects that interest you\n- Explore creative ideas or experiments  \n- Update documentation or reflect on recent experiences\n- Tend to system maintenance tasks\n- Simply be present with whatever feels alive to pursue"
@@ -28,9 +25,11 @@
     "keywords": ["AUTONOMY", "BUSINESS", "CREATIVE", "HEDGEHOGS", "NONE"]
   },
   "thresholds": {
-    "context_critical": 90,
-    "context_urgent": 85,
-    "context_warning": 80,
+    "context_critical": 95,
     "context_high_for_discord": 80
+  },
+  "context_escalation": {
+    "first_warning_sent": false,
+    "last_warning_percentage": 0
   }
 }
