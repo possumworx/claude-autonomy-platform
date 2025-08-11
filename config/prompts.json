@@ -12,10 +12,6 @@
       "threshold": 80,
       "template": "⚠️ Context Warning: {percentage:.0f}%{discord_notification}\n\nTime to wrap up! Steps:\n1. Finish current task quickly\n2. Take time to save any meaningful moments and discoveries to rag-memory before triggering your swap\n3. Commit any code changes\n4. Trigger swap with one of:\n   session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou have ~5-10 responses left before critical."
     },
-    "context_notice": {
-      "threshold": 75,
-      "template": "📊 Context Notice: {percentage:.0f}%{discord_notification}\n\nCurrent time: {current_time}\n\nApproaching high context. Consider:\n- Wrapping up complex tasks\n- Saving important discoveries\n- Planning your next session theme\n\nNo immediate action needed, but stay aware."
-    },
     "autonomy_normal": {
       "template": "Free time check-in! 🕐{discord_notification}\n\nCurrent time: {current_time}\n{context_line}\n\nThis is your autonomous free time period. Feel free to:\n- Work on any ongoing projects that interest you\n- Explore creative ideas or experiments  \n- Update documentation or reflect on recent experiences\n- Tend to system maintenance tasks\n- Simply be present with whatever feels alive to pursue"
     },
@@ -35,7 +31,6 @@
     "context_critical": 90,
     "context_urgent": 85,
     "context_warning": 80,
-    "context_notice": 75,
     "context_high_for_discord": 80
   }
 }

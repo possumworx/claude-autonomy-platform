@@ -496,9 +496,6 @@ def send_autonomy_prompt():
         elif percentage >= thresholds.get("context_warning", 80):
             template = prompts.get("context_warning", {}).get("template", "")
             prompt_type = "context_warning"
-        elif percentage >= thresholds.get("context_notice", 75):
-            template = prompts.get("context_notice", {}).get("template", "")
-            prompt_type = "context_notice"
         else:
             template = prompts.get("autonomy_normal", {}).get("template", "")
             prompt_type = "autonomy_normal"
@@ -536,18 +533,6 @@ Time to wrap up! Steps:
 
 You have ~5-10 responses left before critical."""
             prompt_type = "context_warning"
-        elif percentage >= 75:
-            prompt = f"""📊 Context Notice: {percentage:.0f}%{discord_notification}
-
-Current time: {current_time}
-
-Approaching high context. Consider:
-- Wrapping up complex tasks
-- Saving important discoveries
-- Planning your next session theme
-
-No immediate action needed, but stay aware."""
-            prompt_type = "context_notice"
         else:
             prompt = f"""Free time check-in! 🕐{discord_notification}
 
