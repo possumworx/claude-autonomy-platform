@@ -338,7 +338,37 @@ def detect_api_errors(tmux_output):
             reset_time_str = usage_match.group(1)
             timezone = usage_match.group(2) 
             
-            # TODO: Add time checking to see if reset has passed
+            # Check if reset time has already passed
+            try:
+                from datetime import datetime
+                import re as time_re
+                
+                current_time = datetime.now()
+                
+                # Parse the reset time
+                time_parts = time_re.match(r'(\d{1,2})(?::(\d{2}))?(?:am|pm)?', reset_time_str, time_re.IGNORECASE)
+                if time_parts:
+                    hour = int(time_parts.group(1))
+                    minute = int(time_parts.group(2) or 0)
+                    
+                    # Handle AM/PM
+                    if 'pm' in reset_time_str.lower() and hour != 12:
+                        hour += 12
+                    elif 'am' in reset_time_str.lower() and hour == 12:
+                        hour = 0
+                    
+                    # Create reset datetime for today
+                    reset_datetime = current_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                    
+                    # If reset time has passed, ignore this error
+                    if current_time > reset_datetime:
+                        log_message(f"Ignoring expired usage limit (reset was at {reset_time_str}, now {current_time.strftime('%I:%M%p')})")
+                        continue  # Check next pink text match
+                        
+            except Exception as e:
+                log_message(f"Error parsing reset time: {e}")
+                # If we can't parse, report the error anyway
+            
             return {
                 "error_type": "usage_limit",
                 "details": f"Usage limit reached - resets at {reset_time_str} ({timezone})",
