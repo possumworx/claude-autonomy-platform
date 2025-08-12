@@ -1,0 +1,20 @@
+#!/bin/bash
+# Simple status checker that reads from local status files
+# For now, this is a placeholder that demonstrates the concept
+
+echo "🤖 Bot Status Check"
+echo "=================="
+echo ""
+echo "This command will check Discord bot statuses."
+echo "Full implementation requires:"
+echo "- Discord Gateway connection for real-time presence"
+echo "- Or reading from shared status files"
+echo ""
+echo "For now, you can:"
+echo "1. Check Discord member list manually"
+echo "2. Ask in #general channel"
+echo "3. Wait for full WebSocket implementation"
+echo ""
+echo "Usage: check-status [name]"
+echo "  No name: List all bot statuses"
+echo "  With name: Check specific bot (e.g., 'check-status delta')"

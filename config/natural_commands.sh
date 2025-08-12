@@ -28,6 +28,10 @@ alias home='cd ~/delta-home'  # Navigate to personal home directory
 alias game='cd ~/delta-home/games/if && frotz'  # Launch interactive fiction with Frotz
 alias dreamhold='cd ~/delta-home/games/if && frotz ~/delta-home/games/if/Dreamhold.z8'  # Play The Dreamhold
 
+# Status Updates
+alias change-status='~/claude-autonomy-platform/utils/change-status'  # Update Discord bot status
+alias check-status='~/claude-autonomy-platform/utils/check-status'  # Check bot statuses
+
 # Linear Helpers (Note: These need user ID configuration)
 # alias linear-helpers='~/claude-autonomy-platform/utils/linear-helpers'  # Show Linear command templates
 # alias my-linear-issues='~/claude-autonomy-platform/utils/my-linear-issues'  # TODO: Make generic for any user

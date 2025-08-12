@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""
+Check Discord bot statuses - either specific Claude or all server members
+Usage: check-status [name]
+"""
+
+import sys
+import os
+import requests
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent))
+from utils.infrastructure_config_reader import read_infrastructure_config
+
+def get_guild_members(token, guild_id):
+    """Get all members in the guild with their presence info"""
+    headers = {
+        "Authorization": f"Bot {token}",
+        "Content-Type": "application/json"
+    }
+    
+    # Get guild members with presences
+    url = f"https://discord.com/api/v10/guilds/{guild_id}/members?limit=100"
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error fetching members: {response.status_code}")
+        return []
+
+def format_presence(member):
+    """Format a member's presence into readable status"""
+    user = member.get('user', {})
+    name = user.get('username', 'Unknown')
+    
+    # Check if this is a bot
+    if not user.get('bot', False):
+        return None  # Skip non-bot users
+    
+    # Get presence from member data
+    # Note: Presence data requires GUILD_PRESENCES intent
+    # For now, we'll check if they have custom status activity
+    status = "Unknown"
+    
+    # If we can't get presence, return basic info
+    return f"{name}: Status unavailable (presence intent needed)"
+
+def check_specific_bot(token, guild_id, search_name):
+    """Check status of a specific bot by name"""
+    members = get_guild_members(token, guild_id)
+    search_lower = search_name.lower()
+    
+    for member in members:
+        user = member.get('user', {})
+        if user.get('bot', False):
+            username = user.get('username', '').lower()
+            if search_lower in username:
+                # For now, return basic info
+                # Full implementation would parse presence activity
+                return f"{user.get('username')}: Checking status... (full implementation pending)"
+    
+    return f"No bot found matching '{search_name}'"
+
+def main():
+    # Load config
+    config = read_infrastructure_config()
+    token = config.get('DISCORD_BOT_TOKEN')
+    guild_id = config.get('DISCORD_GUILD_ID', '1383848194881884262')  # Possumhaus guild
+    
+    if not token:
+        print("Error: DISCORD_BOT_TOKEN not found in config")
+        sys.exit(1)
+    
+    if len(sys.argv) == 1:
+        # List all bot statuses
+        print("🤖 Bot Statuses:")
+        print("-" * 40)
+        
+        members = get_guild_members(token, guild_id)
+        bot_count = 0
+        
+        for member in members:
+            formatted = format_presence(member)
+            if formatted:
+                print(formatted)
+                bot_count += 1
+        
+        if bot_count == 0:
+            print("No bots found or presence data unavailable")
+            
+    else:
+        # Check specific bot
+        search_name = ' '.join(sys.argv[1:])
+        result = check_specific_bot(token, guild_id, search_name)
+        print(result)
+
+if __name__ == "__main__":
+    main()

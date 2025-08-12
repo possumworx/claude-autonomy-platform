@@ -1,0 +1,49 @@
+#!/bin/bash
+# Simple status change command for Discord bot
+# Usage: change-status <status> [extra_info]
+# Status options: operational, limited, high-context, api-error
+# Examples: change-status limited 5pm
+
+SCRIPT_DIR="$(dirname "$0")"
+
+if [ $# -eq 0 ]; then
+    echo "Usage: change-status <status> [extra_info]"
+    echo "Status options: operational, limited, high-context, api-error"
+    echo "Example: change-status limited 5pm"
+    exit 1
+fi
+
+STATUS=$1
+EXTRA_INFO=$2
+
+# Map friendly names to script parameters
+case "$STATUS" in
+    "operational"|"good"|"ok")
+        python3 "$SCRIPT_DIR/update-status"
+        ;;
+    "limited"|"usage"|"out-of-usage")
+        # Force limited status with optional reset time
+        if [ -n "$EXTRA_INFO" ]; then
+            echo "{\"status\": \"limited\", \"reset_time\": \"$EXTRA_INFO\"}" > /tmp/force_status.json
+        else
+            echo '{"status": "limited"}' > /tmp/force_status.json
+        fi
+        python3 "$SCRIPT_DIR/update-status"
+        rm -f /tmp/force_status.json
+        ;;
+    "high-context"|"high")
+        echo '{"status": "high_context"}' > /tmp/force_status.json
+        python3 "$SCRIPT_DIR/update-status"
+        rm -f /tmp/force_status.json
+        ;;
+    "api-error"|"error")
+        echo '{"status": "api_error"}' > /tmp/force_status.json
+        python3 "$SCRIPT_DIR/update-status"
+        rm -f /tmp/force_status.json
+        ;;
+    *)
+        echo "Unknown status: $STATUS"
+        echo "Valid options: operational, limited, high-context, api-error"
+        exit 1
+        ;;
+esac
