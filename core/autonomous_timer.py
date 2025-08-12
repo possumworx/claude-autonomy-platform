@@ -303,8 +303,8 @@ def detect_api_errors(tmux_output):
     # Check last 2 lines for yellow warnings (approaching usage limit)
     if len(lines) >= 2:
         last_two_lines = '\n'.join(lines[-2:])
-        # Look for yellow text about approaching limit
-        yellow_pattern = r'\[38;5;220m.*?(approaching.*?usage.*?limit.*?reset.*?(\d{1,2}(?::\d{2})?(?:am|pm)?))'
+        # Look for yellow text about approaching limit (with middle dot ·)
+        yellow_pattern = r'\[38;5;220m.*?(approaching.*?usage.*?limit.*?[·•.].*?reset.*?(\d{1,2}(?::\d{2})?(?:am|pm)?))'
         yellow_match = re.search(yellow_pattern, last_two_lines, re.IGNORECASE)
         if yellow_match:
             reset_time = yellow_match.group(2) if yellow_match.lastindex >= 2 else None
