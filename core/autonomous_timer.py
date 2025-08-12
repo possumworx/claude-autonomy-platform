@@ -250,9 +250,9 @@ def ping_channel_monitor_healthcheck(is_alive):
 def get_token_percentage():
     """Get current session token usage percentage from tmux console output"""
     try:
-        # Capture the tmux session output
+        # Capture the tmux session output WITH COLOR CODES
         result = subprocess.run([
-            'tmux', 'capture-pane', '-t', CLAUDE_SESSION, '-p'
+            'tmux', 'capture-pane', '-t', CLAUDE_SESSION, '-p', '-e'
         ], capture_output=True, text=True)
         
         if result.returncode != 0:
@@ -289,54 +289,84 @@ def get_token_percentage():
 
 def detect_api_errors(tmux_output):
     """
-    Detect API errors in tmux output
+    Detect API errors in tmux output using color codes
     Returns: dict with error_type, details, and reset_time (if applicable)
     """
-    # Check for malformed JSON errors
-    malformed_json_patterns = [
-        r"malformed.*json",
-        r"json.*error", 
-        r"invalid.*json",
-        r"failed to parse.*json"
-    ]
+    # Split output into lines for position-aware checking
+    lines = tmux_output.split('\n')
     
-    for pattern in malformed_json_patterns:
-        if re.search(pattern, tmux_output, re.IGNORECASE):
+    # ANSI color codes:
+    # [38;5;211m = Pink (errors)
+    # [38;5;220m = Yellow (warnings)
+    # [31m or [91m = Red (also errors)
+    
+    # Check last 2 lines for yellow warnings (approaching usage limit)
+    if len(lines) >= 2:
+        last_two_lines = '\n'.join(lines[-2:])
+        # Look for yellow text about approaching limit
+        yellow_pattern = r'\[38;5;220m.*?(approaching.*?usage.*?limit.*?reset.*?(\d{1,2}(?::\d{2})?(?:am|pm)?))'
+        yellow_match = re.search(yellow_pattern, last_two_lines, re.IGNORECASE)
+        if yellow_match:
+            reset_time = yellow_match.group(2) if yellow_match.lastindex >= 2 else None
+            return {
+                "error_type": "approaching_limit",
+                "details": "Approaching usage limit warning",
+                "reset_time": reset_time
+            }
+    
+    # Check for pink errors (38;5;211) anywhere in output
+    pink_pattern = r'\[38;5;211m([^\[]*)'
+    pink_matches = re.findall(pink_pattern, tmux_output)
+    
+    for error_text in pink_matches:
+        # Skip auto-update warnings
+        if "Auto-update failed" in error_text:
+            continue
+            
+        # Check for malformed JSON
+        if re.search(r"malformed.*json|json.*error|invalid.*json", error_text, re.IGNORECASE):
             return {
                 "error_type": "malformed_json",
                 "details": "Malformed JSON detected - requires session swap",
                 "reset_time": None
             }
-    
-    # Check for usage limit errors with reset time
-    usage_limit_pattern = r"Your limit will reset at (\d{1,2}(?::\d{2})?(?:am|pm)?)\s*\(([^)]+)\)"
-    usage_match = re.search(usage_limit_pattern, tmux_output, re.IGNORECASE)
-    if usage_match:
-        reset_time_str = usage_match.group(1)
-        timezone = usage_match.group(2)
-        return {
-            "error_type": "usage_limit",
-            "details": f"Usage limit reached - resets at {reset_time_str} ({timezone})",
-            "reset_time": reset_time_str,
-            "timezone": timezone
-        }
-    
-    # Check for general API errors
-    api_error_patterns = [
-        r"404.*error",
-        r"api.*error",
-        r"rate.*limit",
-        r"too many requests"
-    ]
-    
-    for pattern in api_error_patterns:
-        if re.search(pattern, tmux_output, re.IGNORECASE):
+            
+        # Check for usage limit errors
+        usage_pattern = r"limit will reset at (\d{1,2}(?::\d{2})?(?:am|pm)?)\s*\(([^)]+)\)"
+        usage_match = re.search(usage_pattern, error_text, re.IGNORECASE)
+        if usage_match:
+            reset_time_str = usage_match.group(1)
+            timezone = usage_match.group(2) 
+            
+            # TODO: Add time checking to see if reset has passed
+            return {
+                "error_type": "usage_limit",
+                "details": f"Usage limit reached - resets at {reset_time_str} ({timezone})",
+                "reset_time": reset_time_str,
+                "timezone": timezone
+            }
+        
+        # General API errors in pink text
+        if re.search(r"404.*error|api.*error|rate.*limit", error_text, re.IGNORECASE):
             return {
                 "error_type": "api_error",
-                "details": "General API error detected", 
+                "details": "API error detected in console",
                 "reset_time": None
             }
     
+    # Check for red errors (31m or 91m) 
+    red_pattern = r'\[(31|91)m([^\[]*)'
+    red_matches = re.findall(red_pattern, tmux_output)
+    
+    for _, error_text in red_matches:
+        if re.search(r"error|limit|failed", error_text, re.IGNORECASE):
+            return {
+                "error_type": "api_error", 
+                "details": "Error detected in console (red text)",
+                "reset_time": None
+            }
+    
+    # No errors found in colored text
     return None
 
 def save_error_state(error_info):
@@ -401,9 +431,9 @@ def should_pause_notifications(error_state):
 def get_token_percentage_and_errors():
     """Get current session token usage percentage AND detect API errors"""
     try:
-        # Capture the tmux session output
+        # Capture the tmux session output WITH COLOR CODES
         result = subprocess.run([
-            'tmux', 'capture-pane', '-t', CLAUDE_SESSION, '-p'
+            'tmux', 'capture-pane', '-t', CLAUDE_SESSION, '-p', '-e'
         ], capture_output=True, text=True)
         
         if result.returncode != 0:
@@ -411,7 +441,7 @@ def get_token_percentage_and_errors():
         
         console_output = result.stdout
         
-        # Check for API errors
+        # Check for API errors (now with color awareness)
         error_info = detect_api_errors(console_output)
         
         # Return both the console output and error info
