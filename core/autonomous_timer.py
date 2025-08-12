@@ -16,6 +16,7 @@ import subprocess
 import sys
 import glob
 import re
+import requests
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -41,6 +42,10 @@ API_ERROR_STATE_FILE = DATA_DIR / "api_error_state.json"
 
 # Create logs directory if it doesn't exist
 (AUTONOMY_DIR / "logs").mkdir(exist_ok=True)
+
+# Discord API configuration
+DISCORD_API_BASE = "https://discord.com/api/v10"
+INFRA_CONFIG = AUTONOMY_DIR / "config" / "claude_infrastructure_config.txt"
 
 def log_message(message):
     """Log with timestamp"""
@@ -416,6 +421,29 @@ def get_token_percentage_and_errors():
         log_message(f"Error in monitoring: {str(e)}")
         return None, None
 
+def load_discord_config():
+    """Load Discord bot token and user ID from infrastructure config"""
+    config = {"token": None, "user_id": None}
+    try:
+        if INFRA_CONFIG.exists():
+            with open(INFRA_CONFIG, 'r') as f:
+                for line in f:
+                    if line.startswith('DISCORD_BOT_TOKEN='):
+                        config["token"] = line.split('=', 1)[1].strip()
+                    # Also check for old name for backwards compatibility
+                    elif line.startswith('DISCORD_TOKEN='):
+                        config["token"] = line.split('=', 1)[1].strip()
+                    elif line.startswith('CLAUDE_DISCORD_USER_ID='):
+                        config["user_id"] = line.split('=', 1)[1].strip()
+        if not config["token"]:
+            log_message("Warning: No Discord token found in infrastructure config")
+        if not config["user_id"]:
+            log_message("Warning: No Discord user ID found in infrastructure config")
+        return config
+    except Exception as e:
+        log_message(f"Error loading Discord config: {e}")
+        return config
+
 def load_config():
     """Load configuration from notification_config.json"""
     try:
@@ -449,6 +477,11 @@ config = load_config()
 DISCORD_CHECK_INTERVAL = config["discord_check_interval"]
 AUTONOMY_PROMPT_INTERVAL = config["autonomy_prompt_interval"] 
 CLAUDE_SESSION = config["claude_session"]
+
+# Load Discord configuration
+discord_config = load_discord_config()
+DISCORD_TOKEN = discord_config["token"]
+CLAUDE_USER_ID = discord_config["user_id"]
 
 def check_user_active():
     """Check if Amy is logged in via SSH or NoMachine"""
@@ -545,6 +578,73 @@ def send_tmux_message(message):
         return False
 
 # Old Discord message checking removed - replaced with log-based monitoring
+
+def get_latest_message_info(channel_id):
+    """Get the ID and author of the latest message in a channel using Discord REST API"""
+    if not DISCORD_TOKEN:
+        log_message("Error: No Discord token available")
+        return None, None
+    
+    try:
+        headers = {
+            "Authorization": f"Bot {DISCORD_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        
+        # Fetch the last message from the channel
+        url = f"{DISCORD_API_BASE}/channels/{channel_id}/messages?limit=1"
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            messages = response.json()
+            if messages and len(messages) > 0:
+                message = messages[0]
+                message_id = message['id']
+                author_id = message.get('author', {}).get('id')
+                return message_id, author_id
+        else:
+            log_message(f"Error fetching channel {channel_id}: {response.status_code} - {response.text}")
+        
+        return None, None
+        
+    except Exception as e:
+        log_message(f"Exception checking channel {channel_id}: {e}")
+        return None, None
+
+def update_discord_channels():
+    """Check all Discord channels and update channel_state.json"""
+    # Import ChannelState here to avoid circular imports
+    sys.path.append(str(AUTONOMY_DIR / 'discord'))
+    from channel_state import ChannelState
+    
+    cs = ChannelState()
+    channels = cs.state.get("channels", {})
+    updates = 0
+    
+    for channel_name, channel_data in channels.items():
+        channel_id = channel_data.get("id")
+        if not channel_id:
+            continue
+        
+        # Get latest message ID and author
+        latest_id, author_id = get_latest_message_info(channel_id)
+        if latest_id:
+            old_id = channel_data.get("last_message_id")
+            
+            # Check if this is a new message
+            if old_id != latest_id:
+                # If the message is from this Claude, mark it as already read
+                if author_id == CLAUDE_USER_ID:
+                    cs.update_channel_latest(channel_name, latest_id)
+                    cs.mark_channel_read(channel_name)
+                    log_message(f"Updated #{channel_name}: {latest_id} (own message, marked as read)")
+                else:
+                    # Message from someone else - update normally
+                    cs.update_channel_latest(channel_name, latest_id)
+                    log_message(f"Updated #{channel_name}: {latest_id} (from user {author_id})")
+                updates += 1
+    
+    return updates
 
 def get_discord_notification_status():
     """Check Discord notification state from channel_state.json (channel-based format)"""
@@ -1012,6 +1112,10 @@ def main():
             
             # Check Discord notifications every 30 seconds regardless of login status
             if current_time - last_discord_check >= timedelta(seconds=DISCORD_CHECK_INTERVAL):
+                # First update Discord channels
+                update_discord_channels()
+                
+                # Then check notification status
                 unread_count, current_last_message_id, unread_channels = get_discord_notification_status()
                 
                 if unread_count > 0:
@@ -1070,13 +1174,7 @@ def main():
             if not claude_alive:
                 log_message("WARNING: Claude Code session appears to be down!")
             
-            # Check if channel monitor is running
-            channel_monitor_alive = check_channel_monitor_alive()
-            ping_channel_monitor_healthcheck(channel_monitor_alive)
-            
-            if not channel_monitor_alive:
-                log_message("WARNING: Channel monitor service is not running!")
-            
+            # Channel monitor functionality is now integrated here
             
             # Sleep for 30 seconds before next check (can be longer since we're doing simple string comparison)
             time.sleep(30)
