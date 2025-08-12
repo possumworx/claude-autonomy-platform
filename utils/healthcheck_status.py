@@ -23,7 +23,7 @@ REQUIRED_TMUX_SESSIONS = ["autonomous-claude", "persistent-login"]
 CONFIG_LOCATIONS = {
     "Claude Code Config": "~/.config/Claude/.claude.json",
     "Infrastructure Config": "~/claude-autonomy-platform/config/claude_infrastructure_config.txt",
-    "Notification Config": "~/claude-autonomy-platform/config/notification_config.json"
+    "Channel State": "~/claude-autonomy-platform/data/channel_state.json"
 }
 
 # Deprecated/old config locations to warn about

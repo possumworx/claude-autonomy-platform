@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 # Load Discord token
-INFRA_CONFIG = Path.home() / "claude-autonomy-platform" / "claude_infrastructure_config.txt"
+INFRA_CONFIG = Path.home() / "claude-autonomy-platform" / "config" / "claude_infrastructure_config.txt"
 DISCORD_API_BASE = "https://discord.com/api/v10"
 
 def load_discord_token():

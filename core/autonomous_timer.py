@@ -208,44 +208,6 @@ def ping_claude_session_healthcheck(is_alive):
         log_message(f"Claude session healthcheck ping error: {e}")
         return False
 
-def check_channel_monitor_alive():
-    """Check if notification-monitor service is running"""
-    try:
-        result = subprocess.run([
-            'systemctl', '--user', 'is-active', 'channel-monitor.service'
-        ], capture_output=True, text=True)
-        
-        return result.returncode == 0 and result.stdout.strip() == 'active'
-        
-    except Exception as e:
-        log_message(f"Error checking channel monitor: {e}")
-        return False
-
-def ping_channel_monitor_healthcheck(is_alive):
-    """Ping healthchecks.io for channel monitor status"""
-    base_url = get_config_value('DISCORD_MONITOR_PING', 'https://hc-ping.com/e0781d25-c06e-45e4-b310-c1bf77e286af')
-    
-    try:
-        if is_alive:
-            # Normal ping for success
-            url = base_url
-        else:
-            # Ping /fail to signal channel monitor is down
-            url = f"{base_url}/fail"
-            
-        result = subprocess.run([
-            'curl', '-fsS', '-m', '10', '--retry', '3', '-o', '/dev/null', url
-        ], capture_output=True, text=True)
-        
-        if result.returncode == 0:
-            return True
-        else:
-            log_message(f"Notification monitor healthcheck ping failed: {result.stderr}")
-            return False
-    except Exception as e:
-        log_message(f"Notification monitor healthcheck ping error: {e}")
-        return False
-
 
 def get_token_percentage():
     """Get current session token usage percentage from tmux console output"""
@@ -262,20 +224,27 @@ def get_token_percentage():
         import re
         console_output = result.stdout
         
-        # Pattern 1: Look for Claude Code's specific format: "Context low (XX% remaining)"
+        # Pattern 1: Look for simple "XX% remaining" anywhere
+        simple_remaining = re.search(r'(\d+(?:\.\d+)?)%\s*remaining', console_output, re.IGNORECASE)
+        if simple_remaining:
+            remaining_percentage = float(simple_remaining.group(1))
+            used_percentage = 100 - remaining_percentage
+            return f"Context: {used_percentage:.1f}%"
+        
+        # Pattern 2: Look for Claude Code's specific format: "Context low (XX% remaining)"
         claude_format = re.search(r'Context\s+\w+\s+\((\d+(?:\.\d+)?)%\s+remaining\)', console_output, re.IGNORECASE)
         if claude_format:
             remaining_percentage = float(claude_format.group(1))
             used_percentage = 100 - remaining_percentage
             return f"Context: {used_percentage:.1f}%"
         
-        # Pattern 2: Look for other "Context: XX%" warnings/messages
+        # Pattern 3: Look for other "Context: XX%" warnings/messages
         context_match = re.search(r'Context:\s*(\d+(?:\.\d+)?)%', console_output, re.IGNORECASE)
         if context_match:
             percentage = context_match.group(1)
             return f"Context: {percentage}%"
         
-        # Pattern 3: Look for percentage warnings like "(XX%)" 
+        # Pattern 4: Look for percentage warnings like "(XX%)" 
         percent_match = re.search(r'\((\d+(?:\.\d+)?)%\)', console_output)
         if percent_match:
             percentage = percent_match.group(1)
@@ -421,9 +390,9 @@ def clear_error_state():
         API_ERROR_STATE_FILE.unlink()
 
 def update_discord_status(status_type, reset_time=None):
-    """Call change-status command to update Discord bot status"""
+    """Call edit_status command to update Discord bot status"""
     try:
-        cmd = [str(AUTONOMY_DIR / "utils" / "change-status"), status_type]
+        cmd = [str(AUTONOMY_DIR / "utils" / "edit_status"), status_type]
         if reset_time:
             cmd.append(reset_time)
         
