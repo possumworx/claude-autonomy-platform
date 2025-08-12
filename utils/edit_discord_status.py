@@ -18,7 +18,7 @@ def load_discord_token():
     if INFRA_CONFIG.exists():
         with open(INFRA_CONFIG, 'r') as f:
             for line in f:
-                if line.startswith('DISCORD_TOKEN='):
+                if line.startswith('DISCORD_BOT_TOKEN='):
                     return line.split('=', 1)[1].strip()
     return None
 
