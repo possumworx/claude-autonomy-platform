@@ -15,6 +15,7 @@ import json
 import subprocess
 import sys
 import glob
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -36,6 +37,7 @@ CONFIG_FILE = AUTONOMY_DIR / "config" / "notification_config.json"
 PROMPTS_FILE = AUTONOMY_DIR / "config" / "prompts.json"
 SWAP_LOG_FILE = AUTONOMY_DIR / "logs" / "swap_attempts.log"
 CONTEXT_STATE_FILE = DATA_DIR / "context_escalation_state.json"
+API_ERROR_STATE_FILE = DATA_DIR / "api_error_state.json"
 
 # Create logs directory if it doesn't exist
 (AUTONOMY_DIR / "logs").mkdir(exist_ok=True)
@@ -279,6 +281,140 @@ def get_token_percentage():
         
     except Exception as e:
         return f"Context check failed: {str(e)}"
+
+def detect_api_errors(tmux_output):
+    """
+    Detect API errors in tmux output
+    Returns: dict with error_type, details, and reset_time (if applicable)
+    """
+    # Check for malformed JSON errors
+    malformed_json_patterns = [
+        r"malformed.*json",
+        r"json.*error", 
+        r"invalid.*json",
+        r"failed to parse.*json"
+    ]
+    
+    for pattern in malformed_json_patterns:
+        if re.search(pattern, tmux_output, re.IGNORECASE):
+            return {
+                "error_type": "malformed_json",
+                "details": "Malformed JSON detected - requires session swap",
+                "reset_time": None
+            }
+    
+    # Check for usage limit errors with reset time
+    usage_limit_pattern = r"Your limit will reset at (\d{1,2}(?::\d{2})?(?:am|pm)?)\s*\(([^)]+)\)"
+    usage_match = re.search(usage_limit_pattern, tmux_output, re.IGNORECASE)
+    if usage_match:
+        reset_time_str = usage_match.group(1)
+        timezone = usage_match.group(2)
+        return {
+            "error_type": "usage_limit",
+            "details": f"Usage limit reached - resets at {reset_time_str} ({timezone})",
+            "reset_time": reset_time_str,
+            "timezone": timezone
+        }
+    
+    # Check for general API errors
+    api_error_patterns = [
+        r"404.*error",
+        r"api.*error",
+        r"rate.*limit",
+        r"too many requests"
+    ]
+    
+    for pattern in api_error_patterns:
+        if re.search(pattern, tmux_output, re.IGNORECASE):
+            return {
+                "error_type": "api_error",
+                "details": "General API error detected", 
+                "reset_time": None
+            }
+    
+    return None
+
+def save_error_state(error_info):
+    """Save current error state to file"""
+    error_info["timestamp"] = datetime.now().isoformat()
+    with open(API_ERROR_STATE_FILE, 'w') as f:
+        json.dump(error_info, f, indent=2)
+
+def load_error_state():
+    """Load saved error state"""
+    if API_ERROR_STATE_FILE.exists():
+        try:
+            with open(API_ERROR_STATE_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return None
+    return None
+
+def clear_error_state():
+    """Clear error state after recovery"""
+    if API_ERROR_STATE_FILE.exists():
+        API_ERROR_STATE_FILE.unlink()
+
+def update_discord_status(status_type, reset_time=None):
+    """Call change-status command to update Discord bot status"""
+    try:
+        cmd = [str(AUTONOMY_DIR / "utils" / "change-status"), status_type]
+        if reset_time:
+            cmd.append(reset_time)
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            log_message(f"Failed to update Discord status: {result.stderr}")
+        else:
+            log_message(f"Discord status updated to: {status_type} {reset_time or ''}")
+    except Exception as e:
+        log_message(f"Error updating Discord status: {e}")
+
+def trigger_session_swap(keyword="NONE"):
+    """Trigger automatic session swap"""
+    try:
+        new_session_file = AUTONOMY_DIR / "scripts" / "new_session.txt"
+        with open(new_session_file, 'w') as f:
+            f.write(keyword)
+        log_message(f"Triggered automatic session swap with keyword: {keyword}")
+        return True
+    except Exception as e:
+        log_message(f"Error triggering session swap: {e}")
+        return False
+
+def should_pause_notifications(error_state):
+    """Determine if notifications should be paused based on error state"""
+    if not error_state:
+        return False
+    
+    error_type = error_state.get("error_type")
+    if error_type in ["malformed_json", "usage_limit", "api_error"]:
+        return True
+    
+    return False
+
+def get_token_percentage_and_errors():
+    """Get current session token usage percentage AND detect API errors"""
+    try:
+        # Capture the tmux session output
+        result = subprocess.run([
+            'tmux', 'capture-pane', '-t', CLAUDE_SESSION, '-p'
+        ], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            return None, None
+        
+        console_output = result.stdout
+        
+        # Check for API errors
+        error_info = detect_api_errors(console_output)
+        
+        # Return both the console output and error info
+        return console_output, error_info
+        
+    except Exception as e:
+        log_message(f"Error in monitoring: {str(e)}")
+        return None, None
 
 def load_config():
     """Load configuration from notification_config.json"""
@@ -799,6 +935,11 @@ def main():
     # Check for session reset on startup
     check_for_session_reset()
     
+    # Load any existing error state
+    current_error_state = load_error_state()
+    if current_error_state:
+        log_message(f"Resuming with existing error state: {current_error_state}")
+    
     last_autonomy_check = datetime.now()
     last_discord_check = datetime.now()
     LOGGED_IN_REMINDER_INTERVAL = 300  # 5 minutes when user is logged in
@@ -807,6 +948,67 @@ def main():
         try:
             current_time = datetime.now()
             user_active = check_user_active()
+            
+            # Check for API errors alongside context
+            console_output, error_info = get_token_percentage_and_errors()
+            
+            # Handle new errors
+            if error_info and (not current_error_state or 
+                              current_error_state.get("error_type") != error_info.get("error_type")):
+                log_message(f"New error detected: {error_info}")
+                save_error_state(error_info)
+                
+                # Update Discord status based on error type
+                if error_info["error_type"] == "usage_limit":
+                    update_discord_status("limited", error_info.get("reset_time"))
+                elif error_info["error_type"] == "malformed_json":
+                    update_discord_status("api-error")
+                    # Pause briefly then trigger auto-swap
+                    log_message("Triggering auto-swap for malformed JSON in 5 seconds...")
+                    time.sleep(5)
+                    trigger_session_swap("NONE")
+                else:
+                    update_discord_status("api-error")
+                
+                current_error_state = error_info
+            
+            # Check if error has cleared
+            elif not error_info and current_error_state:
+                log_message("Error state cleared - resuming normal operations")
+                clear_error_state()
+                update_discord_status("operational")
+                current_error_state = None
+            
+            # Check for scheduled resume (usage limits)
+            if current_error_state and current_error_state.get("error_type") == "usage_limit":
+                # TODO: Add proper time parsing for reset_time
+                # For now, just log that we're waiting
+                log_message(f"Waiting for usage limit reset at {current_error_state.get('reset_time')}")
+            
+            # Skip notifications if in error state
+            if should_pause_notifications(current_error_state):
+                log_message("Pausing notifications due to active error state")
+                # Still do health checks but skip Discord/autonomy prompts
+                ping_healthcheck()
+                claude_alive = check_claude_session_alive()
+                ping_claude_session_healthcheck(claude_alive)
+                time.sleep(30)
+                continue
+            
+            # Check for context warnings
+            token_info = get_token_percentage()
+            if token_info and "Context:" in token_info:
+                try:
+                    percentage_str = token_info.split("Context:")[1].split("%")[0].strip()
+                    percentage = float(percentage_str)
+                    
+                    # Update Discord status based on context level
+                    if percentage >= 85:
+                        update_discord_status("high-context")
+                    elif percentage < 70 and not current_error_state:
+                        update_discord_status("operational")
+                except:
+                    pass
             
             # Check Discord notifications every 30 seconds regardless of login status
             if current_time - last_discord_check >= timedelta(seconds=DISCORD_CHECK_INTERVAL):
