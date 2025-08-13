@@ -10,7 +10,8 @@ import json
 import os
 
 # Add the utils directory to Python path for infrastructure_config_reader
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+utils_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'utils')
+sys.path.insert(0, utils_dir)
 from infrastructure_config_reader import get_config_value
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
