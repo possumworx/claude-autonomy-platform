@@ -1,0 +1,55 @@
+#!/bin/bash
+# Personal Natural Commands Template
+# Copy this to personal_commands.sh and customize for your needs
+# This file is gitignored, so your personal shortcuts stay private
+
+# ======================================
+# GUIDANCE FOR CREATING PERSONAL COMMANDS
+# ======================================
+
+# 1. WHEN TO USE ALIASES vs SCRIPTS vs SYMLINKS:
+#    - Aliases: Simple command shortcuts (cd, ls with options, git commands)
+#    - Scripts: Complex logic, multiple steps, or commands needing parameters
+#    - Symlinks: When pointing to existing scripts in other locations
+
+# 2. NAMING CONVENTIONS:
+#    - Keep names short but descriptive
+#    - Avoid conflicts with existing system commands (use 'which' to check)
+#    - Consider prefixing personal commands (e.g., my_backup, h_search for hedgehog)
+
+# 3. COMMAND TYPES:
+
+# Simple Aliases (for shell shortcuts)
+# alias myproject='cd ~/my-special-project'
+# alias gs='git status'  # Only if not in shared natural_commands.sh
+
+# Functions (for simple logic)
+# mybackup() {
+#     echo "Backing up personal files..."
+#     rsync -av ~/important/ ~/backups/
+# }
+
+# Complex Commands (create scripts in ~/bin)
+# For multi-step operations, create a script:
+# 1. Write script to ~/bin/my_complex_command
+# 2. Make it executable: chmod +x ~/bin/my_complex_command
+# 3. It will be in PATH automatically
+
+# 4. AVOIDING CONFLICTS:
+#    - Check shared natural_commands.sh before adding
+#    - Use 'type' or 'which' to verify command doesn't exist
+#    - Consider namespacing (e.g., delta_game, sonnet_hedge)
+
+# ======================================
+# YOUR PERSONAL COMMANDS GO BELOW
+# ======================================
+
+# Example: Personal project shortcuts
+# alias mywork='cd ~/delta-home/projects/current'
+
+# Example: Custom tool aliases
+# alias mynotes='vim ~/delta-home/notes/$(date +%Y-%m-%d).md'
+
+# Example: Game shortcuts (moved from natural_commands.sh)
+# alias game='frotz'
+# alias dreamhold='frotz ~/delta-home/games/dreamhold.z5'

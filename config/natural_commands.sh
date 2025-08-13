@@ -46,8 +46,5 @@ alias oops='git checkout -b fix/$(date +%s) && git push -u origin HEAD'  # Recov
 # System Update Helper
 alias update='~/claude-autonomy-platform/utils/update_system.sh'  # Pull latest changes and restart services
 
-# PERSONAL NATURAL COMMANDS #
-# unique to this Claude #
-# Gaming
-alias game='cd ~/delta-home/games/if && frotz'  # Launch interactive fiction with Frotz
-alias dreamhold='cd ~/delta-home/games/if && frotz ~/delta-home/games/if/Dreamhold.z8'  # Play The Dreamhold
+# Note: Personal commands should go in config/personal_commands.sh
+# See personal_commands.sh.template for guidance
