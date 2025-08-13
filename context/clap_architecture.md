@@ -43,6 +43,206 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 3. Notification includes specific channel names (e.g., "🆕 New message! Unread messages in: #general")
 4. Claude uses `read_channel <name>` to view messages
 
+<!-- TREE_START -->
+```
+~/claude-autonomy-platform
+├── config
+│   ├── autonomous_timer_config.json
+│   ├── claude.env
+│   ├── claude_env.sh
+│   ├── claude_infrastructure_config.template.txt
+│   ├── claude_infrastructure_config.txt
+│   ├── comms_monitor_config.json
+│   ├── context_hats_config.json
+│   ├── context_hats_config.template.json
+│   ├── natural_commands.sh
+│   ├── new_session.txt
+│   ├── prompts.json
+│   ├── vscode-mcp-example.json
+│   └── x11_env.sh
+├── context
+│   ├── CLAUDE.md
+│   ├── clap_architecture.md
+│   ├── my_architecture.md
+│   ├── new_session.txt
+│   ├── project_session_context_builder.py
+│   └── swap_CLAUDE.md
+├── core
+│   ├── autonomous_timer.py
+│   ├── comms_monitor_simple.py
+│   └── session_swap_monitor.py
+├── data
+│   ├── autonomous_timer.log
+│   ├── channel_state.json
+│   ├── context_escalation_state.json
+│   ├── conversation_collector.log
+│   ├── install_verification.log
+│   ├── last_autonomy_prompt.txt
+│   ├── last_notification_alert.txt
+│   ├── last_seen_message_id.txt
+│   ├── session_bridge_export.log
+│   ├── session_bridge_monitor.log
+│   └── session_swap_monitor.log
+├── desktop
+│   ├── click.sh
+│   ├── list_desktop_windows.sh
+│   ├── screenshot.sh
+│   ├── send_key.sh
+│   └── type_text.sh
+├── discord
+│   ├── add_discord_reaction.py
+│   ├── add_reaction
+│   ├── channel_monitor_simple.py
+│   ├── channel_state.py
+│   ├── delete_discord_message.py
+│   ├── delete_message
+│   ├── discord_dm_config.txt
+│   ├── edit_discord_message.py
+│   ├── edit_discord_status.py
+│   ├── edit_message
+│   ├── edit_status
+│   ├── fetch_discord_image.py
+│   ├── fetch_image
+│   ├── get_discord_user_id.py
+│   ├── read_channel
+│   ├── read_channel_api.py
+│   ├── send_discord_file.py
+│   ├── send_discord_image.py
+│   ├── send_discord_message.py
+│   ├── send_file
+│   ├── send_image
+│   └── write_channel
+├── docs
+│   ├── CONTRIBUTING.md
+│   ├── DEPLOYMENT.md
+│   ├── GMAIL_OAUTH_INTEGRATION_SUMMARY.md
+│   ├── POST_INSTALL.md
+│   ├── README.md
+│   ├── RELEASE_NOTES_v053.md
+│   ├── claude_code_installation_procedure.md
+│   ├── delta-test-deployment-handover.md
+│   ├── desktop-coordinates.md
+│   ├── desktop_use_instructions.md
+│   ├── discord-token-configuration.md
+│   ├── git-merge-instructions.md
+│   ├── github-cli-authentication.md
+│   ├── line_endings_prevention.md
+│   ├── linear-vscode-guide.md
+│   ├── personal-repository-setup.md
+│   ├── pre-deployment-checklist.md
+│   └── session-bridge-export-design.md
+├── mcp-servers
+│   ├── discord-mcp
+│   │   ├── assets
+│   │   ├── src
+│   │   ├── target
+│   │   ├── Dockerfile
+│   │   ├── LICENSE
+│   │   ├── README.md
+│   │   ├── pom.xml
+│   │   └── smithery.yaml
+│   ├── gmail-mcp
+│   │   ├── dist
+│   │   ├── node_modules
+│   │   ├── src
+│   │   ├── Dockerfile
+│   │   ├── LICENSE
+│   │   ├── README.md
+│   │   ├── docker-compose.yml
+│   │   ├── llms-install.md
+│   │   ├── mcp-config.json
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── setup.js
+│   │   ├── smithery.yaml
+│   │   └── tsconfig.json
+│   ├── linear-mcp
+│   │   ├── build
+│   │   ├── node_modules
+│   │   ├── scripts
+│   │   ├── src
+│   │   ├── README.md
+│   │   ├── architecture.md
+│   │   ├── jest.config.js
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── todo.md
+│   │   └── tsconfig.json
+│   ├── rag-memory-mcp
+│   │   ├── dist
+│   │   ├── node_modules
+│   │   ├── src
+│   │   ├── README.md
+│   │   ├── index.ts
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   └── mcp_servers_config.json
+├── services
+│   ├── autonomous-timer.service
+│   ├── session-bridge-monitor.service
+│   └── session-swap-monitor.service
+├── setup
+│   ├── exchange_gmail_oauth.cjs
+│   ├── exchange_gmail_oauth.js
+│   ├── fix_executable_permissions.sh
+│   ├── generate_mcp_config.py
+│   ├── gmail_oauth_integration.py
+│   ├── insert_mcp_config.py
+│   ├── install_git_hooks.sh
+│   ├── install_git_hooks_fixed.sh
+│   ├── install_mcp_servers.sh
+│   ├── installer_safety_patch.sh
+│   ├── setup-linear-integration.sh
+│   ├── setup_clap_deployment.sh
+│   ├── setup_claude_configs.sh
+│   ├── setup_read_channel.sh
+│   └── verify_installation.sh
+├── target
+├── utils
+│   ├── check_health
+│   ├── claude_directory_enforcer.sh
+│   ├── claude_paths.py
+│   ├── claude_services.sh
+│   ├── cleanup_line_endings.sh
+│   ├── cleanup_xvfb_displays.sh
+│   ├── comms_check_helper.py
+│   ├── config_locations.sh
+│   ├── conversation_history_utils.py
+│   ├── create_systemd_env.py
+│   ├── disable_desktop_timeouts.sh
+│   ├── fetch_discord_image.sh
+│   ├── find_discord_token.sh
+│   ├── get_user_id
+│   ├── grid_navigate.py
+│   ├── healthcheck_status.py
+│   ├── healthcheck_status.py.backup
+│   ├── healthcheck_status_enhanced.py
+│   ├── infrastructure_config_reader.py
+│   ├── linear
+│   ├── linear-helpers
+│   ├── my-linear-issues
+│   ├── parse_natural_commands.sh
+│   ├── secret-scanner
+│   ├── send_to_terminal.sh
+│   ├── session_swap.sh
+│   ├── setup_natural_command_symlinks.sh
+│   ├── swap
+│   ├── update_conversation_history.py
+│   └── update_system.sh
+├── CLAUDE.md
+├── CONFIG_LOCATIONS.txt
+├── CONTRIBUTING.md
+├── clap.code-workspace
+├── new_session.txt
+├── package-lock.json
+├── package.json
+└── test_branch_protection.txt
+
+30 directories, 163 files
+```
+<!-- TREE_END -->
+
 ## Component Deep Dives
 
 ### Autonomous Timer - The Central Hub
