@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Send an image file to Discord channel using the API directly
-Based on the send_discord_message.py pattern with file attachments
+Send any file to Discord channel using the API directly
+Based on the send_discord_image.py pattern but handles any file type
 """
 
 import sys
@@ -11,8 +11,8 @@ from pathlib import Path
 import mimetypes
 import os
 
-# Load Discord token  
-INFRA_CONFIG = Path.home() / "claude-autonomy-platform" / "config" / "claude_infrastructure_config.txt"
+# Load Discord token
+INFRA_CONFIG = Path.home() / "claude-autonomy-platform" / "claude_infrastructure_config.txt"
 DISCORD_API_BASE = "https://discord.com/api/v10"
 
 def load_discord_token():
@@ -20,12 +20,12 @@ def load_discord_token():
     if INFRA_CONFIG.exists():
         with open(INFRA_CONFIG, 'r') as f:
             for line in f:
-                if line.startswith('DISCORD_TOKEN='):
+                if line.startswith('DISCORD_BOT_TOKEN='):
                     return line.split('=', 1)[1].strip()
     return None
 
-def is_valid_image_file(file_path):
-    """Check if file is a valid image and within size limits"""
+def is_valid_file(file_path):
+    """Check if file exists and is within size limits"""
     if not os.path.exists(file_path):
         return False, "File does not exist"
     
@@ -35,25 +35,26 @@ def is_valid_image_file(file_path):
     if file_size > max_size:
         return False, f"File too large: {file_size / 1024 / 1024:.1f}MB (max: 25MB)"
     
-    # Check file type
+    # Get file info
     mime_type, _ = mimetypes.guess_type(file_path)
-    if not mime_type or not mime_type.startswith('image/'):
-        return False, f"Not an image file (detected: {mime_type})"
+    file_type = mime_type or "application/octet-stream"
     
-    return True, "Valid image file"
+    return True, f"Valid file ({file_type}, {file_size / 1024:.1f}KB)"
 
-def send_image(channel_id, file_path, message=""):
-    """Send an image file to a Discord channel"""
+def send_file(channel_id, file_path, message=""):
+    """Send a file to a Discord channel"""
     token = load_discord_token()
     if not token:
         print("❌ Error: No Discord token found")
         return False
     
-    # Validate image file
-    is_valid, error_msg = is_valid_image_file(file_path)
+    # Validate file
+    is_valid, info_msg = is_valid_file(file_path)
     if not is_valid:
-        print(f"❌ Error: {error_msg}")
+        print(f"❌ Error: {info_msg}")
         return False
+    
+    print(f"📋 File info: {info_msg}")
     
     headers = {
         "Authorization": f"Bot {token}",
@@ -65,7 +66,7 @@ def send_image(channel_id, file_path, message=""):
     try:
         with open(file_path, 'rb') as file:
             files = {
-                'file': (file_name, file, mimetypes.guess_type(file_path)[0])
+                'file': (file_name, file, mimetypes.guess_type(file_path)[0] or 'application/octet-stream')
             }
             
             data = {}
@@ -76,7 +77,7 @@ def send_image(channel_id, file_path, message=""):
             response = requests.post(url, headers=headers, files=files, data=data)
         
         if response.status_code == 200:
-            print("✅ Image sent successfully!")
+            print("✅ File sent successfully!")
             return True
         else:
             print(f"❌ Error: {response.status_code} - {response.text}")
@@ -88,32 +89,33 @@ def send_image(channel_id, file_path, message=""):
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage: send_discord_image.py <channel_id> <image_file_path> [message]")
+        print("Usage: send_discord_file.py <channel_id> <file_path> [message]")
         print("")
-        print("Send an image file to a Discord channel with optional message.")
+        print("Send any file to a Discord channel with optional message.")
         print("")
         print("Examples:")
-        print("  send_discord_image.py 123456789 /path/to/hedgehog.jpg")
-        print("  send_discord_image.py 123456789 ./screenshot.png 'Latest progress!'")
+        print("  send_discord_file.py 123456789 /path/to/document.pdf")
+        print("  send_discord_file.py 123456789 ./report.xlsx 'Monthly report'")
+        print("  send_discord_file.py 123456789 ~/code.py 'Check this out!'")
         print("")
-        print("Supported formats: JPG, PNG, GIF, WEBP, and other image formats")
+        print("Supported: Any file type (images, documents, code, etc.)")
         print("Maximum file size: 25MB")
         sys.exit(1)
     
     channel_id = sys.argv[1]
-    image_path = sys.argv[2]
+    file_path = sys.argv[2]
     message = sys.argv[3] if len(sys.argv) > 3 else ""
     
-    print(f"📤 Sending image {image_path} to channel {channel_id}...")
+    print(f"📤 Sending file {os.path.basename(file_path)} to channel {channel_id}...")
     if message:
         print(f"📝 With message: {message}")
     
-    success = send_image(channel_id, image_path, message)
+    success = send_file(channel_id, file_path, message)
     
     if success:
         print("✅ Done!")
     else:
-        print("❌ Failed to send image")
+        print("❌ Failed to send file")
         sys.exit(1)
 
 if __name__ == "__main__":

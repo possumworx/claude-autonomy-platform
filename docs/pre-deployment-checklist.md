@@ -7,7 +7,7 @@
 - [ ] Java 17+ installed (`java -version`)
 - [ ] Node.js 18+ installed (`node --version`)
 - [ ] Git installed
-- [ ] tmux installed
+
 
 ### Configuration Preparation
 - [ ] Copy `claude_infrastructure_config.template.txt` to `claude_infrastructure_config.txt`
@@ -44,7 +44,7 @@
 
 ### Rollback Plan
 If issues occur:
-1. Stop all services: `systemctl --user stop autonomous-timer channel-monitor session-bridge-monitor session-swap-monitor`
+1. Stop all services: `systemctl --user stop autonomous-timer session-swap-monitor`
 2. Document error messages
 3. Check logs in `~/claude-autonomy-platform/logs/`
 

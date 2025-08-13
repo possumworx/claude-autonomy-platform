@@ -236,7 +236,7 @@ mkdir -p "$SYSTEMD_USER_DIR"
 
 # Copy and process service files with %i substitution
 echo "   Copying and processing service files..."
-for service in autonomous-timer.service session-swap-monitor.service channel-monitor.service; do
+for service in autonomous-timer.service session-swap-monitor.service; do
     if [[ -f "$CLAP_DIR/services/$service" ]]; then
         # Copy and replace %i with actual username
         sed "s/%i/$CURRENT_USER/g" "$CLAP_DIR/services/$service" > "$SYSTEMD_USER_DIR/$service"
@@ -871,7 +871,7 @@ systemctl --user daemon-reload
 systemctl --user enable autonomous-timer.service
 # session-bridge-monitor.service removed - replaced by conversation collector
 systemctl --user enable session-swap-monitor.service
-systemctl --user enable channel-monitor.service
+# Channel monitor functionality now integrated into autonomous-timer
 
 echo "   ✅ Services enabled"
 
@@ -1202,7 +1202,7 @@ if [[ -f "$CLAP_DIR/utils/claude_services.sh" ]]; then
     "$CLAP_DIR/utils/claude_services.sh" start
 else
     echo "   Starting services manually..."
-    systemctl --user start autonomous-timer.service session-swap-monitor.service channel-monitor.service
+    systemctl --user start autonomous-timer.service session-swap-monitor.service
 fi
 
 # Step 22: Comprehensive deployment verification
@@ -1224,7 +1224,7 @@ if [[ -f "$SCRIPT_DIR/verify_installation.sh" ]]; then
 else
     # Fallback to basic verification if script doesn't exist
     echo "Service Status:"
-    systemctl --user status autonomous-timer.service session-swap-monitor.service channel-monitor.service --no-pager -l || true
+    systemctl --user status autonomous-timer.service session-swap-monitor.service --no-pager -l || true
     echo ""
     
     # Check if files exist with new structure
@@ -1236,7 +1236,7 @@ else
         ["core/autonomous_timer.py"]="Autonomous timer"
         ["core/session_bridge_monitor.py"]="Session bridge"
         ["core/session_swap_monitor.py"]="Session swap"
-        ["discord/channel_monitor_simple.py"]="Channel monitor"
+        # Channel monitor functionality now integrated into autonomous-timer
     )
     
     for file in "${!files_to_check[@]}"; do

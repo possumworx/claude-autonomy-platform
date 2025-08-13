@@ -17,7 +17,7 @@ DISCORD_API_BASE = "https://discord.com/api/v10"
 
 def load_discord_token():
     """Load Discord bot token from infrastructure config"""
-    return get_config_value('DISCORD_TOKEN')
+    return get_config_value('DISCORD_BOT_TOKEN')
 
 def send_message(channel_id, message):
     """Send a message to a channel using Discord API"""

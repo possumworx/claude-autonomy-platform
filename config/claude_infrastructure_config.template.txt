@@ -43,7 +43,7 @@ GOOGLE_PROJECT_ID=your-google-project-id
 GOOGLE_REDIRECT_URI=http://localhost:3000/oauth2callback
 
 #healthcheck.io urls
-CHANNEL_MONITOR_PING=https://hc-ping.com/your-channel-monitor-uuid
+# CHANNEL_MONITOR_PING removed - Discord monitoring now in autonomous-timer
 SESSION_SWAP_PING=https://hc-ping.com/your-session-swap-uuid
 CLAUDE_CODE_PING=https://hc-ping.com/your-claude-code-uuid
 CONTINUITY_BRIDGE_PING=https://hc-ping.com/your-continuity-bridge-uuid
@@ -81,7 +81,7 @@ X11_ENV_SCRIPT=$AUTONOMY_DIR/x11_env.sh
 AUTONOMOUS_TIMER=autonomous-timer.service
 SESSION_BRIDGE_MONITOR=session-bridge-monitor.service
 SESSION_SWAP_MONITOR=session-swap-monitor.service
-CHANNEL_MONITOR=channel-monitor.service
+# CHANNEL_MONITOR removed - Discord monitoring now in autonomous-timer
 
 [USER_CONFIG]
 HISTORY_TURNS=20

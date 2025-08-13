@@ -23,7 +23,7 @@ def load_discord_token():
             with open(infra_config_path, 'r') as f:
                 for line in f:
                     line = line.strip()
-                    if line.startswith('DISCORD_TOKEN='):
+                    if line.startswith('DISCORD_BOT_TOKEN='):
                         return line.split('=', 1)[1]
         except Exception as e:
             print(f"❌ Error reading infrastructure config: {e}")

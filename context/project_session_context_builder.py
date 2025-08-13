@@ -8,8 +8,73 @@ This ensures each new session starts with both architecture understanding and re
 import os
 import sys
 import json
+import subprocess
 from pathlib import Path
 from datetime import datetime
+
+def update_clap_architecture_tree(autonomy_dir):
+    """Update clap_architecture.md with current directory tree"""
+    try:
+        clap_arch_file = autonomy_dir / "clap_architecture.md"
+        
+        # Generate tree output
+        tree_cmd = ["tree", str(autonomy_dir.parent), "-I", "__pycache__|*.pyc|.git|logs", "--dirsfirst", "-L", "3"]
+        result = subprocess.run(tree_cmd, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(f"Warning: tree command failed - {result.stderr}")
+            return
+        
+        tree_output = result.stdout
+        
+        # Read current clap_architecture.md
+        with open(clap_arch_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Define the tree section with markers
+        tree_section = f"""<!-- TREE_START -->
+```
+{tree_output}```
+<!-- TREE_END -->
+
+"""
+        
+        # Check if tree section exists and update it
+        if "<!-- TREE_START -->" in content and "<!-- TREE_END -->" in content:
+            # Replace existing tree section
+            import re
+            pattern = r'<!-- TREE_START -->.*?<!-- TREE_END -->\n\n'
+            content = re.sub(pattern, tree_section, content, flags=re.DOTALL)
+        else:
+            # Insert tree section after "## Component Deep Dives" or at a suitable location
+            if "## Component Deep Dives" in content:
+                content = content.replace("## Component Deep Dives", 
+                                        tree_section + "## Component Deep Dives")
+            else:
+                # Insert after overview section if Component Deep Dives doesn't exist
+                lines = content.split('\n')
+                insert_index = 0
+                for i, line in enumerate(lines):
+                    if line.startswith('## ') and 'Overview' in line:
+                        # Find the next section after overview
+                        for j in range(i+1, len(lines)):
+                            if lines[j].startswith('## '):
+                                insert_index = j
+                                break
+                        break
+                
+                if insert_index > 0:
+                    lines.insert(insert_index, tree_section)
+                    content = '\n'.join(lines)
+        
+        # Write updated content back
+        with open(clap_arch_file, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        print(f"Updated directory tree in {clap_arch_file}")
+        
+    except Exception as e:
+        print(f"Warning: Could not update directory tree - {e}")
 
 def build_claude_md():
     """Build CLAUDE.md from architecture and conversation history"""
@@ -87,6 +152,10 @@ def build_claude_md():
                 if context_file and context_file.exists():
                     with open(context_file, 'r', encoding='utf-8') as f:
                         context_hat_content = f"\n## Context Hat: {keyword}\n\n{f.read()}\n"
+                
+        
+        # Always update directory tree in clap_architecture.md for fresh reference
+        update_clap_architecture_tree(autonomy_dir)
         
         # Handoff notifications removed - only one type of swap now
         
