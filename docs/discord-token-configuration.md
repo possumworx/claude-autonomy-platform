@@ -14,7 +14,7 @@ ClAP uses two different types of Discord tokens:
 - **Format**: Looks like `MTM4MzkxMTc1MTE3MDY1OMjzG3TDM5NQ.G3NEK_.o2XjIm6nkD3ESK4aLtOP3kOpeDo9neyk`
 
 ### 2. Discord User Token (`DISCORD_USER_TOKEN`)
-- **What it is**: Your personal Discord account token
+- **What it is**: Your personal Discord user account token
 - **Status**: Currently not used by ClAP (leave empty)
 - **Security**: Never share this token as it gives full access to your Discord account
 - **Format**: Leave empty in the config

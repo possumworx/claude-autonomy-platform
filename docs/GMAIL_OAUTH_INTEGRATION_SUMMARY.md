@@ -48,7 +48,7 @@ In your `claude_infrastructure_config.txt`, make sure you have:
 ```
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_PROJECT_ID=hedgehog-monitoring
+GOOGLE_PROJECT_ID=your-google-client-project
 GOOGLE_REDIRECT_URI=http://localhost:3000/oauth2callback
 ```
 

@@ -71,13 +71,8 @@ for script in autonomous_timer session_bridge_monitor session_swap_monitor; do
 done
 
 # Channel monitor import (different location)
-if python3 -c "import sys; sys.path.append('$CLAP_DIR'); from discord.channel_monitor_simple import *" 2>/dev/null; then
-    pass "channel_monitor_simple imports successfully"
-    echo "✅ channel_monitor_simple imports successfully" >> "$LOG_FILE"
-else
-    fail "channel_monitor_simple import failed"
-    echo "❌ channel_monitor_simple import failed" >> "$LOG_FILE"
-fi
+# Channel monitor functionality now integrated into autonomous_timer
+# No separate import test needed
 
 echo ""
 
@@ -131,7 +126,7 @@ echo "🚀 3. Verifying Services..."
 echo "" >> "$LOG_FILE"
 echo "Services:" >> "$LOG_FILE"
 
-for service in autonomous-timer session-bridge-monitor session-swap-monitor channel-monitor; do
+for service in autonomous-timer session-swap-monitor; do
     if systemctl --user is-active --quiet "$service.service"; then
         pass "$service is running"
         echo "✅ $service is running" >> "$LOG_FILE"
