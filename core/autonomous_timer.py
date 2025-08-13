@@ -733,11 +733,9 @@ def export_conversation():
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         export_path = f"context/session_{timestamp}.txt"
         
-        # Send export command
-        subprocess.run(['tmux', 'send-keys', '-t', CLAUDE_SESSION, '/export'], check=True)
-        time.sleep(1)
-        subprocess.run(['tmux', 'send-keys', '-t', CLAUDE_SESSION, export_path], check=True)
-        time.sleep(1)
+        # Send export command as a single line with space
+        export_command = f"/export {export_path}"
+        subprocess.run(['tmux', 'send-keys', '-t', CLAUDE_SESSION, export_command], check=True)
         subprocess.run(['tmux', 'send-keys', '-t', CLAUDE_SESSION, 'Enter'], check=True)
         
         # Give export time to complete
@@ -751,8 +749,6 @@ def export_conversation():
 
 def send_autonomy_prompt():
     """Send a free time autonomy prompt, adapted based on context level"""
-    # Export conversation first for session continuity
-    export_conversation()
     
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
     token_info = get_token_percentage()
@@ -783,9 +779,11 @@ def send_autonomy_prompt():
     # Load current context state
     context_state = load_context_state()
     
+    # Initialize prompts dict outside conditional
+    prompts = PROMPTS_CONFIG.get("prompts", {}) if PROMPTS_CONFIG else {}
+    
     # Determine which prompt to use based on escalation logic
     if PROMPTS_CONFIG and percentage > 0:
-        prompts = PROMPTS_CONFIG.get("prompts", {})
         thresholds = PROMPTS_CONFIG.get("thresholds", {})
         
         # Critical threshold (e.g., 95%)

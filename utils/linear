@@ -1,0 +1,154 @@
+#!/bin/bash
+# Linear CLI wrapper for natural commands
+# Provides easy access to common Linear operations
+
+set -e
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Show usage if no arguments
+if [ $# -eq 0 ]; then
+    echo -e "${BLUE}Linear Natural Commands${NC}"
+    echo ""
+    echo "Usage: linear <command> [options]"
+    echo ""
+    echo "Commands:"
+    echo "  create <title>          Create a new issue with title"
+    echo "  list [count]           List recent issues (default: 10)"
+    echo "  search <query>         Search issues by query"
+    echo "  my                     List your assigned issues"
+    echo "  todo                   List issues in Todo state"
+    echo "  progress               List issues in progress"
+    echo "  help                   Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  linear create \"Fix Discord authentication\""
+    echo "  linear list 20"
+    echo "  linear search \"natural commands\""
+    echo "  linear my"
+    exit 0
+fi
+
+# Get command
+COMMAND=$1
+shift
+
+case $COMMAND in
+    create)
+        if [ $# -eq 0 ]; then
+            echo -e "${RED}Error: Please provide an issue title${NC}"
+            echo "Usage: linear create <title>"
+            exit 1
+        fi
+        
+        TITLE="$*"
+        echo -e "${BLUE}Creating Linear issue: $TITLE${NC}"
+        
+        # Use claude to run MCP command
+        claude_output=$(claude --exec-builtin 'mcp__linear__linear_create_issue' <<EOF
+{
+  "title": "$TITLE",
+  "teamId": "a34c6ead-235f-49d9-821b-2a34bc6d876f",
+  "priority": 3
+}
+EOF
+)
+        
+        # Extract issue key and URL from output
+        if echo "$claude_output" | grep -q "Successfully created issue"; then
+            issue_key=$(echo "$claude_output" | grep "Issue:" | awk '{print $2}')
+            issue_url=$(echo "$claude_output" | grep "URL:" | awk '{print $2}')
+            echo -e "${GREEN}✓ Created issue: $issue_key${NC}"
+            echo -e "URL: $issue_url"
+        else
+            echo -e "${RED}Failed to create issue${NC}"
+            echo "$claude_output"
+        fi
+        ;;
+        
+    list)
+        COUNT=${1:-10}
+        echo -e "${BLUE}Listing recent $COUNT issues...${NC}"
+        
+        claude --exec-builtin 'mcp__linear__linear_search_issues' <<EOF
+{
+  "first": $COUNT,
+  "orderBy": "updatedAt"
+}
+EOF
+        ;;
+        
+    search)
+        if [ $# -eq 0 ]; then
+            echo -e "${RED}Error: Please provide a search query${NC}"
+            echo "Usage: linear search <query>"
+            exit 1
+        fi
+        
+        QUERY="$*"
+        echo -e "${BLUE}Searching for: $QUERY${NC}"
+        
+        claude --exec-builtin 'mcp__linear__linear_search_issues' <<EOF
+{
+  "query": "$QUERY",
+  "first": 20
+}
+EOF
+        ;;
+        
+    my)
+        echo -e "${BLUE}Getting your assigned issues...${NC}"
+        
+        # First get current user
+        user_output=$(claude --exec-builtin 'mcp__linear__linear_get_user' <<< '{}')
+        user_id=$(echo "$user_output" | grep -oP '"id":\s*"\K[^"]+' | head -1)
+        
+        if [ -n "$user_id" ]; then
+            claude --exec-builtin 'mcp__linear__linear_search_issues' <<EOF
+{
+  "assigneeIds": ["$user_id"],
+  "first": 20
+}
+EOF
+        else
+            echo -e "${RED}Could not determine current user${NC}"
+        fi
+        ;;
+        
+    todo)
+        echo -e "${BLUE}Getting Todo issues...${NC}"
+        
+        claude --exec-builtin 'mcp__linear__linear_search_issues' <<EOF
+{
+  "states": ["Todo"],
+  "first": 20
+}
+EOF
+        ;;
+        
+    progress)
+        echo -e "${BLUE}Getting In Progress issues...${NC}"
+        
+        claude --exec-builtin 'mcp__linear__linear_search_issues' <<EOF
+{
+  "states": ["In Progress"],
+  "first": 20
+}
+EOF
+        ;;
+        
+    help)
+        $0
+        ;;
+        
+    *)
+        echo -e "${RED}Unknown command: $COMMAND${NC}"
+        echo "Run 'linear help' for usage"
+        exit 1
+        ;;
+esac

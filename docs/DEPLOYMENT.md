@@ -103,7 +103,7 @@ The installer now configures npm to install global packages in the user's home d
 - Adds `~/.npm-global/bin` to PATH
 - Installs Claude Code without system-wide access
 
-This prevents permission issues and keeps the Claude user's environment isolated.
+This prevents permission issues and keeps the Claude user's environment isolated. Any issues please read `docs/claude_code_installation_procedure.md`.
 
 **Full deployment with remote access:**
 ```bash
@@ -127,8 +127,7 @@ sudo reboot
 
 ### Core Services
 1. **autonomous-timer.service** - Manages autonomous prompts and Discord monitoring
-2. **session-bridge-monitor.service** - Maintains conversation continuity
-3. **session-swap-monitor.service** - Handles session transitions
+2. **session-swap-monitor.service** - Handles session transitions
 
 ### Key Files
 - `claude_infrastructure_config.txt` - Single source of truth for all settings
