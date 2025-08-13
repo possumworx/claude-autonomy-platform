@@ -115,6 +115,16 @@ def build_claude_md():
             except Exception as e:
                 print(f"Warning: Could not parse natural commands - {e}")
         
+        # Parse personal commands content (if exists)
+        personal_commands_content = ""
+        personal_commands_file = autonomy_dir.parent / "config" / "personal_commands.sh"
+        if personal_commands_file.exists():
+            try:
+                with open(personal_commands_file, 'r', encoding='utf-8') as f:
+                    personal_commands_content = f"\n\n## Personal Natural Commands\n\n{f.read()}\n"
+            except Exception as e:
+                print(f"Warning: Could not read personal commands - {e}")
+        
         # Read swap content
         with open(swap_file, 'r', encoding='utf-8') as f:
             swap_content = f.read()
@@ -163,7 +173,7 @@ def build_claude_md():
         combined_content = f"""# Current Session Context
 *Updated: {Path(swap_file).stat().st_mtime}*
 
-{architecture_content}{personal_interests_content}{natural_commands_content}{context_hat_content}
+{architecture_content}{personal_interests_content}{natural_commands_content}{personal_commands_content}{context_hat_content}
 ## Recent Conversation Context
 
 {swap_content}"""

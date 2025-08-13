@@ -44,6 +44,7 @@ monitor_debug.log
 
 # Personal configuration
 claude_infrastructure_config.txt
+config/personal_commands.sh
 
 # Session data
 last_autonomy_prompt.txt
