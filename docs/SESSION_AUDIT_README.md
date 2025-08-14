@@ -2,6 +2,15 @@
 
 A utility for analyzing Claude Code session files to help with context monitoring and session management.
 
+## Enhanced Detection (v2)
+
+The enhanced version includes improved error detection:
+- Checks last 5-10 turns for patterns (not just final turn)
+- Detects swap triggers (new_session.txt, keywords)
+- Finds repeated/stuck messages
+- Distinguishes autonomous vs manual swaps
+- Identifies context warnings in automated messages
+
 ## Usage
 
 ```bash
@@ -32,16 +41,22 @@ The script generates a CSV file with:
 - `file_size_mb`: File size in MB
 - `turn_count`: Number of conversation turns
 - `last_modified`: Timestamp of last modification
-- `ended_with_error`: Boolean indicating if session ended with error
+- `outcome`: Session outcome (clean_end, autonomous_swap, manual_swap_needed, stuck_pattern, error)
+- `autonomous_swap`: Boolean indicating if autonomous swap was triggered
+- `manual_needed`: Boolean indicating if manual intervention was needed
+- `has_repeats`: Boolean indicating repeated messages
+- `context_warning`: Boolean indicating context warnings present
 - `last_messages`: Last 5 conversation messages (truncated)
 
 ## Summary Statistics
 
 After analysis, the script displays:
 - Total files analyzed
-- Files ending with errors
+- Outcome breakdown by type
+- Autonomous swap rate
+- Manual intervention rate
 - Average file size and turn count
-- Size thresholds for errors vs successful sessions
+- Size patterns for different outcomes
 - Suggested safe swap threshold
 
 ## Use Cases
