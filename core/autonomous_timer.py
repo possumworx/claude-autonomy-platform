@@ -210,8 +210,22 @@ def ping_claude_session_healthcheck(is_alive):
 
 
 def get_token_percentage():
-    """Get current session token usage percentage from tmux console output"""
+    """Get current session token usage percentage from monitor script or tmux"""
     try:
+        # First try the new monitoring script for accurate file-based monitoring
+        monitor_script = AUTONOMY_DIR / "utils" / "monitor_session_size.py"
+        if monitor_script.exists():
+            result = subprocess.run([
+                sys.executable, str(monitor_script)
+            ], capture_output=True, text=True)
+            
+            if result.returncode in [0, 1, 2]:  # Normal, Warning, or Critical
+                # Parse the output to get just the context line
+                for line in result.stdout.strip().split('\n'):
+                    if line.startswith("Context:"):
+                        return line  # Returns "Context: XX.X% 🟢"
+        
+        # Fallback to tmux capture method if script fails or doesn't exist
         # Capture the tmux session output WITH COLOR CODES
         result = subprocess.run([
             'tmux', 'capture-pane', '-t', CLAUDE_SESSION, '-p', '-e'
