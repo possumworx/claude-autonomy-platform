@@ -1,0 +1,166 @@
+diff --git a/core/autonomous_timer.py b/core/autonomous_timer.py
+index 1234567..abcdefg 100644
+--- a/core/autonomous_timer.py
++++ b/core/autonomous_timer.py
+@@ -33,7 +33,7 @@ from utils.infrastructure_config_reader import get_config_value
+ AUTONOMY_DIR = get_clap_dir()
+ DATA_DIR = AUTONOMY_DIR / "data"
+ DATA_DIR.mkdir(exist_ok=True)  # Ensure data directory exists
+ LAST_AUTONOMY_FILE = DATA_DIR / "last_autonomy_prompt.txt"
+-LOG_FILE = AUTONOMY_DIR / "data" / "autonomous_timer.log"
++LOG_FILE = AUTONOMY_DIR / "logs" / "autonomous_timer.log"  # POSS-239: Standardized to logs/
+ CONFIG_FILE = AUTONOMY_DIR / "config" / "notification_config.json"
+ PROMPTS_FILE = AUTONOMY_DIR / "config" / "prompts.json"
+ SWAP_LOG_FILE = AUTONOMY_DIR / "logs" / "swap_attempts.log"
+@@ -768,16 +768,17 @@ def send_tmux_message(message):
+         log_message(f"Error sending tmux message: {e}")
+         return False
+ 
+-def send_autonomy_prompt():
++def send_autonomy_prompt(current_context_percentage=None):
+     """Send a free time autonomy prompt, adapted based on context level"""
+     
+     current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+-    token_info = get_token_percentage()
++    
++    # POSS-242 FIX: Use passed context percentage if available
++    if current_context_percentage is None:
++        token_info = get_token_percentage()
++        percentage = extract_percentage_from_token_info(token_info)
++    else:
++        percentage = current_context_percentage
+     
+-    # Check for Discord notifications
+-    unread_count, last_message_id, unread_channels = get_discord_notification_status()
+-    discord_notification = ""
+-    if unread_count > 0:
+-        channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
+-        if unread_count == 1:
+-            discord_notification = f"\n🔔 Unread messages in: {channel_list}"
+-        else:
+-            discord_notification = f"\n🔔 Unread messages in {unread_count} channels: {channel_list}"
+-    
+-    # Parse percentage
+-    percentage = 0
+-    if token_info and "Context:" in token_info and "%" in token_info:
+-        try:
+-            percentage_str = token_info.split("Context:")[1].split("%")[0].strip()
+-            percentage = float(percentage_str)
+-        except:
+-            percentage = 0
++    # [Rest of function continues with existing logic...]
+     
+@@ -954,17 +955,11 @@ def update_last_notification_time():
+         log_message(f"Error updating last notification time: {e}")
+ 
+-def send_notification_alert(unread_count, unread_channels, is_new=False):
++def send_notification_alert(unread_count, unread_channels, current_context_percentage=None, is_new=False):
+     """Send a Discord notification alert"""
+     current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+     
+-    # Check context level first
+-    token_info = get_token_percentage()
+-    percentage = 0
+-    if token_info and "Context:" in token_info and "%" in token_info:
+-        try:
+-            percentage_str = token_info.split("Context:")[1].split("%")[0].strip()
+-            percentage = float(percentage_str)
+-        except:
+-            percentage = 0
++    # POSS-242 FIX: Use passed context percentage
++    percentage = current_context_percentage if current_context_percentage is not None else 0
+     
+     # If context exists (80%+), send context warning instead
+@@ -1089,8 +1084,25 @@ def main():
+     # Load configurations
+     load_notification_config()
+     
++    # POSS-242: Track current context to avoid stale data
++    current_context_percentage = 0
++    
+     while True:
+         try:
+             current_time = datetime.now()
+             user_active = check_user_active()
+             
+-            # Check for API errors alongside context
++            # POSS-242 FIX: Get fresh context data FIRST
+             console_output, error_info = get_token_percentage_and_errors()
++            
++            # Extract context percentage from console output
++            current_context_percentage = 0
++            if console_output and "Context:" in console_output and "%" in console_output:
++                try:
++                    # Find context line in console output
++                    for line in console_output.split('\n'):
++                        if "Context:" in line and "%" in line:
++                            percentage_str = line.split("Context:")[1].split("%")[0].strip()
++                            current_context_percentage = float(percentage_str)
++                            break
++                except Exception as e:
++                    log_message(f"Error parsing context percentage: {e}")
+             
+             # Handle new errors
+@@ -1121,6 +1133,11 @@ def main():
+                 current_error_state = None
+             
++            # POSS-241 FIX: Check if error state file was manually deleted
++            elif current_error_state and not API_ERROR_STATE_FILE.exists():
++                log_message("Error state file manually deleted, clearing cached error state")
++                current_error_state = None
++                update_discord_status("operational")
++            
+             # Check for scheduled resume (usage limits)
+             if current_error_state and current_error_state.get("error_type") == "usage_limit":
+@@ -1138,17 +1155,10 @@ def main():
+                 continue
+             
+-            # Check for context warnings
+-            token_info = get_token_percentage()
+-            if token_info and "Context:" in token_info:
+-                try:
+-                    percentage_str = token_info.split("Context:")[1].split("%")[0].strip()
+-                    percentage = float(percentage_str)
+-                    
+-                    # Update Discord status based on context level
+-                    if percentage >= 85:
+-                        update_discord_status("high-context")
+-                    elif percentage < 70 and not current_error_state:
+-                        update_discord_status("operational")
+-                except:
+-                    pass
++            # Update Discord status based on context level
++            if current_context_percentage >= 85:
++                update_discord_status("high-context")
++            elif current_context_percentage < 70 and not current_error_state:
++                update_discord_status("operational")
+             
+             # Check Discord notifications every 30 seconds regardless of login status
+@@ -1175,7 +1185,8 @@ def main():
+                     
+                     if is_new_message:
+                         # NEW MESSAGE - Alert immediately!
+-                        send_notification_alert(unread_count, unread_channels, is_new=True)
++                        # POSS-242 FIX: Pass current context to notification alert
++                        send_notification_alert(unread_count, unread_channels, current_context_percentage, is_new=True)
+                         # Update last seen message ID
+                         try:
+                             with open(last_seen_file, 'w') as f:
+@@ -1189,7 +1200,7 @@ def main():
+                         if user_active:
+                             # User is logged in - use 5 minute reminder interval
+                             if not last_notification_time or current_time - last_notification_time >= timedelta(seconds=LOGGED_IN_REMINDER_INTERVAL):
+-                                send_notification_alert(unread_count, unread_channels, is_new=False)
++                                send_notification_alert(unread_count, unread_channels, current_context_percentage, is_new=False)
+                         else:
+                             # User is away - reminders included in autonomy prompts
+                             # No separate reminder needed
+@@ -1202,7 +1213,8 @@ def main():
+                 if not user_active:
+                     last_autonomy_time = get_last_autonomy_time()
+                     if not last_autonomy_time or current_time - last_autonomy_time >= timedelta(seconds=AUTONOMY_PROMPT_INTERVAL):
+-                        send_autonomy_prompt()
++                        # POSS-242 FIX: Pass current context to autonomy prompt
++                        send_autonomy_prompt(current_context_percentage)
+                 
+                 last_autonomy_check = current_time

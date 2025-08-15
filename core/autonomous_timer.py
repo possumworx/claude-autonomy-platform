@@ -33,7 +33,7 @@ AUTONOMY_DIR = get_clap_dir()
 DATA_DIR = AUTONOMY_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)  # Ensure data directory exists
 LAST_AUTONOMY_FILE = DATA_DIR / "last_autonomy_prompt.txt"
-LOG_FILE = AUTONOMY_DIR / "data" / "autonomous_timer.log"
+LOG_FILE = AUTONOMY_DIR / "logs" / "autonomous_timer.log"  # POSS-239: Standardized log location
 CONFIG_FILE = AUTONOMY_DIR / "config" / "notification_config.json"
 PROMPTS_FILE = AUTONOMY_DIR / "config" / "prompts.json"
 SWAP_LOG_FILE = AUTONOMY_DIR / "logs" / "swap_attempts.log"
@@ -1119,6 +1119,12 @@ def main():
                 clear_error_state()
                 update_discord_status("operational")
                 current_error_state = None
+            
+            # POSS-241 FIX: Check if error state file was manually deleted
+            elif current_error_state and not API_ERROR_STATE_FILE.exists():
+                log_message("Error state file manually deleted, clearing cached error state")
+                current_error_state = None
+                update_discord_status("operational")
             
             # Check for scheduled resume (usage limits)
             if current_error_state and current_error_state.get("error_type") == "usage_limit":
