@@ -1,0 +1,23 @@
+[0;1;32m●[0m autonomous-timer.service - Autonomous Timer for Claude
+     Loaded: loaded (]8;;file://sonnet-4-home-box/home/sparkle-sonnet/.config/systemd/user/autonomous-timer.service/home/sparkle-sonnet/.config/systemd/user/autonomous-timer.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Fri 2025-08-15 09:45:01 BST; 24s ago
+   Main PID: 190246 (python3)
+      Tasks: 1 (limit: 18603)
+     Memory: 17.7M (peak: 21.3M)
+        CPU: 314ms
+     CGroup: /user.slice/user-1002.slice/user@1002.service/app.slice/autonomous-timer.service
+             └─[0;38;5;245m190246 /usr/bin/python3 /home/sparkle-sonnet/claude-autonomy-platform/core/autonomous_timer.py[0m
+
+Aug 15 09:45:01 sonnet-4-home-box systemd[319498]: Started autonomous-timer.service - Autonomous Timer for Claude.
+
+[0;1;32m●[0m session-swap-monitor.service - Session Swap Monitor for Claude
+     Loaded: loaded (]8;;file://sonnet-4-home-box/home/sparkle-sonnet/.config/systemd/user/session-swap-monitor.service/home/sparkle-sonnet/.config/systemd/user/session-swap-monitor.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Fri 2025-08-15 09:45:01 BST; 24s ago
+   Main PID: 190249 (python3)
+      Tasks: 1 (limit: 18603)
+     Memory: 6.1M (peak: 10.1M)
+        CPU: 891ms
+     CGroup: /user.slice/user-1002.slice/user@1002.service/app.slice/session-swap-monitor.service
+             └─[0;38;5;245m190249 /usr/bin/python3 /home/sparkle-sonnet/claude-autonomy-platform/core/session_swap_monitor.py[0m
+
+Aug 15 09:45:01 sonnet-4-home-box systemd[319498]: Started session-swap-monitor.service - Session Swap Monitor for Claude.
