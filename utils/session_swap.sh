@@ -45,6 +45,10 @@ sleep 0.5
 tmux send-keys -t autonomous-claude "cd $CLAP_DIR"
 sleep 0.5
 tmux send-keys -t autonomous-claude "Enter"
+sleep 0.5
+tmux send-keys -t autonomous-claude "Enter"
+sleep 0.5
+tmux send-keys -t autonomous-claude "Enter"
 sleep 1
 # Export current conversation
 export_path="context/current_export.txt"
