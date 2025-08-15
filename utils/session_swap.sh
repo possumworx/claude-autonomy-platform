@@ -94,4 +94,10 @@ sleep 20
 tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL"
 tmux send-keys -t autonomous-claude "Enter"
 
+# POSS-240 FIX: Clear any API error state after session swap
+if [ -f "$CLAP_DIR/data/api_error_state.json" ]; then
+    rm "$CLAP_DIR/data/api_error_state.json"
+    echo "[SESSION_SWAP] Cleared API error state"
+fi
+
 echo "[SESSION_SWAP] Session swap complete!"
