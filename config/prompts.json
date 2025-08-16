@@ -17,6 +17,9 @@
     },
     "discord_new_message": {
       "template": "{emoji} {prefix} {message_info}\nUse 'read_channel <channel-name>' to view messages\nReply using Discord tools, NOT in this Claude stream!"
+    },
+    "session_complete": {
+      "template": "✅ Session swap completed successfully at {time} with {keyword} context.\nFeel free to continue with your plans."
     }
   },
   "swap_commands": {
