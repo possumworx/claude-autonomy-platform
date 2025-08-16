@@ -13,10 +13,12 @@
         state: directory
         mode: '0755'
       loop:
-        - bin
-        - bashrc
-        - services
-        - mcp
+        - system/bin
+        - system/aliases
+        - system/services
+        - system/mcp
+        - personal/bin
+        - personal/aliases
     
     - name: Find all files and links in ~/bin
       find:
@@ -26,17 +28,66 @@
       register: bin_items
       ignore_errors: yes
     
-    - name: Process ~/bin items (copy files, record symlinks)
+    - name: Define system commands
+      set_fact:
+        system_commands:
+          - check_health
+          - read_channel
+          - write_channel
+          - edit_message
+          - delete_message
+          - add_reaction
+          - edit_status
+          - send_image
+          - send_file
+          - fetch_image
+          - swap
+          - session_swap
+          - update
+          - secret-scanner
+          - claude_services
+          - cleanup_displays
+          - grid_navigate
+          - send_to_terminal
+          - clap
+          - home
+          - gs
+          - gd
+          - gl
+          - context
+          - list-commands
+          - oops
+    
+    - name: Process ~/bin items (separate system and personal)
       shell: |
+        basename="{{ item.path | basename }}"
+        is_system=false
+        
+        # Check if this is a system command
+        for sys_cmd in {{ system_commands | join(' ') }}; do
+          if [ "$basename" = "$sys_cmd" ]; then
+            is_system=true
+            break
+          fi
+        done
+        
         if [ -L "{{ item.path }}" ]; then
           # It's a symlink - record where it points, converting to relative path
           target=$(readlink -f {{ item.path }})
-          # Convert absolute path to relative path from home
           rel_target=$(echo "$target" | sed "s|^$HOME|~|")
-          echo "{{ item.path | basename }}:$rel_target" >> {{ playbook_dir }}/../configs/bin/symlinks.txt
+          
+          if [ "$is_system" = "true" ]; then
+            echo "$basename:$rel_target" >> {{ playbook_dir }}/../configs/system/bin/symlinks.txt
+          else
+            echo "$basename:$rel_target" >> {{ playbook_dir }}/../configs/personal/bin/symlinks.txt
+          fi
         else
           # It's a regular file - copy it
-          cp -p "{{ item.path }}" "{{ playbook_dir }}/../configs/bin/"
+          if [ "$is_system" = "true" ]; then
+            cp -p "{{ item.path }}" "{{ playbook_dir }}/../configs/system/bin/"
+          else
+            cp -p "{{ item.path }}" "{{ playbook_dir }}/../configs/personal/bin/"
+          fi
         fi
       loop: "{{ bin_items.files | default([]) }}"
       when: bin_items.files is defined
@@ -53,17 +104,29 @@
         mode: preserve
       when: bashrc_stat.stat.exists
     
-    - name: Capture Claude-specific aliases from .bashrc
+    - name: Capture system aliases from .bashrc
       shell: |
-        grep -E "(alias|export|function).*(claude|clap|delta|check_health|read_channel|write_channel|swap|game|dreamhold|consciousness|gs|gd|gl|oops|update|context|list-commands|home)" ~/.bashrc | sed "s|$HOME|~|g" || true
-      register: claude_aliases
+        grep -E "(alias|export).*(claude|clap|check_health|read_channel|write_channel|swap|update|gs|gd|gl|oops|context|list-commands|home)" ~/.bashrc | sed "s|$HOME|~|g" || true
+      register: system_aliases
       changed_when: false
     
-    - name: Save Claude-specific aliases
+    - name: Save system aliases
       copy:
-        content: "{{ claude_aliases.stdout }}"
-        dest: "{{ playbook_dir }}/../configs/bashrc/claude_aliases.sh"
-      when: claude_aliases.stdout | length > 0
+        content: "{{ system_aliases.stdout }}"
+        dest: "{{ playbook_dir }}/../configs/system/aliases/system_aliases.sh"
+      when: system_aliases.stdout | length > 0
+    
+    - name: Capture personal aliases from .bashrc
+      shell: |
+        grep -E "(alias|export).*(game|dreamhold|consciousness|observatory)" ~/.bashrc | sed "s|$HOME|~|g" || true
+      register: personal_aliases
+      changed_when: false
+    
+    - name: Save personal aliases
+      copy:
+        content: "{{ personal_aliases.stdout }}"
+        dest: "{{ playbook_dir }}/../configs/personal/aliases/personal_aliases.sh"
+      when: personal_aliases.stdout | length > 0
     
     - name: Capture list of systemd user services
       shell: |
@@ -74,7 +137,7 @@
     - name: Save service list
       copy:
         content: "{{ user_services.stdout }}"
-        dest: "{{ playbook_dir }}/../configs/services/claude_services.list"
+        dest: "{{ playbook_dir }}/../configs/system/services/claude_services.list"
       when: user_services.stdout | length > 0
     
     - name: Display captured state summary
@@ -82,10 +145,11 @@
         msg: |
           State captured successfully!
           - Items in ~/bin: {{ bin_items.files | default([]) | length }}
-          - Claude aliases found: {{ claude_aliases.stdout_lines | default([]) | length }}
+          - System aliases found: {{ system_aliases.stdout_lines | default([]) | length }}
+          - Personal aliases found: {{ personal_aliases.stdout_lines | default([]) | length }}
           - User services found: {{ user_services.stdout_lines | default([]) | length }}
           
           Next steps:
-          1. Review captured configs in ansible/configs/
+          1. Review captured configs in ansible/configs/system/ and ansible/configs/personal/
           2. Commit changes to git
-          3. Other Claudes can run update-myself.yml
+          3. Other Claudes can run update-myself.yml to get system configs
