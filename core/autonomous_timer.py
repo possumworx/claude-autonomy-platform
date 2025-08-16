@@ -599,6 +599,12 @@ def update_last_processed_message_time(timestamp_str):
 
 def send_tmux_message(message):
     """Send a message to the Claude tmux session"""
+    # Check for session swap lockfile
+    lockfile = DATA_DIR / "session_swap.lock"
+    if lockfile.exists():
+        log_message("Session swap in progress - skipping tmux message")
+        return False
+    
     try:
         # Check if the tmux session exists
         result = subprocess.run(['tmux', 'has-session', '-t', CLAUDE_SESSION], 
@@ -953,6 +959,12 @@ def update_last_notification_time():
 
 def send_notification_alert(unread_count, unread_channels, is_new=False):
     """Send a Discord notification alert"""
+    # Check for session swap lockfile
+    lockfile = DATA_DIR / "session_swap.lock"
+    if lockfile.exists():
+        log_message("Session swap in progress - skipping notification")
+        return
+    
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M')
     
     # Check context level first

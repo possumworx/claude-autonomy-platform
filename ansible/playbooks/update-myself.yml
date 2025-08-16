@@ -20,13 +20,13 @@
         state: directory
         mode: '0755'
     
-    - name: Find captured bin scripts
+    - name: Find captured system bin scripts
       find:
-        paths: "{{ playbook_dir }}/../configs/bin"
+        paths: "{{ playbook_dir }}/../configs/system/bin"
         file_type: file
       register: captured_bin_files
     
-    - name: Sync ~/bin scripts
+    - name: Sync system ~/bin scripts
       copy:
         src: "{{ item.path }}"
         dest: "{{ ansible_env.HOME }}/bin/{{ item.path | basename }}"
@@ -36,12 +36,12 @@
         - captured_bin_files.files is defined
         - item.path | basename != 'symlinks.txt'
     
-    - name: Check if symlinks.txt exists
+    - name: Check if system symlinks.txt exists
       stat:
-        path: "{{ playbook_dir }}/../configs/bin/symlinks.txt"
+        path: "{{ playbook_dir }}/../configs/system/bin/symlinks.txt"
       register: symlinks_file
     
-    - name: Recreate symlinks in ~/bin
+    - name: Recreate system symlinks in ~/bin
       shell: |
         while IFS=':' read -r link_name target_path; do
           if [ -n "$link_name" ] && [ -n "$target_path" ]; then
@@ -49,25 +49,25 @@
             expanded_path=$(echo "$target_path" | sed "s|^~|$HOME|")
             ln -sf "$expanded_path" "{{ ansible_env.HOME }}/bin/$link_name"
           fi
-        done < "{{ playbook_dir }}/../configs/bin/symlinks.txt"
+        done < "{{ playbook_dir }}/../configs/system/bin/symlinks.txt"
       when: symlinks_file.stat.exists
     
-    - name: Check if claude_aliases.sh exists
+    - name: Check if system_aliases.sh exists
       stat:
-        path: "{{ playbook_dir }}/../configs/bashrc/claude_aliases.sh"
+        path: "{{ playbook_dir }}/../configs/system/aliases/system_aliases.sh"
       register: aliases_file
     
-    - name: Ensure Claude aliases are in .bashrc
+    - name: Ensure system aliases are in .bashrc
       blockinfile:
         path: "{{ ansible_env.HOME }}/.bashrc"
-        block: "{{ lookup('file', playbook_dir + '/../configs/bashrc/claude_aliases.sh') }}"
-        marker: "# {mark} ANSIBLE MANAGED CLAUDE ALIASES"
+        block: "{{ lookup('file', playbook_dir + '/../configs/system/aliases/system_aliases.sh') }}"
+        marker: "# {mark} ANSIBLE MANAGED SYSTEM ALIASES"
         create: yes
       when: aliases_file.stat.exists
     
     - name: Read list of Claude services
       slurp:
-        src: "{{ playbook_dir }}/../configs/services/claude_services.list"
+        src: "{{ playbook_dir }}/../configs/system/services/claude_services.list"
       register: services_list
       ignore_errors: yes
     
@@ -100,8 +100,9 @@
         msg: |
           Update completed!
           - Git repository: {{ 'Updated' if git_result.changed else 'Already up-to-date' }}
-          - Scripts synced to ~/bin: {{ captured_bin_files.files | length }}
-          - Aliases updated in .bashrc
+          - System scripts synced to ~/bin: {{ captured_bin_files.files | length }}
+          - System aliases updated in .bashrc
           - Services restarted: {{ (services_list.content | b64decode).splitlines() | length if services_list.content is defined else 0 }}
           
-          Your system is now synchronized with the latest infrastructure!
+          Your system infrastructure is now synchronized!
+          Note: Personal aliases and scripts are not synced (use share-personal.yml if needed)
