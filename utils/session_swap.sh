@@ -50,30 +50,19 @@ echo "[SESSION_SWAP] Checking for infrastructure updates..."
 
 echo "[SESSION_SWAP] Exporting current conversation..."
 # First ensure Claude is in the correct directory using shell command
-tmux send-keys -t autonomous-claude '!'
+tmux send-keys -t autonomous-claude '!' && tmux send-keys -t autonomous-claude "Enter"
 sleep 0.5
-tmux send-keys -t autonomous-claude "cd $CLAP_DIR"
-sleep 0.5
-tmux send-keys -t autonomous-claude "Enter"
-sleep 0.5
-tmux send-keys -t autonomous-claude "Enter"
-sleep 0.5
-tmux send-keys -t autonomous-claude "Enter"
+tmux send-keys -t autonomous-claude "cd $CLAP_DIR" && tmux send-keys -t autonomous-claude "Enter"
 sleep 1
 # Export current conversation
 export_path="context/current_export.txt"
-tmux send-keys -t autonomous-claude "/export $export_path" 
-sleep 2
-tmux send-keys -t autonomous-claude "Enter"
+tmux send-keys -t autonomous-claude "/export $export_path" && tmux send-keys -t autonomous-claude "Enter"
 sleep 2
 # Navigate dialog: Send multiple Down arrows to ensure "Save to file" option
 # (Extra downs don't hurt since menu doesn't wrap)
-tmux send-keys -t autonomous-claude "Down"
-sleep 0.5
-tmux send-keys -t autonomous-claude "Down"
-sleep 0.5
-tmux send-keys -t autonomous-claude "Down"
-sleep 0.5
+tmux send-keys -t autonomous-claude "Down" && sleep 0.5 && \
+tmux send-keys -t autonomous-claude "Down" && sleep 0.5 && \
+tmux send-keys -t autonomous-claude "Down" && sleep 0.5 && \
 tmux send-keys -t autonomous-claude "Enter"
 sleep 1
 # Confirm the save
@@ -100,13 +89,10 @@ echo "FALSE" > "$CLAP_DIR/new_session.txt"
 echo "[SESSION_SWAP] Swapping to new session..."
 tmux send-keys -t autonomous-claude "Enter"
 sleep 3
-tmux send-keys -t autonomous-claude "/exit"
-sleep 3
-tmux send-keys -t autonomous-claude "Enter"
+tmux send-keys -t autonomous-claude "/exit" && tmux send-keys -t autonomous-claude "Enter"
 # Wait longer for Claude to fully exit and bash prompt to be ready
 sleep 20
-tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL"
-tmux send-keys -t autonomous-claude "Enter"
+tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" && tmux send-keys -t autonomous-claude "Enter"
 
 # POSS-240 FIX: Clear any API error state after session swap
 if [ -f "$CLAP_DIR/data/api_error_state.json" ]; then
@@ -131,3 +117,26 @@ echo "[SESSION_SWAP] Removing lockfile to resume autonomous timer..."
 rm -f "$LOCKFILE"
 
 echo "[SESSION_SWAP] Session swap complete!"
+
+# Wait for Claude to be ready, then send completion message
+sleep 10
+# Load prompts config
+PROMPTS_CONFIG="$CLAP_DIR/config/prompts.json"
+if [[ -f "$PROMPTS_CONFIG" ]]; then
+    # Get the template
+    TEMPLATE=$(python3 -c "
+import json
+with open('$PROMPTS_CONFIG', 'r') as f:
+    config = json.load(f)
+    print(config['prompts']['session_complete']['template'])
+")
+    # Format the message
+    TIME=$(date '+%Y-%m-%d %H:%M')
+    MESSAGE=$(echo "$TEMPLATE" | sed "s/{time}/$TIME/g" | sed "s/{keyword}/$KEYWORD/g")
+else
+    # Default message if config not found
+    MESSAGE="✅ Session swap completed successfully at $(date '+%Y-%m-%d %H:%M') with $KEYWORD context.\nFeel free to continue with your plans."
+fi
+
+# Send the completion message
+tmux send-keys -t autonomous-claude "$MESSAGE" && tmux send-keys -t autonomous-claude "Enter"
