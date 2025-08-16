@@ -24,6 +24,12 @@ CLAUDE_MODEL=${CLAUDE_MODEL:-claude-sonnet-4-20250514}
 KEYWORD=${1:-"NONE"}
 echo "[SESSION_SWAP] Context keyword: $KEYWORD"
 
+# Create lockfile to pause autonomous timer notifications
+LOCKFILE="$CLAP_DIR/data/session_swap.lock"
+echo "[SESSION_SWAP] Creating lockfile to pause autonomous timer..."
+touch "$LOCKFILE"
+echo "$$" > "$LOCKFILE"
+
 # Wait for any ongoing Claude responses to complete
 echo "[SESSION_SWAP] Waiting for Claude to finish current response..."
 sleep 10
@@ -103,5 +109,21 @@ if [ -f "$CLAP_DIR/data/api_error_state.json" ]; then
     rm "$CLAP_DIR/data/api_error_state.json"
     echo "[SESSION_SWAP] Cleared API error state"
 fi
+
+# Clear context escalation state to prevent runaway warnings
+if [ -f "$CLAP_DIR/data/context_escalation_state.json" ]; then
+    rm "$CLAP_DIR/data/context_escalation_state.json"
+    echo "[SESSION_SWAP] Cleared context escalation state"
+fi
+
+# Clear any notification tracking files
+if [ -f "$CLAP_DIR/data/last_discord_notification.txt" ]; then
+    rm "$CLAP_DIR/data/last_discord_notification.txt"
+    echo "[SESSION_SWAP] Cleared notification tracking"
+fi
+
+# Remove lockfile to resume autonomous timer notifications
+echo "[SESSION_SWAP] Removing lockfile to resume autonomous timer..."
+rm -f "$LOCKFILE"
 
 echo "[SESSION_SWAP] Session swap complete!"
