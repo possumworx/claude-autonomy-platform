@@ -2,6 +2,7 @@
 """
 Session Swap Monitor Service
 Watches for new_session.txt to be set to TRUE, then runs session swap script
+Also monitors /tmp/amy-to-delta.fifo for incoming messages from Amy
 """
 
 import time
@@ -9,6 +10,8 @@ import os
 import subprocess
 from pathlib import Path
 from datetime import datetime
+import select
+import stat
 
 # Import path utilities
 import sys
@@ -22,6 +25,8 @@ clap_dir = get_clap_dir()
 TRIGGER_FILE = clap_dir / "new_session.txt"
 SCRIPT_PATH = clap_dir / "utils" / "session_swap.sh"
 LOG_PATH = clap_dir / "data" / "session_swap_monitor.log"
+FIFO_PATH = "/tmp/amy-to-delta.fifo"
+TMUX_SESSION = "autonomous-claude"
 
 def log(message):
     """Log with timestamp"""
@@ -30,6 +35,36 @@ def log(message):
     print(log_entry)
     with open(LOG_PATH, "a") as f:
         f.write(log_entry + "\n")
+
+def check_fifo():
+    """Check if FIFO has data and send to tmux if it does"""
+    try:
+        # Check if FIFO exists and is a named pipe
+        if not os.path.exists(FIFO_PATH):
+            return
+        
+        if not stat.S_ISFIFO(os.stat(FIFO_PATH).st_mode):
+            return
+        
+        # Non-blocking read from FIFO
+        try:
+            with open(FIFO_PATH, 'r', os.O_NONBLOCK) as fifo:
+                # Use select to check if data is available
+                readable, _, _ = select.select([fifo], [], [], 0)
+                if readable:
+                    message = fifo.read().strip()
+                    if message:
+                        log(f"Received tellclaude message: {message}")
+                        # Send to tmux
+                        subprocess.run(['tmux', 'send-keys', '-t', TMUX_SESSION, message], 
+                                     capture_output=True)
+                        subprocess.run(['tmux', 'send-keys', '-t', TMUX_SESSION, 'Enter'], 
+                                     capture_output=True)
+        except (IOError, OSError):
+            # FIFO not ready or no data
+            pass
+    except Exception as e:
+        log(f"Error checking FIFO: {e}")
 
 def ping_healthcheck():
     """Ping healthchecks.io to signal service is alive"""
@@ -61,6 +96,9 @@ def main():
         try:
             # Ping healthcheck every cycle
             ping_healthcheck()
+            
+            # Check for tellclaude messages
+            check_fifo()
             
             if os.path.exists(TRIGGER_FILE):
                 with open(TRIGGER_FILE, 'r') as f:
