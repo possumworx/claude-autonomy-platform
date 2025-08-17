@@ -53,17 +53,26 @@
         mode: preserve
       when: bashrc_stat.stat.exists
     
-    - name: Capture Claude-specific aliases from .bashrc
-      shell: |
-        grep -E "(alias|export|function).*(claude|clap|delta|check_health|read_channel|write_channel|swap|game|dreamhold|consciousness|gs|gd|gl|oops|update|context|list-commands|home)" ~/.bashrc | sed "s|$HOME|~|g" || true
-      register: claude_aliases
-      changed_when: false
+    - name: Check if .bashrc_system exists
+      stat:
+        path: "{{ ansible_env.HOME }}/.bashrc_system"
+      register: bashrc_system_stat
     
-    - name: Save Claude-specific aliases
+    - name: Copy .bashrc_system if it exists
       copy:
-        content: "{{ claude_aliases.stdout }}"
-        dest: "{{ playbook_dir }}/../configs/bashrc/claude_aliases.sh"
-      when: claude_aliases.stdout | length > 0
+        src: "{{ ansible_env.HOME }}/.bashrc_system"
+        dest: "{{ playbook_dir }}/../configs/bashrc/bashrc_system"
+        mode: preserve
+      when: bashrc_system_stat.stat.exists
+    
+    - name: Save system commands source line for .bashrc
+      copy:
+        content: |
+          # Source system commands
+          if [ -f "$HOME/.bashrc_system" ]; then
+              source "$HOME/.bashrc_system"
+          fi
+        dest: "{{ playbook_dir }}/../configs/bashrc/bashrc_system_source.sh"
     
     - name: Capture list of systemd user services
       shell: |

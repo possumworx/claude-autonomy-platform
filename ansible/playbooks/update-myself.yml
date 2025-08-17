@@ -52,18 +52,28 @@
         done < "{{ playbook_dir }}/../configs/bin/symlinks.txt"
       when: symlinks_file.stat.exists
     
-    - name: Check if claude_aliases.sh exists
+    - name: Check if bashrc_system exists in configs
       stat:
-        path: "{{ playbook_dir }}/../configs/bashrc/claude_aliases.sh"
-      register: aliases_file
+        path: "{{ playbook_dir }}/../configs/bashrc/bashrc_system"
+      register: bashrc_system_file
     
-    - name: Ensure Claude aliases are in .bashrc
+    - name: Deploy .bashrc_system
+      copy:
+        src: "{{ playbook_dir }}/../configs/bashrc/bashrc_system"
+        dest: "{{ ansible_env.HOME }}/.bashrc_system"
+        mode: '0644'
+      when: bashrc_system_file.stat.exists
+    
+    - name: Ensure .bashrc sources system commands
       blockinfile:
         path: "{{ ansible_env.HOME }}/.bashrc"
-        block: "{{ lookup('file', playbook_dir + '/../configs/bashrc/claude_aliases.sh') }}"
-        marker: "# {mark} ANSIBLE MANAGED CLAUDE ALIASES"
+        block: |
+          # Source system commands
+          if [ -f "$HOME/.bashrc_system" ]; then
+              source "$HOME/.bashrc_system"
+          fi
+        marker: "# {mark} ANSIBLE MANAGED SYSTEM COMMANDS"
         create: yes
-      when: aliases_file.stat.exists
     
     - name: Read list of Claude services
       slurp:
