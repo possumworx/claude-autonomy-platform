@@ -92,6 +92,29 @@ sleep 3
 tmux send-keys -t autonomous-claude "/exit" && tmux send-keys -t autonomous-claude "Enter"
 # Wait longer for Claude to fully exit and bash prompt to be ready
 sleep 20
+
+# Kill and recreate tmux session for stability
+echo "[SESSION_SWAP] Recreating tmux session for stability..."
+tmux kill-session -t autonomous-claude 2>/dev/null || true
+sleep 2
+tmux new-session -d -s autonomous-claude
+
+# Implement log rotation
+if [[ -f "$CLAP_DIR/data/current_session.log" ]]; then
+    timestamp=$(date '+%Y%m%d_%H%M%S')
+    mv "$CLAP_DIR/data/current_session.log" "$CLAP_DIR/data/session_ended_${timestamp}.log"
+    echo "[SESSION_SWAP] Rotated current session log to session_ended_${timestamp}.log"
+    
+    # Clean up old session logs (keep only 10 most recent)
+    cd "$CLAP_DIR/data"
+    ls -t session_ended_*.log 2>/dev/null | tail -n +11 | xargs -r rm -f
+    cd "$CLAP_DIR"
+fi
+
+# Start logging new session
+tmux pipe-pane -t autonomous-claude -o "cat >> $CLAP_DIR/data/current_session.log"
+
+# Start Claude in the new session
 tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" && tmux send-keys -t autonomous-claude "Enter"
 
 # POSS-240 FIX: Clear any API error state after session swap
