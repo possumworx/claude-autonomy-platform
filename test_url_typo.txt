@@ -1,5 +1,0 @@
-This is a test file with a typo in the GitHub URL:
-
-The repository is at https://github.com/possumworx/claude-autonomy-platform.git
-
-This should trigger the pre-commit hook.
