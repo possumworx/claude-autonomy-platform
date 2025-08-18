@@ -59,8 +59,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   │   ├── capture-state.yml
 │   │   └── update-myself.yml
 │   ├── templates
-│   ├── README.md
-│   └── check-and-update.sh
+│   ├── check-and-update.sh
+│   └── README.md
 ├── config
 │   ├── autonomous_timer_config.json
 │   ├── claude.env
@@ -79,17 +79,17 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── vscode-mcp-example.json
 │   └── x11_env.sh
 ├── context
-│   ├── CLAUDE.md
 │   ├── clap_architecture.md
+│   ├── CLAUDE.md
 │   ├── current_export.txt
 │   ├── my_architecture.md
 │   ├── new_session.txt
 │   ├── project_session_context_builder.py
 │   └── swap_CLAUDE.md
 ├── core
-│   ├── autonomous_timer.py
 │   ├── autonomous_timer_fixed.py
 │   ├── autonomous_timer_poss242_fix.py
+│   ├── autonomous_timer.py
 │   ├── comms_monitor_simple.py
 │   └── session_swap_monitor.py
 ├── data
@@ -107,8 +107,13 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── pipe_reader.log
 │   ├── session_bridge_export.log
 │   ├── session_bridge_monitor.log
+│   ├── session_ended_20250817_211330.log
+│   ├── session_ended_20250818_031129.log
+│   ├── session_ended_20250818_110927.log
+│   ├── session_ended_20250818_112357.log
 │   ├── session_swap.lock
-│   └── session_swap_monitor.log
+│   ├── session_swap_monitor.log
+│   └── tellclaude.log
 ├── desktop
 │   ├── click.sh
 │   ├── list_desktop_windows.sh
@@ -138,35 +143,37 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── send_file
 │   ├── send_image
 │   └── write_channel
+├── discord_downloads
+│   └── IMG_20240406_151251.jpg
 ├── docs
 │   ├── collaboration
 │   │   └── vscode-mcp-collaboration.md
+│   ├── channel-monitor-healthcheck.md
+│   ├── claude_code_installation_procedure.md
+│   ├── context_monitoring.md
 │   ├── CONTRIBUTING.md
 │   ├── Copying infrastructure onto new machine - amynote.md
+│   ├── delta-test-deployment-handover.md
 │   ├── DEPLOYMENT.md
+│   ├── desktop-coordinates.md
+│   ├── desktop_use_instructions.md
+│   ├── discord-token-configuration.md
+│   ├── github-cli-authentication.md
+│   ├── git-merge-instructions.md
 │   ├── GMAIL_OAUTH_INTEGRATION_SUMMARY.md
+│   ├── linear-vscode-guide.md
+│   ├── line_endings_prevention.md
+│   ├── npm-dependencies-audit.md
 │   ├── PATH_UPDATES_NEEDED.md
+│   ├── personal-repository-setup.md
 │   ├── POST_INSTALL.md
+│   ├── pre-deployment-checklist.md
 │   ├── README.md
 │   ├── RELEASE_NOTES_v053.md
 │   ├── REORGANIZATION_TODO.md
 │   ├── SESSION_AUDIT_README.md
-│   ├── SETUP_SCRIPT_PATH_FIXES.md
-│   ├── channel-monitor-healthcheck.md
-│   ├── claude_code_installation_procedure.md
-│   ├── context_monitoring.md
-│   ├── delta-test-deployment-handover.md
-│   ├── desktop-coordinates.md
-│   ├── desktop_use_instructions.md
-│   ├── discord-token-configuration.md
-│   ├── git-merge-instructions.md
-│   ├── github-cli-authentication.md
-│   ├── line_endings_prevention.md
-│   ├── linear-vscode-guide.md
-│   ├── npm-dependencies-audit.md
-│   ├── personal-repository-setup.md
-│   ├── pre-deployment-checklist.md
 │   ├── session-bridge-export-design.md
+│   ├── SETUP_SCRIPT_PATH_FIXES.md
 │   ├── sonnet-fix-checklist.md
 │   └── tellclaude-implementation.md
 ├── mcp-servers
@@ -176,21 +183,21 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   │   ├── target
 │   │   ├── Dockerfile
 │   │   ├── LICENSE
-│   │   ├── README.md
 │   │   ├── pom.xml
+│   │   ├── README.md
 │   │   └── smithery.yaml
 │   ├── gmail-mcp
 │   │   ├── dist
 │   │   ├── node_modules
 │   │   ├── src
+│   │   ├── docker-compose.yml
 │   │   ├── Dockerfile
 │   │   ├── LICENSE
-│   │   ├── README.md
-│   │   ├── docker-compose.yml
 │   │   ├── llms-install.md
 │   │   ├── mcp-config.json
-│   │   ├── package-lock.json
 │   │   ├── package.json
+│   │   ├── package-lock.json
+│   │   ├── README.md
 │   │   ├── setup.js
 │   │   ├── smithery.yaml
 │   │   └── tsconfig.json
@@ -199,27 +206,28 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   │   ├── node_modules
 │   │   ├── scripts
 │   │   ├── src
-│   │   ├── README.md
 │   │   ├── architecture.md
 │   │   ├── jest.config.js
-│   │   ├── package-lock.json
 │   │   ├── package.json
+│   │   ├── package-lock.json
+│   │   ├── README.md
 │   │   ├── todo.md
 │   │   └── tsconfig.json
 │   ├── rag-memory-mcp
 │   │   ├── dist
 │   │   ├── node_modules
 │   │   ├── src
-│   │   ├── README.md
 │   │   ├── index.ts
-│   │   ├── package-lock.json
 │   │   ├── package.json
+│   │   ├── package-lock.json
+│   │   ├── README.md
 │   │   └── tsconfig.json
 │   └── mcp_servers_config.json
 ├── patches
 │   └── autonomous_timer_fixes.patch
 ├── scripts
-│   └── pipe_reader.sh
+│   ├── tellclaude-service.sh
+│   └── trigger_session_swap.sh
 ├── services
 │   ├── autonomous-timer.service
 │   ├── session-bridge-monitor.service
@@ -231,13 +239,13 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── generate_mcp_config.py
 │   ├── gmail_oauth_integration.py
 │   ├── insert_mcp_config.py
-│   ├── install_git_hooks.sh
-│   ├── install_git_hooks_fixed.sh
-│   ├── install_mcp_servers.sh
 │   ├── installer_safety_patch.sh
-│   ├── setup-linear-integration.sh
+│   ├── install_git_hooks_fixed.sh
+│   ├── install_git_hooks.sh
+│   ├── install_mcp_servers.sh
 │   ├── setup_clap_deployment.sh
 │   ├── setup_claude_configs.sh
+│   ├── setup-linear-integration.sh
 │   ├── setup_read_channel.sh
 │   └── verify_installation.sh
 ├── target
@@ -247,6 +255,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── claude_directory_enforcer.sh
 │   ├── claude_paths.py
 │   ├── claude_services.sh
+│   ├── claude_state_detector.sh
 │   ├── cleanup_line_endings.sh
 │   ├── cleanup_xvfb_displays.sh
 │   ├── comms_check_helper.py
@@ -259,9 +268,9 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── fix_natural_command_symlinks.sh
 │   ├── get_user_id
 │   ├── grid_navigate.py
+│   ├── healthcheck_status_enhanced.py
 │   ├── healthcheck_status.py
 │   ├── healthcheck_status.py.backup
-│   ├── healthcheck_status_enhanced.py
 │   ├── infrastructure_config_reader.py
 │   ├── install_tellclaude.sh
 │   ├── linear
@@ -274,26 +283,24 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── session_audit.py
 │   ├── session_swap.sh
 │   ├── setup_natural_command_symlinks.sh
-│   ├── setup_shared_tmux.sh
-│   ├── setup_tellclaude_sudo.sh
 │   ├── swap
-│   ├── tellclaude-amy.sh
+│   ├── tellclaude-reader.sh
 │   ├── update_conversation_history.py
 │   └── update_system.sh
+├── clap.code-workspace
 ├── CLAUDE.md
 ├── CONFIG_LOCATIONS.txt
 ├── CONTRIBUTING.md
-├── clap.code-workspace
 ├── enhanced_audit.csv
 ├── full_session_audit.csv
 ├── new_session.txt
-├── package-lock.json
 ├── package.json
+├── package-lock.json
 ├── session_audit.csv
 ├── session_audit_v2.csv
 └── test_branch_protection.txt
 
-45 directories, 202 files
+46 directories, 208 files
 ```
 <!-- TREE_END -->
 

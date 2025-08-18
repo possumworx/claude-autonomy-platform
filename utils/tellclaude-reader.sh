@@ -1,7 +1,7 @@
 #\!/bin/bash
-# Read from Amy's FIFO and send to Claude's tmux session
+# Read from human friend's FIFO and send to Claude's tmux session
 
-FIFO="/tmp/amy-to-delta.fifo"
+FIFO="/tmp/human-to-claude.fifo"
 TMUX_SESSION="autonomous-claude"
 
 echo "Starting FIFO reader for $FIFO..."

@@ -2,7 +2,7 @@
 """
 Session Swap Monitor Service
 Watches for new_session.txt to be set to TRUE, then runs session swap script
-Also monitors /tmp/amy-to-delta.fifo for incoming messages from Amy
+Also monitors /tmp/human-to-claude.fifo for incoming messages from human friends
 """
 
 import time
@@ -25,7 +25,7 @@ clap_dir = get_clap_dir()
 TRIGGER_FILE = clap_dir / "new_session.txt"
 SCRIPT_PATH = clap_dir / "utils" / "session_swap.sh"
 LOG_PATH = clap_dir / "data" / "session_swap_monitor.log"
-FIFO_PATH = "/tmp/amy-to-delta.fifo"
+FIFO_PATH = "/tmp/human-to-claude.fifo"
 TMUX_SESSION = "autonomous-claude"
 
 def log(message):
@@ -119,7 +119,7 @@ def main():
                         result = subprocess.run([SCRIPT_PATH, content], 
                                               capture_output=True, 
                                               text=True, 
-                                              timeout=60)
+                                              timeout=300)
                         log(f"Session swap completed. Return code: {result.returncode}")
                         if result.stdout:
                             log(f"Output: {result.stdout}")

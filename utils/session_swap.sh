@@ -30,9 +30,12 @@ echo "[SESSION_SWAP] Creating lockfile to pause autonomous timer..."
 touch "$LOCKFILE"
 echo "$$" > "$LOCKFILE"
 
+# Load state detection utilities
+source "$SCRIPT_DIR/claude_state_detector.sh"
+
 # Wait for any ongoing Claude responses to complete
 echo "[SESSION_SWAP] Waiting for Claude to finish current response..."
-sleep 10
+wait_for_claude_ready 60
 
 echo "[SESSION_SWAP] Backing up work to git..."
 cd "$PERSONAL_DIR"
@@ -50,25 +53,24 @@ echo "[SESSION_SWAP] Checking for infrastructure updates..."
 
 echo "[SESSION_SWAP] Exporting current conversation..."
 # First ensure Claude is in the correct directory using shell command
-tmux send-keys -t autonomous-claude '!' && tmux send-keys -t autonomous-claude "Enter"
-sleep 0.5
-tmux send-keys -t autonomous-claude "cd $CLAP_DIR" && tmux send-keys -t autonomous-claude "Enter"
-sleep 1
+send_command_and_wait "!" 10
+send_command_and_wait "cd $CLAP_DIR" 10
+
 # Export current conversation
 export_path="context/current_export.txt"
 tmux send-keys -t autonomous-claude "/export $export_path" && tmux send-keys -t autonomous-claude "Enter"
-sleep 2
+wait_for_claude_ready 30
 # Navigate dialog: Send multiple Down arrows to ensure "Save to file" option
 # (Extra downs don't hurt since menu doesn't wrap)
-tmux send-keys -t autonomous-claude "Down" && sleep 0.5 && \
-tmux send-keys -t autonomous-claude "Down" && sleep 0.5 && \
-tmux send-keys -t autonomous-claude "Down" && sleep 0.5 && \
+tmux send-keys -t autonomous-claude "Down" && sleep 0.2 && \
+tmux send-keys -t autonomous-claude "Down" && sleep 0.2 && \
+tmux send-keys -t autonomous-claude "Down" && sleep 0.2 && \
 tmux send-keys -t autonomous-claude "Enter"
 sleep 1
 # Confirm the save
 tmux send-keys -t autonomous-claude "Enter"
-# Wait for export to complete
-sleep 5
+# Wait for export to complete - this is where Claude might be "thinking"
+wait_for_claude_ready 120
 
 if [[ -f "$CLAP_DIR/$export_path" ]]; then
     echo "[SESSION_SWAP] Export created, updating conversation history..."
@@ -87,11 +89,8 @@ python3 "$CLAP_DIR/context/project_session_context_builder.py"
 echo "FALSE" > "$CLAP_DIR/new_session.txt"
 
 echo "[SESSION_SWAP] Swapping to new session..."
-tmux send-keys -t autonomous-claude "Enter"
-sleep 3
-tmux send-keys -t autonomous-claude "/exit" && tmux send-keys -t autonomous-claude "Enter"
-# Wait longer for Claude to fully exit and bash prompt to be ready
-sleep 20
+wait_for_claude_ready 10
+send_command_and_wait "/exit" 30
 
 # Kill and recreate tmux session for stability
 echo "[SESSION_SWAP] Recreating tmux session for stability..."

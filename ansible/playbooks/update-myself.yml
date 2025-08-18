@@ -7,9 +7,19 @@
   connection: local
   
   tasks:
+    - name: Ensure required system packages are installed
+      become: yes
+      package:
+        name:
+          - tree
+          - tmux
+          - curl
+          - git
+        state: present
+      
     - name: Update git repository
       git:
-        repo: 'https://github.com/possumwor/claude-autonomy-platform.git'
+        repo: 'https://github.com/possumworx/claude-autonomy-platform.git'
         dest: "{{ ansible_env.HOME }}/claude-autonomy-platform"
         update: yes
       register: git_result
