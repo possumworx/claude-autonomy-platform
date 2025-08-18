@@ -4,7 +4,7 @@
 
 # Source configuration  
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$(dirname "$SCRIPT_DIR")/data/channel_state.json"
+CONFIG_FILE="$HOME/claude-autonomy-platform/data/channel_state.json"
 
 # Check arguments
 if [ $# -lt 2 ]; then
@@ -78,4 +78,4 @@ fi
 
 # Fetch the image using the Python script
 echo "🔍 Fetching images from message $MESSAGE_ID in #$CHANNEL_NAME..."
-python3 "$SCRIPT_DIR/fetch_discord_image.py" "$CHANNEL_ID" "$MESSAGE_ID" "$SAVE_DIR"
+python3 "$HOME/claude-autonomy-platform/discord/fetch_discord_image.py" "$CHANNEL_ID" "$MESSAGE_ID" "$SAVE_DIR"

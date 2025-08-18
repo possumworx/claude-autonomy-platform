@@ -396,6 +396,11 @@ if ! command_exists npm; then
     MISSING_PACKAGES="$MISSING_PACKAGES npm"
 fi
 
+if ! command_exists tree; then
+    echo "   ❌ tree not found"
+    MISSING_PACKAGES="$MISSING_PACKAGES tree"
+fi
+
 # Install missing packages if any
 if [[ -n "$MISSING_PACKAGES" ]]; then
     echo "   🔧 Missing packages detected:$MISSING_PACKAGES"
