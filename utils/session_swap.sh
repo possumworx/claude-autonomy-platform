@@ -9,20 +9,39 @@ source "$UTILS_DIR/../config/claude_env.sh"
 # Restore our script directory after claude_env.sh overwrites it
 SCRIPT_DIR="$UTILS_DIR"
 
-# Function to wait for Claude to be ready
+# Function to wait for Claude to be ready (no thinking indicator)
 wait_for_claude_ready() {
     local max_wait=${1:-30}
     local count=0
-    echo "Waiting for Claude to be ready..."
+    echo "Waiting for Claude to finish thinking..."
+    
+    # Get the Claude pane in the claude session
+    local claude_pane=$(tmux list-panes -t claude -F '#{pane_id}' 2>/dev/null | head -1)
+    
+    if [ -z "$claude_pane" ]; then
+        echo "Warning: Could not find Claude pane"
+        return 1
+    fi
+    
     while [ $count -lt $max_wait ]; do
-        if pgrep -f "claude-cli" > /dev/null 2>&1; then
-            echo "Claude is ready!"
+        # Capture the last few lines of the pane
+        local pane_content=$(tmux capture-pane -t "$claude_pane" -p -S -10)
+        
+        # Check for thinking indicators and the ellipsis pattern
+        # The animated indicators appear at line start: . + * ❄ ✿
+        # More importantly: any word followed by ... indicates thinking
+        if ! echo "$pane_content" | grep -qE '^[.+*❄✿]|\.\.\.'; then
+            echo "Claude is ready (no thinking indicator found)"
+            sleep 1  # Extra safety pause
             return 0
         fi
+        
+        echo "Claude is still thinking..."
         sleep 1
         ((count++))
     done
-    echo "Warning: Claude may not be fully ready"
+    
+    echo "Warning: Claude may still be thinking after ${max_wait}s"
     return 1
 }
 
