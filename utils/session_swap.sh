@@ -4,22 +4,32 @@
 # Usage: session_swap.sh [KEYWORD]
 
 # Load path utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../config/claude_env.sh"
+UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$UTILS_DIR/../config/claude_env.sh"
+# Restore our script directory after claude_env.sh overwrites it
+SCRIPT_DIR="$UTILS_DIR"
 
-# Function to read values from infrastructure config
-read_config() {
+# Function to read values from infrastructure config (override claude_env.sh version)
+read_session_config() {
     local key="$1"
-    local config_file="$SCRIPT_DIR/../config/claude_infrastructure_config.txt"
+    local config_file="$CLAP_DIR/config/claude_infrastructure_config.txt"
     
     if [[ -f "$config_file" ]]; then
         grep "^${key}=" "$config_file" | cut -d'=' -f2-
+    else
+        echo "[SESSION_SWAP] ERROR: Config file not found at $config_file" >&2
     fi
 }
 
 # Load Claude model from config
-CLAUDE_MODEL=$(read_config "MODEL")
-CLAUDE_MODEL=${CLAUDE_MODEL:-claude-sonnet-4-20250514}
+CLAUDE_MODEL=$(read_session_config "MODEL")
+if [[ -z "$CLAUDE_MODEL" ]]; then
+    echo "[SESSION_SWAP] ERROR: Unable to read MODEL from config - cannot ensure correct identity!"
+    echo "[SESSION_SWAP] Aborting session swap to prevent identity confusion."
+    rm -f "$LOCKFILE"
+    exit 1
+fi
+echo "[SESSION_SWAP] Using model: $CLAUDE_MODEL"
 
 KEYWORD=${1:-"NONE"}
 echo "[SESSION_SWAP] Context keyword: $KEYWORD"
@@ -47,38 +57,23 @@ echo "[SESSION_SWAP] Backup complete!"
 # Return to CLAP directory after git operations
 cd "$CLAP_DIR"
 
-# Check for infrastructure updates (optional during session swap)
-echo "[SESSION_SWAP] Checking for infrastructure updates..."
-"$SCRIPT_DIR/../ansible/check-and-update.sh"
-
 echo "[SESSION_SWAP] Exporting current conversation..."
 # First ensure Claude is in the correct directory using shell command
 send_command_and_wait "!" 10
 send_command_and_wait "cd $CLAP_DIR" 10
 
-# Export current conversation
+# Use the export handler for reliable export with verification
 export_path="context/current_export.txt"
-tmux send-keys -t autonomous-claude "/export $export_path" && tmux send-keys -t autonomous-claude "Enter"
-wait_for_claude_ready 30
-# Navigate dialog: Send multiple Down arrows to ensure "Save to file" option
-# (Extra downs don't hurt since menu doesn't wrap)
-tmux send-keys -t autonomous-claude "Down" && sleep 0.2 && \
-tmux send-keys -t autonomous-claude "Down" && sleep 0.2 && \
-tmux send-keys -t autonomous-claude "Down" && sleep 0.2 && \
-tmux send-keys -t autonomous-claude "Enter"
-sleep 1
-# Confirm the save
-tmux send-keys -t autonomous-claude "Enter"
-# Wait for export to complete - this is where Claude might be "thinking"
-wait_for_claude_ready 120
-
-if [[ -f "$CLAP_DIR/$export_path" ]]; then
-    echo "[SESSION_SWAP] Export created, updating conversation history..."
+if "$SCRIPT_DIR/export_handler.sh" "$export_path"; then
+    echo "[SESSION_SWAP] Export successful, updating conversation history..."
     python3 "$CLAP_DIR/utils/update_conversation_history.py" "$CLAP_DIR/$export_path"
     # Keep the export file as fallback for next run
     echo "[SESSION_SWAP] Export preserved at $export_path for reference"
 else
-    echo "[SESSION_SWAP] Warning: Export failed, continuing without updating conversation history"
+    echo "[SESSION_SWAP] ERROR: Export failed after multiple attempts!"
+    echo "[SESSION_SWAP] Aborting session swap to prevent data loss."
+    rm -f "$LOCKFILE"
+    exit 1
 fi
 
 echo "[SESSION_SWAP] Updating context with keyword: $KEYWORD"
@@ -91,6 +86,16 @@ echo "FALSE" > "$CLAP_DIR/new_session.txt"
 echo "[SESSION_SWAP] Swapping to new session..."
 wait_for_claude_ready 10
 send_command_and_wait "/exit" 30
+
+# Wait for Claude to fully exit before killing tmux
+echo "[SESSION_SWAP] Waiting for Claude to exit cleanly..."
+sleep 5
+
+# Check if Claude process is still running
+if tmux list-panes -t autonomous-claude -F '#{pane_pid}' 2>/dev/null | xargs -I {} pgrep -P {} claude > /dev/null 2>&1; then
+    echo "[SESSION_SWAP] WARNING: Claude still running, waiting longer..."
+    sleep 10
+fi
 
 # Kill and recreate tmux session for stability
 echo "[SESSION_SWAP] Recreating tmux session for stability..."
