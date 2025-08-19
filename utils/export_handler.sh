@@ -7,6 +7,42 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../config/claude_env.sh"
 source "$SCRIPT_DIR/claude_state_detector.sh"
 
+# Function to wait for Claude to be ready (no thinking indicator)
+wait_for_claude_ready() {
+    local max_wait=${1:-30}
+    local count=0
+    echo "Waiting for Claude to finish thinking..."
+    
+    # Get the Claude pane in the claude session
+    local claude_pane=$(tmux list-panes -t claude -F '#{pane_id}' 2>/dev/null | head -1)
+    
+    if [ -z "$claude_pane" ]; then
+        echo "Warning: Could not find Claude pane"
+        return 1
+    fi
+    
+    while [ $count -lt $max_wait ]; do
+        # Capture the last few lines of the pane
+        local pane_content=$(tmux capture-pane -t "$claude_pane" -p -S -10)
+        
+        # Check for thinking indicators and the ellipsis pattern
+        # The animated indicators appear at line start: . + * ❄ ✿ ✶
+        # More importantly: any word followed by … (single ellipsis char) indicates thinking
+        if ! echo "$pane_content" | grep -qE '^[.+*❄✿✶]|…'; then
+            echo "Claude is ready (no thinking indicator found)"
+            sleep 1  # Extra safety pause
+            return 0
+        fi
+        
+        echo "Claude is still thinking..."
+        sleep 1
+        ((count++))
+    done
+    
+    echo "Warning: Claude may still be thinking after ${max_wait}s"
+    return 1
+}
+
 EXPORT_PATH="${1:-context/current_export.txt}"
 FULL_PATH="$CLAP_DIR/$EXPORT_PATH"
 MAX_ATTEMPTS=3
