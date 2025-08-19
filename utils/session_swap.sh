@@ -113,6 +113,9 @@ fi
 # Start logging new session
 # Removed pipe-pane due to instability - see docs/pipe-pane-instability-report.md
 
+# Clear any stray keypresses before starting Claude
+tmux send-keys -t autonomous-claude "Enter"
+
 # Start Claude in the new session
 tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" && tmux send-keys -t autonomous-claude "Enter"
 
