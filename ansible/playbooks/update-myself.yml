@@ -85,11 +85,28 @@
         marker: "# {mark} ANSIBLE MANAGED SYSTEM COMMANDS"
         create: yes
     
-    - name: Read list of Claude services
+    - name: Check for local services override
+      stat:
+        path: "{{ playbook_dir }}/../configs/services/claude_services.list"
+      register: local_services_file
+    
+    - name: Read local services list if exists
       slurp:
         src: "{{ playbook_dir }}/../configs/services/claude_services.list"
-      register: services_list
+      register: local_services_list
+      when: local_services_file.stat.exists
       ignore_errors: yes
+    
+    - name: Read default services list
+      slurp:
+        src: "{{ playbook_dir }}/../defaults/services.list"
+      register: default_services_list
+      when: not local_services_file.stat.exists
+      ignore_errors: yes
+    
+    - name: Set services list
+      set_fact:
+        services_list: "{{ local_services_list if local_services_file.stat.exists else default_services_list }}"
     
     - name: Restart Claude services
       systemd:
