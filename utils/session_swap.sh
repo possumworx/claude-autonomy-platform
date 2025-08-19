@@ -111,7 +111,10 @@ if [[ -f "$CLAP_DIR/data/current_session.log" ]]; then
 fi
 
 # Start logging new session
-tmux pipe-pane -t autonomous-claude -o "cat >> $CLAP_DIR/data/current_session.log"
+# Removed pipe-pane due to instability - see docs/pipe-pane-instability-report.md
+
+# Clear any stray keypresses before starting Claude
+tmux send-keys -t autonomous-claude "Enter"
 
 # Start Claude in the new session
 tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" && tmux send-keys -t autonomous-claude "Enter"
