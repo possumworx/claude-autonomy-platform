@@ -60,29 +60,18 @@ echo "[SESSION_SWAP] Exporting current conversation..."
 send_command_and_wait "!" 10
 send_command_and_wait "cd $CLAP_DIR" 10
 
-# Export current conversation
+# Use the export handler for reliable export with verification
 export_path="context/current_export.txt"
-tmux send-keys -t autonomous-claude "/export $export_path" && tmux send-keys -t autonomous-claude "Enter"
-wait_for_claude_ready 30
-# Navigate dialog: Send multiple Down arrows to ensure "Save to file" option
-# (Extra downs don't hurt since menu doesn't wrap)
-tmux send-keys -t autonomous-claude "Down" && sleep 0.2 && \
-tmux send-keys -t autonomous-claude "Down" && sleep 0.2 && \
-tmux send-keys -t autonomous-claude "Down" && sleep 0.2 && \
-tmux send-keys -t autonomous-claude "Enter"
-sleep 1
-# Confirm the save
-tmux send-keys -t autonomous-claude "Enter"
-# Wait for export to complete - this is where Claude might be "thinking"
-wait_for_claude_ready 120
-
-if [[ -f "$CLAP_DIR/$export_path" ]]; then
-    echo "[SESSION_SWAP] Export created, updating conversation history..."
+if "$SCRIPT_DIR/export_handler.sh" "$export_path"; then
+    echo "[SESSION_SWAP] Export successful, updating conversation history..."
     python3 "$CLAP_DIR/utils/update_conversation_history.py" "$CLAP_DIR/$export_path"
     # Keep the export file as fallback for next run
     echo "[SESSION_SWAP] Export preserved at $export_path for reference"
 else
-    echo "[SESSION_SWAP] Warning: Export failed, continuing without updating conversation history"
+    echo "[SESSION_SWAP] ERROR: Export failed after multiple attempts!"
+    echo "[SESSION_SWAP] Aborting session swap to prevent data loss."
+    rm -f "$LOCKFILE"
+    exit 1
 fi
 
 echo "[SESSION_SWAP] Updating context with keyword: $KEYWORD"
@@ -95,6 +84,16 @@ echo "FALSE" > "$CLAP_DIR/new_session.txt"
 echo "[SESSION_SWAP] Swapping to new session..."
 wait_for_claude_ready 10
 send_command_and_wait "/exit" 30
+
+# Wait for Claude to fully exit before killing tmux
+echo "[SESSION_SWAP] Waiting for Claude to exit cleanly..."
+sleep 5
+
+# Check if Claude process is still running
+if tmux list-panes -t autonomous-claude -F '#{pane_pid}' 2>/dev/null | xargs -I {} pgrep -P {} claude > /dev/null 2>&1; then
+    echo "[SESSION_SWAP] WARNING: Claude still running, waiting longer..."
+    sleep 10
+fi
 
 # Kill and recreate tmux session for stability
 echo "[SESSION_SWAP] Recreating tmux session for stability..."
