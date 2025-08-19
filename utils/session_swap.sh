@@ -4,8 +4,10 @@
 # Usage: session_swap.sh [KEYWORD]
 
 # Load path utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../config/claude_env.sh"
+UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$UTILS_DIR/../config/claude_env.sh"
+# Restore our script directory after claude_env.sh overwrites it
+SCRIPT_DIR="$UTILS_DIR"
 
 # Function to read values from infrastructure config (override claude_env.sh version)
 read_session_config() {
