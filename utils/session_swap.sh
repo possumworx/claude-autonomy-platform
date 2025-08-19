@@ -9,6 +9,23 @@ source "$UTILS_DIR/../config/claude_env.sh"
 # Restore our script directory after claude_env.sh overwrites it
 SCRIPT_DIR="$UTILS_DIR"
 
+# Function to wait for Claude to be ready
+wait_for_claude_ready() {
+    local max_wait=${1:-30}
+    local count=0
+    echo "Waiting for Claude to be ready..."
+    while [ $count -lt $max_wait ]; do
+        if pgrep -f "claude-cli" > /dev/null 2>&1; then
+            echo "Claude is ready!"
+            return 0
+        fi
+        sleep 1
+        ((count++))
+    done
+    echo "Warning: Claude may not be fully ready"
+    return 1
+}
+
 # Function to read values from infrastructure config (override claude_env.sh version)
 read_session_config() {
     local key="$1"
