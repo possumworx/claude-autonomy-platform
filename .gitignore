@@ -33,6 +33,10 @@ venv/
 # Temporary files
 *.tmp
 *.temp
+*.bak
+*.orig
+*.swp
+*~
 
 # Logs and runtime data
 logs/*.log
@@ -78,6 +82,10 @@ CLAUDE.md
 context/temp-export.txt
 context/session_*.txt
 exportcontext/
+
+# Session audit files
+*_audit.csv
+session_audit*.csv
 
 # Archive directories (temporary/old files)
 setup/archive/

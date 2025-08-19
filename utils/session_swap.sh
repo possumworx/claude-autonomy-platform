@@ -7,19 +7,27 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../config/claude_env.sh"
 
-# Function to read values from infrastructure config
-read_config() {
+# Function to read values from infrastructure config (override claude_env.sh version)
+read_session_config() {
     local key="$1"
-    local config_file="$SCRIPT_DIR/../config/claude_infrastructure_config.txt"
+    local config_file="$CLAP_DIR/config/claude_infrastructure_config.txt"
     
     if [[ -f "$config_file" ]]; then
         grep "^${key}=" "$config_file" | cut -d'=' -f2-
+    else
+        echo "[SESSION_SWAP] ERROR: Config file not found at $config_file" >&2
     fi
 }
 
 # Load Claude model from config
-CLAUDE_MODEL=$(read_config "MODEL")
-CLAUDE_MODEL=${CLAUDE_MODEL:-claude-sonnet-4-20250514}
+CLAUDE_MODEL=$(read_session_config "MODEL")
+if [[ -z "$CLAUDE_MODEL" ]]; then
+    echo "[SESSION_SWAP] ERROR: Unable to read MODEL from config - cannot ensure correct identity!"
+    echo "[SESSION_SWAP] Aborting session swap to prevent identity confusion."
+    rm -f "$LOCKFILE"
+    exit 1
+fi
+echo "[SESSION_SWAP] Using model: $CLAUDE_MODEL"
 
 KEYWORD=${1:-"NONE"}
 echo "[SESSION_SWAP] Context keyword: $KEYWORD"
@@ -46,10 +54,6 @@ echo "[SESSION_SWAP] Backup complete!"
 
 # Return to CLAP directory after git operations
 cd "$CLAP_DIR"
-
-# Check for infrastructure updates (optional during session swap)
-echo "[SESSION_SWAP] Checking for infrastructure updates..."
-"$SCRIPT_DIR/../ansible/check-and-update.sh"
 
 echo "[SESSION_SWAP] Exporting current conversation..."
 # First ensure Claude is in the correct directory using shell command
