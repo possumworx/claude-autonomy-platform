@@ -35,7 +35,7 @@ alias home='cd ~/delta-home'  # Navigate to personal home directory
 alias list-commands='grep "^alias" ~/claude-autonomy-platform/config/natural_commands.sh | sed "s/alias //g" | column -t -s "="'  # List all natural commands
 
 # Session Management Helpers
-alias context='grep -o "Context: [0-9.]*%" ~/claude-autonomy-platform/logs/autonomous_timer.log | tail -1'  # Show current context usage
+alias context='~/claude-autonomy-platform/utils/context'  # Show current context usage
 
 # Git Helpers
 alias gs='git status'  # Quick git status

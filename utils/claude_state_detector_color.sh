@@ -11,26 +11,27 @@ is_claude_thinking() {
     local pane_content
     pane_content=$(tmux capture-pane -t "$TMUX_SESSION" -p -e 2>/dev/null)
     
-    # Get the last several lines where the status appears
-    # The status line can be a few lines up from the bottom
-    local last_lines
-    last_lines=$(echo "$pane_content" | tail -n 15)
+    # The actual Claude thinking animation uses specific ANSI color codes
+    # Look for the orange-red color that Claude uses for the thinking animation
+    # This is specifically \033[38;5;174m (or ^[[38;5;174m in raw form)
+    # Combined with the ellipsis character (…) or thinking symbols
     
-    # Check for the specific orange-red color (38;5;174) WITH the ellipsis character
-    # This combination is unique to Claude's thinking animation
-    # The ellipsis might appear as UTF-8 (…) or be garbled in terminal capture
-    if echo "$last_lines" | grep -E '\[38;5;174m.*(…|\.\.\.)' || echo "$last_lines" | grep -P '\[38;5;174m.*(\302\205|\342\200\246)'; then
+    # Check for the specific orange-red color (38;5;174) used by Claude's thinking animation
+    # This is the most reliable indicator since user output won't have this exact color
+    # We check only the last few lines to avoid false positives from old output
+    
+    local last_lines
+    last_lines=$(echo "$pane_content" | tail -n 5)
+    
+    # Check for orange-red colored ellipsis in recent output
+    if echo "$last_lines" | grep -q '\[38;5;174m.*…'; then
         return 0  # True - Claude is thinking
     fi
     
-    # Also check if the color appears with common "thinking" action words
-    if echo "$last_lines" | grep -E '\[38;5;174m.*(Thinking|Processing|Reticulating|Analyzing|Reviewing|Searching|Reading|Writing|Editing|Running|Executing|Checking)'; then
-        return 0  # True - Claude is thinking  
-    fi
-    
-    # Also check for other thinking animation symbols with the same color
+    # Check for orange-red colored thinking animation symbols in recent output
     # These appear during thinking: . + * ❄ ✿ ✶
     if echo "$last_lines" | grep -E '\[38;5;174m[[:space:]]*[.+*❄✿✶]' | grep -v 'tokens'; then
+        # Exclude lines with "tokens" to avoid matching the status line
         return 0  # True - Claude is thinking
     fi
     
@@ -39,9 +40,15 @@ is_claude_thinking() {
         return 0  # True - Claude is thinking
     fi
     
-    # NO FALLBACK - we only detect thinking if we see BOTH color AND symbol
-    # This prevents false positives from user input containing ellipsis
+    # Fallback: If we can't detect colors properly, still check for plain ellipsis
+    # but only at the very end of output (to reduce false positives)
+    if echo "$pane_content" | tail -n 3 | grep -q "…$"; then
+        # Log this as a warning since we're using fallback detection
+        echo "[DETECTOR] Warning: Using fallback detection (no color info)" >&2
+        return 0  # True - Claude might be thinking
+    fi
     
+    # If no thinking indicators found, Claude is ready
     return 1  # False - Claude appears ready
 }
 
@@ -59,7 +66,7 @@ wait_for_claude_ready() {
             return 0
         fi
         
-        echo "[DETECTOR] Claude still thinking (red ellipsis detected)... (${elapsed}s/${max_wait}s)" >&2
+        echo "[DETECTOR] Claude still thinking (colored animation detected)... (${elapsed}s/${max_wait}s)" >&2
         sleep $check_interval
         elapsed=$((elapsed + check_interval))
     done
@@ -74,33 +81,10 @@ debug_tmux_content() {
     tmux capture-pane -t "$TMUX_SESSION" -p -e | cat -v | tail -n 10 >&2
     echo "[DETECTOR DEBUG] Checking for thinking indicators..." >&2
     if is_claude_thinking; then
-        echo "[DETECTOR DEBUG] Claude is THINKING (red ellipsis found)" >&2
+        echo "[DETECTOR DEBUG] Claude is THINKING" >&2
     else
-        echo "[DETECTOR DEBUG] Claude is READY (no red ellipsis)" >&2
+        echo "[DETECTOR DEBUG] Claude is READY" >&2
     fi
-}
-
-# Check if tmux session exists and is responsive
-is_tmux_responsive() {
-    tmux list-sessions 2>/dev/null | grep -q "$TMUX_SESSION"
-    return $?
-}
-
-# Send command and wait for it to execute
-send_command_and_wait() {
-    local command="$1"
-    local max_wait=${2:-30}
-    
-    if ! is_tmux_responsive; then
-        echo "[DETECTOR] Error: Tmux session not responsive"
-        return 1
-    fi
-    
-    echo "[DETECTOR] Sending command: $command"
-    tmux send-keys -t "$TMUX_SESSION" "$command" "Enter"
-    
-    # Wait for command to be processed
-    wait_for_claude_ready $max_wait
 }
 
 # Export functions for use by other scripts

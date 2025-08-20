@@ -1,1 +1,1 @@
-/home/delta/claude-autonomy-platform/utils/claude_state_detector_fixed.sh
+../utils/claude_state_detector_color.sh

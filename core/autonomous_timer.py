@@ -1154,18 +1154,64 @@ def main():
                 time.sleep(30)
                 continue
             
-            # Check for context warnings
+            # Get context info for status updates and warnings
             token_info = get_token_percentage()
+            
+            # Check context status every cycle and send warnings if needed
+            # This happens regardless of login status, just like Discord notifications
             if token_info and "Context:" in token_info:
                 try:
                     percentage_str = token_info.split("Context:")[1].split("%")[0].strip()
                     percentage = float(percentage_str)
                     
-                    # Update Discord status based on context level
-                    if percentage >= 85:
-                        update_discord_status("high-context")
-                    elif percentage < 70 and not current_error_state:
-                        update_discord_status("operational")
+                    # Check if we should send a context warning
+                    context_state = load_context_state()
+                    should_warn = False
+                    
+                    if percentage >= 80:
+                        # Check if this is a NEW high context or significant increase
+                        if not context_state["first_warning_sent"]:
+                            # First time hitting 80%
+                            should_warn = True
+                        elif percentage >= context_state["last_warning_percentage"] + 5:
+                            # Context increased by 5% or more - significant jump
+                            should_warn = True
+                        elif context_state["last_warning_time"]:
+                            # Time-based warnings with urgency scaling
+                            last_time = datetime.fromisoformat(context_state["last_warning_time"])
+                            
+                            if percentage >= 95:
+                                # Critical: every 30 seconds
+                                min_interval = timedelta(seconds=30)
+                            elif percentage >= 90:
+                                # High: every minute
+                                min_interval = timedelta(minutes=1)
+                            else:
+                                # Moderate (80-90%): every 2 minutes
+                                min_interval = timedelta(minutes=2)
+                            
+                            if current_time - last_time >= min_interval:
+                                should_warn = True
+                    
+                    if should_warn:
+                        # Send context warning like a Discord notification
+                        warning_msg = f"⚠️ Context: {percentage:.1f}%"
+                        if percentage >= 95:
+                            warning_msg = f"🔴 CRITICAL - Context: {percentage:.1f}% - SWAP NOW!"
+                        elif percentage >= 90:
+                            warning_msg = f"🟠 WARNING - Context: {percentage:.1f}% - Plan swap soon"
+                        elif percentage >= 80:
+                            warning_msg = f"🟡 CAUTION - Context: {percentage:.1f}% - Monitor closely"
+                        
+                        # Use the same notification style as Discord
+                        send_tmux_message(warning_msg)
+                        log_message(f"Sent context notification: {percentage:.1f}%")
+                        
+                        # Update state
+                        context_state["first_warning_sent"] = True
+                        context_state["last_warning_percentage"] = percentage
+                        context_state["last_warning_time"] = current_time.isoformat()
+                        save_context_state(context_state)
                 except:
                     pass
             

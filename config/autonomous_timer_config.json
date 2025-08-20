@@ -1,5 +1,5 @@
 {
   "discord_check_interval": 30,
-  "autonomy_prompt_interval": 1800,
+  "autonomy_prompt_interval": 3600,
   "claude_session": "autonomous-claude"
 }
