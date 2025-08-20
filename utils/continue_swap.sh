@@ -13,18 +13,28 @@ KEYWORD="${1:-NONE}"
 echo "📋 Continuing swap with keyword: $KEYWORD"
 
 # Check if export exists
-if [[ ! -f "$SESSION_DIR/current_export.txt" ]]; then
-    echo "❌ No export found at $SESSION_DIR/current_export.txt"
+EXPORT_PATH="$CLAP_DIR/context/current_export.txt"
+if [[ ! -f "$EXPORT_PATH" ]]; then
+    echo "❌ No export found at $EXPORT_PATH"
     echo "Please perform manual export first!"
     exit 1
 fi
 
-echo "✅ Found export at $SESSION_DIR/current_export.txt"
+echo "✅ Found export at $EXPORT_PATH"
+
+# Process the export into swap_CLAUDE.md
+echo "📝 Processing conversation history..."
+python3 "$CLAP_DIR/utils/update_conversation_history.py" "$EXPORT_PATH"
+
+if [[ $? -ne 0 ]]; then
+    echo "❌ Conversation history update failed!"
+    exit 1
+fi
 
 # Run context builder with keyword
 echo "🔨 Building new context with keyword: $KEYWORD"
 cd "$CLAP_DIR"
-python3 session_context_builder.py "$KEYWORD"
+python3 context/project_session_context_builder.py "$KEYWORD"
 
 if [[ $? -ne 0 ]]; then
     echo "❌ Context builder failed!"
