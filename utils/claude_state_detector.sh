@@ -97,7 +97,7 @@ send_command_and_wait() {
     fi
     
     echo "[DETECTOR] Sending command: $command"
-    tmux send-keys -t "$TMUX_SESSION" "$command" "Enter"
+    tmux send-keys -t "$TMUX_SESSION" "$command" && tmux send-keys -t "$TMUX_SESSION" "Enter"
     
     # Wait for command to be processed
     wait_for_claude_ready $max_wait

@@ -49,6 +49,24 @@ wait_for_claude_ready() {
     return 1
 }
 
+# Send command and wait for it to execute
+send_command_and_wait() {
+    local command="$1"
+    local max_wait=${2:-30}
+    
+    if ! tmux list-sessions 2>/dev/null | grep -q "$TMUX_SESSION"; then
+        echo "[DETECTOR] Error: Tmux session not responsive" >&2
+        return 1
+    fi
+    
+    echo "[DETECTOR] Sending command: $command" >&2
+    tmux send-keys -t "$TMUX_SESSION" "$command" && tmux send-keys -t "$TMUX_SESSION" "Enter"
+    
+    # Wait for command to be processed
+    wait_for_claude_ready $max_wait
+}
+
 # Export functions for use by other scripts
 export -f is_claude_thinking
 export -f wait_for_claude_ready
+export -f send_command_and_wait
