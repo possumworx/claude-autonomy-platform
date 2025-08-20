@@ -7,6 +7,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../config/claude_env.sh"
 source "$SCRIPT_DIR/claude_state_detector.sh"
 
+# Read session name from config
+CLAUDE_SESSION=$(jq -r '.claude_session // "autonomous-claude"' "$SCRIPT_DIR/../config/autonomous_timer_config.json")
+
 # Function to wait for Claude to be ready (no thinking indicator)
 wait_for_claude_ready() {
     local max_wait=${1:-30}
@@ -14,7 +17,7 @@ wait_for_claude_ready() {
     echo "Waiting for Claude to finish thinking..."
     
     # Get the Claude pane in the claude session
-    local claude_pane=$(tmux list-panes -t claude -F '#{pane_id}' 2>/dev/null | head -1)
+    local claude_pane=$(tmux list-panes -t "$CLAUDE_SESSION" -F '#{pane_id}' 2>/dev/null | head -1)
     
     if [ -z "$claude_pane" ]; then
         echo "Warning: Could not find Claude pane"
@@ -67,27 +70,27 @@ while [[ $ATTEMPT -le $MAX_ATTEMPTS ]]; do
     
     # Send export command
     echo "[EXPORT_HANDLER] Sending /export command..."
-    tmux send-keys -t autonomous-claude "/export $EXPORT_PATH" Enter
+    tmux send-keys -t "$CLAUDE_SESSION" "/export $EXPORT_PATH" Enter
     
     # Wait for dialog to appear
     sleep 2
     
     # Navigate to "Save to file" option
     echo "[EXPORT_HANDLER] Navigating to 'Save to file' option..."
-    tmux send-keys -t autonomous-claude Down
+    tmux send-keys -t "$CLAUDE_SESSION" Down
     sleep 0.2
-    tmux send-keys -t autonomous-claude Down
+    tmux send-keys -t "$CLAUDE_SESSION" Down
     sleep 0.2
-    tmux send-keys -t autonomous-claude Down
+    tmux send-keys -t "$CLAUDE_SESSION" Down
     sleep 0.2
-    tmux send-keys -t autonomous-claude Enter
+    tmux send-keys -t "$CLAUDE_SESSION" Enter
     
     # Wait a moment for file dialog
     sleep 1
     
     # Confirm the save
     echo "[EXPORT_HANDLER] Confirming save..."
-    tmux send-keys -t autonomous-claude Enter
+    tmux send-keys -t "$CLAUDE_SESSION" Enter
     
     # Wait for export to complete (Claude might be "thinking")
     echo "[EXPORT_HANDLER] Waiting for export to complete..."
