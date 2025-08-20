@@ -45,6 +45,23 @@ echo "$$" > "$LOCKFILE"
 # Load state detection utilities (using fixed version with ellipsis detection)
 source "$CLAP_DIR/utils/claude_state_detector_fixed.sh"
 
+# Define send_command_and_wait here since export -f doesn't work through subprocess
+send_command_and_wait() {
+    local command="$1"
+    local max_wait=${2:-30}
+    
+    if ! tmux list-sessions 2>/dev/null | grep -q "$TMUX_SESSION"; then
+        echo "[DETECTOR] Error: Tmux session not responsive" >&2
+        return 1
+    fi
+    
+    echo "[DETECTOR] Sending command: $command" >&2
+    tmux send-keys -t "$TMUX_SESSION" "$command" && tmux send-keys -t "$TMUX_SESSION" "Enter"
+    
+    # Wait for command to be processed
+    wait_for_claude_ready $max_wait
+}
+
 # Wait for any ongoing Claude responses to complete
 echo "[SESSION_SWAP] Waiting for Claude to finish current response..." >&2
 wait_for_claude_ready 60
