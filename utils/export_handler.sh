@@ -34,16 +34,28 @@ wait_for_claude_ready() {
         # Use extended regex with + properly escaped
         local filtered_content=$(echo "$pane_content" | grep -vE "… \+[0-9]+ lines|…\)$")
         
-        # Check for thinking indicators and the ellipsis pattern
+        # Check for thinking indicators
         # The animated indicators appear at line start: . + * ❄ ✿ ✶
-        # More importantly: any word followed by … (single ellipsis char) indicates thinking
-        if ! echo "$pane_content" | grep -qE '^[.+*❄✿✶]'; then
-            if ! echo "$filtered_content" | grep -q '…'; then
-                echo "Claude is ready (no thinking indicator found)"
-                sleep 1  # Extra safety pause
-                return 0
-            fi
+        if echo "$pane_content" | grep -qE '^[.+*❄✿✶]'; then
+            echo "Claude is still thinking..."
+            sleep 1
+            ((count++))
+            continue
         fi
+        
+        # Check for active thinking pattern: "Word… (time/tokens)"
+        # This is the specific pattern for Running…, Thinking…, Forging…, etc.
+        if echo "$pane_content" | grep -qE '[A-Za-z]+… \('; then
+            echo "Claude is still thinking..."
+            sleep 1
+            ((count++))
+            continue
+        fi
+        
+        # If no thinking indicators found, Claude is ready
+        echo "Claude is ready (no thinking indicator found)"
+        sleep 1  # Extra safety pause
+        return 0
         
         echo "Claude is still thinking..."
         sleep 1
