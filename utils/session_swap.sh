@@ -64,7 +64,7 @@ send_command_and_wait() {
 
 # Wait for any ongoing Claude responses to complete
 echo "[SESSION_SWAP] Waiting for Claude to finish current response..." >&2
-wait_for_claude_ready 60
+"$CLAP_DIR/utils/wait_for_claude.sh" 60 "initial check"
 
 echo "[SESSION_SWAP] Backing up work to git..."
 cd "$PERSONAL_DIR"
@@ -77,6 +77,9 @@ echo "[SESSION_SWAP] Backup complete!"
 cd "$CLAP_DIR"
 
 echo "[SESSION_SWAP] Exporting current conversation..."
+# Wait for Claude to be ready before sending commands
+"$CLAP_DIR/utils/wait_for_claude.sh" 30 "shell command"
+
 # First ensure Claude is in the correct directory using shell command
 send_command_and_wait "!" 10
 send_command_and_wait "cd $CLAP_DIR" 10
@@ -103,7 +106,9 @@ python3 "$CLAP_DIR/context/project_session_context_builder.py"
 echo "FALSE" > "$CLAP_DIR/new_session.txt"
 
 echo "[SESSION_SWAP] Swapping to new session..."
-wait_for_claude_ready 10
+# Wait for Claude to be ready before sending exit command
+"$CLAP_DIR/utils/wait_for_claude.sh" 30 "/exit command"
+
 send_command_and_wait "/exit" 30
 
 # Wait for Claude to fully exit before killing tmux
