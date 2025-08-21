@@ -42,24 +42,19 @@ echo "[SESSION_SWAP] Creating lockfile to pause autonomous timer..."
 touch "$LOCKFILE"
 echo "$$" > "$LOCKFILE"
 
-# Load state detection utilities (using fixed version with ellipsis detection)
-source "$CLAP_DIR/utils/claude_state_detector_fixed.sh"
+# Load state detection utilities
+source "$CLAP_DIR/utils/claude_state_detector.sh"
 
-# Define send_command_and_wait here since export -f doesn't work through subprocess
+# Load the trysend function for smart command sending
+source "$CLAP_DIR/utils/claude_safe_send.sh"
+
+# Wrapper for backwards compatibility
 send_command_and_wait() {
     local command="$1"
-    local max_wait=${2:-30}
+    local max_wait=${2:-180}  # Default 3 minutes
     
-    if ! tmux list-sessions 2>/dev/null | grep -q "$TMUX_SESSION"; then
-        echo "[DETECTOR] Error: Tmux session not responsive" >&2
-        return 1
-    fi
-    
-    echo "[DETECTOR] Sending command: $command" >&2
-    tmux send-keys -t "$TMUX_SESSION" "$command" && tmux send-keys -t "$TMUX_SESSION" "Enter"
-    
-    # Wait for command to be processed
-    wait_for_claude_ready $max_wait
+    echo "[SESSION_SWAP] Sending: $command" >&2
+    trysend "$command" "$max_wait" "session swap"
 }
 
 # Wait for any ongoing Claude responses to complete

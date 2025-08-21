@@ -3,7 +3,7 @@
 # Uses color-based detection to ensure Claude is not thinking
 
 TMUX_SESSION="${CLAUDE_SESSION:-autonomous-claude}"
-MAX_WAIT="${1:-30}"  # Default 30 seconds
+MAX_WAIT="${1:-300}"  # Default 300 seconds (5 minutes)
 OPERATION="${2:-operation}"  # What we're waiting for
 
 echo "[WAIT] Waiting for Claude to be ready for: $OPERATION (max ${MAX_WAIT}s)"
