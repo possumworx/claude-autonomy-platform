@@ -28,13 +28,19 @@ wait_for_claude_ready() {
         # Capture the last few lines of the pane
         local pane_content=$(tmux capture-pane -t "$claude_pane" -p -S -10)
         
+        # Filter out known false positives first
+        # Collapsed content indicators: "… +N lines (ctrl+r to expand)"
+        local filtered_content=$(echo "$pane_content" | grep -v "… +[0-9]* lines")
+        
         # Check for thinking indicators and the ellipsis pattern
         # The animated indicators appear at line start: . + * ❄ ✿ ✶
         # More importantly: any word followed by … (single ellipsis char) indicates thinking
-        if ! echo "$pane_content" | grep -qE '^[.+*❄✿✶]|…'; then
-            echo "Claude is ready (no thinking indicator found)"
-            sleep 1  # Extra safety pause
-            return 0
+        if ! echo "$pane_content" | grep -qE '^[.+*❄✿✶]'; then
+            if ! echo "$filtered_content" | grep -q '…'; then
+                echo "Claude is ready (no thinking indicator found)"
+                sleep 1  # Extra safety pause
+                return 0
+            fi
         fi
         
         echo "Claude is still thinking..."
