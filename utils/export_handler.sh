@@ -43,9 +43,10 @@ wait_for_claude_ready() {
             continue
         fi
         
-        # Check for active thinking pattern: "Word… (time/tokens)"
+        # Check for active thinking pattern: "ing… (time/tokens)"
         # This is the specific pattern for Running…, Thinking…, Forging…, etc.
-        if echo "$pane_content" | grep -qE '[A-Za-z]+… \('; then
+        # All thinking indicators end with "ing"
+        if echo "$pane_content" | grep -qE 'ing… \('; then
             echo "Claude is still thinking..."
             sleep 1
             ((count++))
