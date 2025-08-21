@@ -9,7 +9,7 @@
 # shared across all users #
 
 # Core System Management
-alias swap='~/claude-autonomy-platform/utils/session_swap.sh'  # Trigger session swap with keyword
+alias swap='~/bin/swap'  # Trigger session swap with keyword
 alias check_health='~/claude-autonomy-platform/utils/check_health'  # Check system health status
 
 # Discord Communication
