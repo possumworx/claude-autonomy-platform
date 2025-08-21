@@ -77,10 +77,18 @@ while [[ $ATTEMPT -le $MAX_ATTEMPTS ]]; do
     
     # Navigate to "Save to file" option
     echo "[EXPORT_HANDLER] Navigating to 'Save to file' option..."
+    # Send 4 Down arrows to ensure we get past any clipboard error and reach Save to file
+    # The export dialog typically has: Copy to clipboard, Save to file, Cancel
+    # If clipboard fails, we need extra Down to get past the error message
     tmux send-keys -t "$CLAUDE_SESSION" Down
     sleep 0.2
     tmux send-keys -t "$CLAUDE_SESSION" Down
     sleep 0.2
+    tmux send-keys -t "$CLAUDE_SESSION" Down
+    sleep 0.2
+    tmux send-keys -t "$CLAUDE_SESSION" Down
+    sleep 0.2
+    # One more for good measure if there's an error message
     tmux send-keys -t "$CLAUDE_SESSION" Down
     sleep 0.2
     tmux send-keys -t "$CLAUDE_SESSION" Enter
