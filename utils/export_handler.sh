@@ -68,6 +68,10 @@ fi
 while [[ $ATTEMPT -le $MAX_ATTEMPTS ]]; do
     echo "[EXPORT_HANDLER] Attempt $ATTEMPT of $MAX_ATTEMPTS"
     
+    # Wait for Claude to be ready before starting
+    echo "[EXPORT_HANDLER] Waiting for Claude to be ready before export..."
+    wait_for_claude_ready 60
+    
     # Get initial file timestamp (or 0 if doesn't exist)
     INITIAL_TIMESTAMP=0
     if [[ -f "$FULL_PATH" ]]; then
