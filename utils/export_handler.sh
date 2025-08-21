@@ -83,7 +83,7 @@ while [[ $ATTEMPT -le $MAX_ATTEMPTS ]]; do
     
     # Wait for Claude to be ready before starting
     echo "[EXPORT_HANDLER] Waiting for Claude to be ready before export..."
-    if wait_for_claude_ready 600; then  # 10 minutes for critical export operation
+    if wait_for_claude_ready 0; then  # Indefinite wait for critical export operation
         echo "[EXPORT_HANDLER] Claude is ready, proceeding with export"
     else
         echo "[EXPORT_HANDLER] Timeout waiting for Claude to be ready, proceeding anyway"
