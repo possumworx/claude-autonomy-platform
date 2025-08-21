@@ -30,7 +30,8 @@ wait_for_claude_ready() {
         
         # Filter out known false positives first
         # Collapsed content indicators: "… +N lines (ctrl+r to expand)"
-        local filtered_content=$(echo "$pane_content" | grep -v "… +[0-9]* lines")
+        # Use extended regex with + properly escaped
+        local filtered_content=$(echo "$pane_content" | grep -vE "… \+[0-9]+ lines")
         
         # Check for thinking indicators and the ellipsis pattern
         # The animated indicators appear at line start: . + * ❄ ✿ ✶
