@@ -25,42 +25,40 @@ wait_for_claude_ready() {
     fi
     
     while [ $count -lt $max_wait ]; do
-        # Capture the last few lines of the pane
-        local pane_content=$(tmux capture-pane -t "$claude_pane" -p -S -10)
+        # Capture the last few lines of the pane WITH ANSI escape codes
+        # The -e flag preserves color information
+        local pane_content=$(tmux capture-pane -t "$claude_pane" -p -e -S -10)
         
-        # Filter out known false positives first
-        # 1. Collapsed content indicators: "… +N lines (ctrl+r to expand)"
-        # 2. Truncated lines ending with …)
-        # Use extended regex with + properly escaped
-        local filtered_content=$(echo "$pane_content" | grep -vE "… \+[0-9]+ lines|…\)$")
-        
-        # Check for thinking indicators
-        # The animated indicators appear at line start: . + * ❄ ✿ ✶
-        if echo "$pane_content" | grep -qE '^[.+*❄✿✶]'; then
+        # Check for the specific orange-red color (38;5;174) used by Claude's thinking animation
+        # This is the most reliable indicator since user output won't have this exact color
+        if echo "$pane_content" | grep -q '\[38;5;174m.*…'; then
             echo "Claude is still thinking..."
             sleep 1
             ((count++))
             continue
         fi
         
-        # Check for active thinking pattern: "ing… (time/tokens)"
-        # All thinking indicators end with "ing": Running…, Thinking…, Forging…, etc.
-        # This specific pattern avoids false positives
-        if echo "$pane_content" | grep -qE 'ing… \('; then
+        # Check for orange-red colored thinking animation symbols
+        # These appear during thinking: . + * ❄ ✿ ✶
+        if echo "$pane_content" | grep -E '\[38;5;174m[[:space:]]*[.+*❄✿✶]' | grep -v 'tokens'; then
             echo "Claude is still thinking..."
             sleep 1
             ((count++))
             continue
         fi
         
-        # If no thinking indicators found, Claude is ready
+        # Check for the specific "ing…" pattern with orange-red color
+        if echo "$pane_content" | grep -q '\[38;5;174m.*ing…'; then
+            echo "Claude is still thinking..."
+            sleep 1
+            ((count++))
+            continue
+        fi
+        
+        # If no colored thinking indicators found, Claude is ready
         echo "Claude is ready (no thinking indicator found)"
         sleep 1  # Extra safety pause
         return 0
-        
-        echo "Claude is still thinking..."
-        sleep 1
-        ((count++))
     done
     
     echo "Warning: Claude may still be thinking after ${max_wait}s"
