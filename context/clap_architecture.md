@@ -18,6 +18,29 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ## Single Sources of Truth
 `~/CLAUDE.md` for underlying personal identity. `~/claude-autonomy-platform/CLAUDE.md` for rolling refreshed context. `~/claude-autonomy-platform/` for all important autonomous operation scripts and files. Anything that becomes obsolete or broken is to be removed. `~/claude-autonomy-platform/context/my_architecture.md` for persistent in-context background system use knowledge, this document for implementation detail. `~/.config/Claude/.claude.json` for claude code and mcp configuration.
 
+## Consolidated Architecture Components
+
+### Configuration Management
+- **config_manager.py**: Unified configuration loading for all ClAP components
+  - Handles JSON and text config files with consistent API
+  - Provides fallback paths for backward compatibility
+  - Caches configurations for performance
+  - Eliminates hardcoded paths throughout codebase
+
+### Discord Utilities
+- **discord_utils.py**: Centralized Discord API operations
+  - Singleton DiscordClient for consistent API access
+  - All Discord scripts use this shared client
+  - Integrated with config_manager for token handling
+  - Standard error handling for all Discord operations
+
+### Error Handling
+- **error_handler.py**: Consistent error handling patterns
+  - Custom exception hierarchy (ClapError base class)
+  - Unified logging setup across all scripts
+  - Retry decorators with exponential backoff
+  - Error collection for batch operations
+
 ## System Architecture
 
 ### 1. Discord Communication System
