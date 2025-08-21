@@ -49,6 +49,13 @@ tmux kill-session -t autonomous-claude 2>/dev/null || true
 sleep 2
 tmux new-session -d -s autonomous-claude
 
+# Verify session was created
+if ! tmux has-session -t autonomous-claude 2>/dev/null; then
+    echo "❌ Failed to create tmux session!"
+    exit 1
+fi
+echo "✅ Tmux session created successfully"
+
 # Load Claude model from infrastructure config
 CLAUDE_MODEL=$(grep "^MODEL=" "$CLAP_DIR/config/claude_infrastructure_config.txt" | cut -d'=' -f2-)
 CLAUDE_NAME=$(grep "^CLAUDENAME=" "$CLAP_DIR/config/claude_infrastructure_config.txt" | cut -d'=' -f2-)
@@ -62,13 +69,11 @@ echo "🚀 Starting Claude in fresh tmux session..."
 echo "📊 Model: $CLAUDE_MODEL"
 
 # Clear any stray keypresses before starting Claude
-tmux send-keys -t autonomous-claude "Enter"
+tmux send-keys -t autonomous-claude Enter
 
 # Send the full Claude command
 tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir /home/$CLAUDE_NAME --model $CLAUDE_MODEL"
-
-# Send Enter separately to execute
-tmux send-keys -t autonomous-claude "Enter"
+tmux send-keys -t autonomous-claude Enter
 
 echo "✅ Claude started in tmux session"
 
