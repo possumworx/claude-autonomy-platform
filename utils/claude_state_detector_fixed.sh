@@ -10,9 +10,15 @@ is_claude_thinking() {
     local pane_content
     pane_content=$(tmux capture-pane -t "$TMUX_SESSION" -p 2>/dev/null)
     
+    # First, filter out known false positives:
+    # - Collapsed content indicators: "… +N lines (ctrl+r to expand)"
+    # - These appear when Claude collapses long outputs
+    local filtered_content
+    filtered_content=$(echo "$pane_content" | grep -v "… +[0-9]* lines")
+    
     # Check for the ellipsis character (…) which indicates active thinking
     # This is Unicode U+2026, not three dots
-    if echo "$pane_content" | grep -q "…"; then
+    if echo "$filtered_content" | grep -q "…"; then
         return 0  # True - Claude is thinking
     fi
     
