@@ -70,7 +70,8 @@ while [[ $ATTEMPT -le $MAX_ATTEMPTS ]]; do
     
     # Send export command
     echo "[EXPORT_HANDLER] Sending /export command..."
-    tmux send-keys -t "$CLAUDE_SESSION" "/export $EXPORT_PATH" Enter
+    tmux send-keys -t "$CLAUDE_SESSION" "/export $EXPORT_PATH"
+    tmux send-keys -t "$CLAUDE_SESSION" Enter
     
     # Wait for dialog to appear
     sleep 2
@@ -82,6 +83,8 @@ while [[ $ATTEMPT -le $MAX_ATTEMPTS ]]; do
     # 2. Save to file
     # 3. Cancel
     tmux send-keys -t "$CLAUDE_SESSION" 2
+    sleep 0.5
+    tmux send-keys -t "$CLAUDE_SESSION" Enter
     
     # Wait a moment for file dialog
     sleep 1
