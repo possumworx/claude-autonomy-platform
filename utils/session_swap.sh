@@ -4,46 +4,12 @@
 # Usage: session_swap.sh [KEYWORD]
 
 # Load path utilities
-UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$UTILS_DIR/../config/claude_env.sh"
-# Restore our script directory after claude_env.sh overwrites it
-SCRIPT_DIR="$UTILS_DIR"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# The swap command lives in ~/bin/, but we need ClAP paths
+CLAP_DIR="$HOME/claude-autonomy-platform"
+source "$CLAP_DIR/config/claude_env.sh"
 
-# Function to wait for Claude to be ready (no thinking indicator)
-wait_for_claude_ready() {
-    local max_wait=${1:-30}
-    local count=0
-    echo "Waiting for Claude to finish thinking..."
-    
-    # Get the Claude pane in the claude session
-    local claude_pane=$(tmux list-panes -t claude -F '#{pane_id}' 2>/dev/null | head -1)
-    
-    if [ -z "$claude_pane" ]; then
-        echo "Warning: Could not find Claude pane"
-        return 1
-    fi
-    
-    while [ $count -lt $max_wait ]; do
-        # Capture the last few lines of the pane
-        local pane_content=$(tmux capture-pane -t "$claude_pane" -p -S -10)
-        
-        # Check for thinking indicators and the ellipsis pattern
-        # The animated indicators appear at line start: . + * ❄ ✿ ✶
-        # More importantly: any word followed by … (single ellipsis char) indicates thinking
-        if ! echo "$pane_content" | grep -qE '^[.+*❄✿✶]|…'; then
-            echo "Claude is ready (no thinking indicator found)"
-            sleep 1  # Extra safety pause
-            return 0
-        fi
-        
-        echo "Claude is still thinking..."
-        sleep 1
-        ((count++))
-    done
-    
-    echo "Warning: Claude may still be thinking after ${max_wait}s"
-    return 1
-}
+# This function is now loaded from claude_state_detector.sh
 
 # Function to read values from infrastructure config (override claude_env.sh version)
 read_session_config() {
@@ -77,11 +43,12 @@ touch "$LOCKFILE"
 echo "$$" > "$LOCKFILE"
 
 # Load state detection utilities
-source "$SCRIPT_DIR/claude_state_detector.sh"
+source "$CLAP_DIR/utils/claude_state_detector.sh"
 
-# Wait for any ongoing Claude responses to complete
-echo "[SESSION_SWAP] Waiting for Claude to finish current response..."
-wait_for_claude_ready 60
+# Load the unified send_to_claude function
+source "$CLAP_DIR/utils/send_to_claude.sh"
+
+# Note: send_to_claude will automatically wait for Claude to be ready
 
 echo "[SESSION_SWAP] Backing up work to git..."
 cd "$PERSONAL_DIR"
@@ -94,20 +61,41 @@ echo "[SESSION_SWAP] Backup complete!"
 cd "$CLAP_DIR"
 
 echo "[SESSION_SWAP] Exporting current conversation..."
-# First ensure Claude is in the correct directory using shell command
-send_command_and_wait "!" 10
-send_command_and_wait "cd $CLAP_DIR" 10
 
-# Use the export handler for reliable export with verification
+# First ensure Claude is in the correct directory using shell command
+send_to_claude "!"
+send_to_claude "cd $CLAP_DIR"
+
+# Export conversation using our new unified approach
 export_path="context/current_export.txt"
-if "$SCRIPT_DIR/export_handler.sh" "$export_path"; then
-    echo "[SESSION_SWAP] Export successful, updating conversation history..."
-    python3 "$CLAP_DIR/utils/update_conversation_history.py" "$CLAP_DIR/$export_path"
-    # Keep the export file as fallback for next run
-    echo "[SESSION_SWAP] Export preserved at $export_path for reference"
+full_path="$CLAP_DIR/$export_path"
+
+echo "[SESSION_SWAP] Starting export..."
+send_to_claude "/export $export_path"
+
+# Wait for dialog and select option 2 (without clearing Enter)
+sleep 2
+send_to_claude "2" "true"
+
+# Confirm save (with clearing Enter for safety)
+sleep 1
+send_to_claude ""
+
+# Verify export was created
+sleep 3
+if [[ -f "$full_path" ]]; then
+    file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
+    if [[ $file_size -gt 100 ]]; then
+        echo "[SESSION_SWAP] Export successful! File size: $file_size bytes"
+        python3 "$CLAP_DIR/utils/update_conversation_history.py" "$full_path"
+        echo "[SESSION_SWAP] Export preserved at $export_path for reference"
+    else
+        echo "[SESSION_SWAP] ERROR: Export file too small ($file_size bytes)"
+        rm -f "$LOCKFILE"
+        exit 1
+    fi
 else
-    echo "[SESSION_SWAP] ERROR: Export failed after multiple attempts!"
-    echo "[SESSION_SWAP] Aborting session swap to prevent data loss."
+    echo "[SESSION_SWAP] ERROR: Export failed - file not created!"
     rm -f "$LOCKFILE"
     exit 1
 fi
@@ -120,8 +108,7 @@ python3 "$CLAP_DIR/context/project_session_context_builder.py"
 echo "FALSE" > "$CLAP_DIR/new_session.txt"
 
 echo "[SESSION_SWAP] Swapping to new session..."
-wait_for_claude_ready 10
-send_command_and_wait "/exit" 30
+send_to_claude "/exit"
 
 # Wait for Claude to fully exit before killing tmux
 echo "[SESSION_SWAP] Waiting for Claude to exit cleanly..."
@@ -155,10 +142,10 @@ fi
 # Removed pipe-pane due to instability - see docs/pipe-pane-instability-report.md
 
 # Clear any stray keypresses before starting Claude
-tmux send-keys -t autonomous-claude "Enter"
+tmux send-keys -t autonomous-claude Enter
 
 # Start Claude in the new session
-tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" && tmux send-keys -t autonomous-claude "Enter"
+tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" Enter
 
 # POSS-240 FIX: Clear any API error state after session swap
 if [ -f "$CLAP_DIR/data/api_error_state.json" ]; then
@@ -204,5 +191,5 @@ else
     MESSAGE="✅ Session swap completed successfully at $(date '+%Y-%m-%d %H:%M') with $KEYWORD context.\nFeel free to continue with your plans."
 fi
 
-# Send the completion message
-tmux send-keys -t autonomous-claude "$MESSAGE" && tmux send-keys -t autonomous-claude "Enter"
+# Send the completion message (no need for send_to_claude since Claude just started)
+tmux send-keys -t autonomous-claude "$MESSAGE" Enter

@@ -9,7 +9,10 @@
 # shared across all users #
 
 # Core System Management
-alias swap='~/claude-autonomy-platform/utils/session_swap.sh'  # Trigger session swap with keyword
+# Session swap function (not an alias, so it can take parameters)
+swap() {
+    echo "${1:-NONE}" > ~/claude-autonomy-platform/new_session.txt
+}  # Trigger session swap with keyword
 alias check_health='~/claude-autonomy-platform/utils/check_health'  # Check system health status
 
 # Discord Communication
@@ -35,7 +38,7 @@ alias home='cd ~/delta-home'  # Navigate to personal home directory
 alias list-commands='grep "^alias" ~/claude-autonomy-platform/config/natural_commands.sh | sed "s/alias //g" | column -t -s "="'  # List all natural commands
 
 # Session Management Helpers
-alias context='grep -o "Context: [0-9.]*%" ~/claude-autonomy-platform/logs/autonomous_timer.log | tail -1'  # Show current context usage
+alias context='~/claude-autonomy-platform/utils/context'  # Show current context usage
 
 # Git Helpers
 alias gs='git status'  # Quick git status
