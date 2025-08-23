@@ -21,7 +21,7 @@ clap_dir = get_clap_dir()
 
 TRIGGER_FILE = clap_dir / "new_session.txt"
 SCRIPT_PATH = clap_dir / "utils" / "session_swap.sh"
-LOG_PATH = clap_dir / "data" / "session_swap_monitor.log"
+LOG_PATH = clap_dir / "logs" / "session_swap_monitor.log"
 TMUX_SESSION = "autonomous-claude"
 
 def log(message):
@@ -65,11 +65,12 @@ def main():
                     # Valid keywords: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE, or TRUE
                     keyword = content if content in ["AUTONOMY", "BUSINESS", "CREATIVE", "HEDGEHOGS", "NONE"] else "NONE"
                     
-                    # Reset trigger file immediately
-                    TRIGGER_FILE.write_text("FALSE")
-                    
                     # Run session swap
                     run_session_swap(keyword)
+                    
+                    # Reset trigger file only after successful completion
+                    TRIGGER_FILE.write_text("FALSE")
+                    log("Reset trigger file to FALSE after swap completion")
             
             # Sleep for a short interval
             time.sleep(2)

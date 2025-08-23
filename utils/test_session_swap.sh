@@ -91,7 +91,8 @@ python3 "$CLAP_DIR/context/project_session_context_builder.py"
 echo "FALSE" > "$CLAP_DIR/new_session.txt"
 
 echo "[SESSION_SWAP] Swapping to new session..."
-send_to_claude "/exit"
+echo "[TEST MODE] Skipping: send_to_claude '/exit'"
+# send_to_claude "/exit"
 
 # Wait for Claude to fully exit before killing tmux
 echo "[SESSION_SWAP] Waiting for Claude to exit cleanly..."
@@ -105,9 +106,11 @@ fi
 
 # Kill and recreate tmux session for stability
 echo "[SESSION_SWAP] Recreating tmux session for stability..."
-tmux kill-session -t autonomous-claude 2>/dev/null || true
-sleep 2
-tmux new-session -d -s autonomous-claude
+echo "[TEST MODE] Skipping: tmux kill-session -t autonomous-claude"
+echo "[TEST MODE] Skipping: tmux new-session -d -s autonomous-claude"
+# tmux kill-session -t autonomous-claude 2>/dev/null || true
+# sleep 2
+# tmux new-session -d -s autonomous-claude
 
 # Implement log rotation
 if [[ -f "$CLAP_DIR/data/current_session.log" ]]; then
@@ -128,7 +131,8 @@ fi
 tmux send-keys -t autonomous-claude Enter
 
 # Start Claude in the new session
-tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" Enter
+echo "[TEST MODE] Skipping: Start new Claude session"
+# tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" Enter
 
 # POSS-240 FIX: Clear any API error state after session swap
 if [ -f "$CLAP_DIR/data/api_error_state.json" ]; then
@@ -175,4 +179,8 @@ else
 fi
 
 # Send the completion message (no need for send_to_claude since Claude just started)
-tmux send-keys -t autonomous-claude "$MESSAGE" Enter
+echo "[TEST MODE] Skipping: Send completion message to new session"
+# tmux send-keys -t autonomous-claude "$MESSAGE" Enter
+
+echo ""
+echo "[TEST MODE] Test session swap complete - current session preserved!"
