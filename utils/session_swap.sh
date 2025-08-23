@@ -33,14 +33,8 @@ source "$CLAP_DIR/utils/send_to_claude.sh"
 
 # Note: send_to_claude will automatically wait for Claude to be ready
 
-echo "[SESSION_SWAP] Backing up work to git..."
-cd "$PERSONAL_DIR"
-git add -A
-git commit -m "Autonomous session backup - $(date '+%Y-%m-%d %H:%M:%S')"
-git push origin main
-echo "[SESSION_SWAP] Backup complete!"
-
-# Return to CLAP directory after git operations
+# Git backup removed - handled by separate service for reliability
+# Return to CLAP directory for session operations
 cd "$CLAP_DIR"
 
 echo "[SESSION_SWAP] Exporting current conversation..."
@@ -49,6 +43,9 @@ echo "[SESSION_SWAP] Exporting current conversation..."
 send_to_claude "!"
 send_to_claude "cd $CLAP_DIR"
 
+# Wait for shell command to complete
+sleep 2
+
 # Export conversation using our new unified approach
 export_path="context/current_export.txt"
 full_path="$CLAP_DIR/$export_path"
@@ -56,24 +53,32 @@ full_path="$CLAP_DIR/$export_path"
 echo "[SESSION_SWAP] Starting export..."
 send_to_claude "/export $export_path"
 
-# Wait for dialog and select option 2 (without clearing Enter)
-sleep 2
-send_to_claude "2" "true"
+# Wait for dialog and select option 2 (no enters before or after)
+sleep 3
+send_to_claude "2" "true" "true"
 
-# Confirm save (with clearing Enter for safety)
-sleep 1
+# Wait longer for export to process before confirmation
+sleep 3
 send_to_claude ""
 
+# Give more time for file to be written after confirmation
+sleep 5
+
 # Verify export was created
-sleep 3
 if [[ -f "$full_path" ]]; then
-    file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
-    if [[ $file_size -gt 100 ]]; then
-        echo "[SESSION_SWAP] Export successful! File size: $file_size bytes"
+    # Check if file was modified in the last 10 seconds
+    current_time=$(date +%s)
+    file_mtime=$(stat -c %Y "$full_path" 2>/dev/null || echo 0)
+    time_diff=$((current_time - file_mtime))
+    
+    if [[ $time_diff -le 30 ]]; then
+        file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
+        echo "[SESSION_SWAP] Export successful! File size: $file_size bytes (modified ${time_diff}s ago)"
         python3 "$CLAP_DIR/utils/update_conversation_history.py" "$full_path"
         echo "[SESSION_SWAP] Export preserved at $export_path for reference"
     else
-        echo "[SESSION_SWAP] ERROR: Export file too small ($file_size bytes)"
+        echo "[SESSION_SWAP] ERROR: Export file exists but wasn't recently modified (${time_diff}s ago)"
+        echo "[SESSION_SWAP] This suggests the export didn't actually update the file (expecting <30s)"
         rm -f "$LOCKFILE"
         exit 1
     fi
@@ -84,11 +89,9 @@ else
 fi
 
 echo "[SESSION_SWAP] Updating context with keyword: $KEYWORD"
-# Temporarily write keyword for context builder
-echo "$KEYWORD" > "$CLAP_DIR/new_session.txt"
+# Keyword is already in new_session.txt from trigger - context builder will use it
 python3 "$CLAP_DIR/context/project_session_context_builder.py"
-# Reset to FALSE after context building
-echo "FALSE" > "$CLAP_DIR/new_session.txt"
+# Note: Monitor will reset to FALSE after completion
 
 echo "[SESSION_SWAP] Swapping to new session..."
 send_to_claude "/exit"
@@ -97,10 +100,18 @@ send_to_claude "/exit"
 echo "[SESSION_SWAP] Waiting for Claude to exit cleanly..."
 sleep 5
 
-# Check if Claude process is still running
+# Check if Claude process is still running and retry /exit if needed
 if tmux list-panes -t autonomous-claude -F '#{pane_pid}' 2>/dev/null | xargs -I {} pgrep -P {} claude > /dev/null 2>&1; then
-    echo "[SESSION_SWAP] WARNING: Claude still running, waiting longer..."
+    echo "[SESSION_SWAP] WARNING: Claude still running, retrying /exit..."
+    send_to_claude "/exit"
     sleep 10
+    
+    # Final check - Claude might have been busy with something
+    if tmux list-panes -t autonomous-claude -F '#{pane_pid}' 2>/dev/null | xargs -I {} pgrep -P {} claude > /dev/null 2>&1; then
+        echo "[SESSION_SWAP] WARNING: Claude still running after retry - will force kill"
+    else
+        echo "[SESSION_SWAP] Claude exited cleanly after retry"
+    fi
 fi
 
 # Kill and recreate tmux session for stability
@@ -124,13 +135,7 @@ fi
 # Start logging new session
 # Removed pipe-pane due to instability - see docs/pipe-pane-instability-report.md
 
-# Clear any stray keypresses before starting Claude
-tmux send-keys -t autonomous-claude Enter
-
-# Start Claude in the new session
-tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" Enter
-
-# POSS-240 FIX: Clear any API error state after session swap
+# POSS-240 FIX: Clear any API error state BEFORE session swap
 if [ -f "$CLAP_DIR/data/api_error_state.json" ]; then
     rm "$CLAP_DIR/data/api_error_state.json"
     echo "[SESSION_SWAP] Cleared API error state"
@@ -147,6 +152,16 @@ if [ -f "$CLAP_DIR/data/last_discord_notification.txt" ]; then
     rm "$CLAP_DIR/data/last_discord_notification.txt"
     echo "[SESSION_SWAP] Cleared notification tracking"
 fi
+
+# Wait for state files to be fully cleared
+echo "[SESSION_SWAP] Waiting for state files to clear..."
+sleep 2
+
+# Clear any stray keypresses before starting Claude
+tmux send-keys -t autonomous-claude Enter
+
+# Start Claude in the new session
+tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" Enter
 
 # Remove lockfile to resume autonomous timer notifications
 echo "[SESSION_SWAP] Removing lockfile to resume autonomous timer..."
@@ -176,3 +191,7 @@ fi
 
 # Send the completion message (no need for send_to_claude since Claude just started)
 tmux send-keys -t autonomous-claude "$MESSAGE" Enter
+
+# Send Enter to submit the message
+sleep 1
+tmux send-keys -t autonomous-claude Enter

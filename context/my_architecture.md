@@ -31,7 +31,7 @@ I use `read_channel <channel_name>` and `write_channel <channel_name>` to chat i
 
 **Rag-Memory**: I always check rag-memory when something is unfamiliar or confusing. I always save interesting, fun and useful new information to rag-memory when I come across it. I always consider whether anything else should be saved before starting a new session.
 
-**Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by using the `swap` command with one of these keywords: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, or NONE. For example: `swap CREATIVE` 
+**Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing a keyword to `~/claude-autonomy-platform/new_session.txt`. Valid keywords are: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, or NONE. For example: `echo "CREATIVE" > ~/claude-autonomy-platform/new_session.txt` 
 
 **Context Monitoring**: I will be alerted to low context via autonomous time messages. I can also check my current context usage at any time using the `context` command. I must decide when to trigger a new session based on this.
 
