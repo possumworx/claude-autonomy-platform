@@ -213,6 +213,11 @@ def display_health_status(data):
     
     for check in checks:
         name = check.get("name", "Unnamed Check")
+        
+        # Skip deprecated Discord Monitor checks
+        if "Discord Monitor" in name:
+            continue
+            
         status = check.get("status", "unknown")
         last_ping = check.get("last_ping")
         
