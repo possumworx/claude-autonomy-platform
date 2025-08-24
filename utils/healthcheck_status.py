@@ -32,6 +32,55 @@ DEPRECATED_CONFIGS = {
     "~/claude-autonomy-platform/claude_infrastructure_config.txt": "Old infrastructure config - should be in config/ subdirectory"
 }
 
+def check_git_status():
+    """Check if local git repo is up to date with origin"""
+    print("\n🔄 Git Repository Status:")
+    issues = []
+    
+    try:
+        # Get current directory
+        clap_dir = os.path.expanduser("~/claude-autonomy-platform")
+        
+        # Check if we're ahead or behind origin
+        result = subprocess.run(
+            ['git', 'status', '--porcelain', '-b'],
+            cwd=clap_dir,
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        
+        if result.returncode == 0:
+            branch_line = result.stdout.split('\n')[0]
+            
+            # Parse branch status
+            if '...' in branch_line:
+                if '[ahead' in branch_line:
+                    commits = branch_line.split('[ahead ')[1].split(']')[0]
+                    print(f"  ⚠️  Local branch is {commits} commits ahead of origin")
+                    issues.append(f"Local branch ahead by {commits} commits - push needed")
+                elif '[behind' in branch_line:
+                    commits = branch_line.split('[behind ')[1].split(']')[0]
+                    print(f"  ⚠️  Local branch is {commits} commits behind origin")
+                    issues.append(f"Local branch behind by {commits} commits - pull needed")
+                else:
+                    print(f"  ✅ Repository is up to date with origin")
+            else:
+                print(f"  ✅ Repository is up to date")
+                
+            # Check for uncommitted changes
+            changes = [line for line in result.stdout.split('\n')[1:] if line.strip()]
+            if changes:
+                print(f"  ⚠️  {len(changes)} uncommitted changes detected")
+                issues.append(f"{len(changes)} uncommitted changes")
+        else:
+            print(f"  ❌ Unable to check git status: {result.stderr}")
+            
+    except Exception as e:
+        print(f"  ❌ Error checking git status: {e}")
+        
+    return issues
+
 def check_config_files():
     """Check configuration file status and warn about deprecated locations"""
     print("\n📁 Configuration Files:")
@@ -133,6 +182,10 @@ def display_health_status(data):
     
     all_issues = []
     
+    # Check git repository status
+    git_issues = check_git_status()
+    all_issues.extend(git_issues)
+    
     # Check configuration files first
     config_issues = check_config_files()
     all_issues.extend(config_issues)
@@ -185,10 +238,15 @@ def display_health_status(data):
     print(f"Remote: {up_count} UP, {down_count} DOWN, {other_count} OTHER")
     print(f"Tmux: {len(REQUIRED_TMUX_SESSIONS) - tmux_issues} UP, {tmux_issues} DOWN")
     print(f"Config: {len(config_issues)} issues")
+    print(f"Git: {len(git_issues)} issues")
     
-    total_issues = down_count + tmux_issues + len(config_issues)
+    total_issues = down_count + tmux_issues + len(config_issues) + len(git_issues)
     if total_issues > 0:
         print(f"\n⚠️  ATTENTION: {total_issues} issues detected:")
+        if git_issues:
+            print("\n🔄 Git Repository Issues:")
+            for issue in git_issues:
+                print(f"   - {issue}")
         if config_issues:
             print("\n📁 Config Issues:")
             for issue in config_issues:
