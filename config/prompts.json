@@ -1,7 +1,7 @@
 {
   "prompts": {
     "context_first_warning": {
-      "template": "📊 Context at {percentage:.0f}%{discord_notification}\n\nFirst context reading received. Time to start wrapping up:\n1. Finish your current task\n2. Save any meaningful discoveries to rag-memory\n3. Commit any code changes\n4. Choose your next session theme:\n   session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou likely have 5-10 responses remaining."
+      "template": "⚠️ Context Warning: {percentage:.0f}%{discord_notification}\n\nTime to start wrapping up:\n1. Finish your current task\n2. Save any meaningful discoveries to rag-memory\n3. Commit any code changes\n4. Choose your next session theme:\n   session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou have approximately 5-10 responses remaining."
     },
     "context_escalated": {
       "template": "⚠️ {percentage:.0f}% CONTEXT - Escalating urgency{discord_notification}\n\nContext has increased since last warning. Choose and run:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nYou have ~2-3 responses left."
