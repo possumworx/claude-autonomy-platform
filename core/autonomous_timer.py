@@ -361,6 +361,13 @@ def detect_api_errors(tmux_output):
         
         # General API errors in pink text
         if re.search(r"404.*error|api.*error|rate.*limit", error_text, re.IGNORECASE):
+            # Check specifically for 500 errors
+            if re.search(r"500.*error|internal.*server.*error", error_text, re.IGNORECASE):
+                return {
+                    "error_type": "api_500_error",
+                    "details": "API 500 error - requires session swap",
+                    "reset_time": None
+                }
             return {
                 "error_type": "api_error",
                 "details": "API error detected in console",
@@ -436,7 +443,7 @@ def should_pause_notifications(error_state):
         return False
     
     error_type = error_state.get("error_type")
-    if error_type in ["malformed_json", "usage_limit", "api_error"]:
+    if error_type in ["malformed_json", "usage_limit", "api_error", "api_500_error"]:
         return True
     
     return False
@@ -811,8 +818,8 @@ def send_autonomy_prompt():
             template = prompts.get("context_critical", {}).get("template", "")
             prompt_type = "context_critical"
         
-        # First warning - any context percentage detected for the first time
-        elif not context_state["first_warning_sent"]:
+        # First warning - only when context reaches 70% or higher for the first time
+        elif not context_state["first_warning_sent"] and percentage >= 70:
             template = prompts.get("context_first_warning", {}).get("template", "")
             prompt_type = "context_first_warning"
             # Update state
@@ -1120,6 +1127,18 @@ def main():
                     log_message("Triggering auto-swap for malformed JSON in 5 seconds...")
                     time.sleep(5)
                     trigger_session_swap("NONE")
+                elif error_info["error_type"] == "api_500_error":
+                    update_discord_status("api-error")
+                    # Give API time to recover before auto-swap
+                    log_message("API 500 error detected - waiting 30 seconds before auto-swap...")
+                    time.sleep(30)
+                    # Check if error persists
+                    _, current_error = get_token_percentage_and_errors()
+                    if current_error and current_error.get("error_type") == "api_500_error":
+                        log_message("API 500 error persists - triggering auto-swap...")
+                        trigger_session_swap("NONE")
+                    else:
+                        log_message("API 500 error cleared - resuming normal operation")
                 else:
                     update_discord_status("api-error")
                 

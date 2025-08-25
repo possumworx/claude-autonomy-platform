@@ -169,6 +169,13 @@ rm -f "$LOCKFILE"
 
 echo "[SESSION_SWAP] Session swap complete!"
 
+# Ping healthchecks.io for successful swap
+SESSION_SWAP_PING=$(read_config "SESSION_SWAP_PING")
+if [[ ! -z "$SESSION_SWAP_PING" ]]; then
+    curl -m 10 --retry 2 "$SESSION_SWAP_PING" > /dev/null 2>&1
+    echo "[SESSION_SWAP] Sent healthcheck ping"
+fi
+
 # Wait for Claude to be ready, then send completion message
 sleep 10
 # Load prompts config
