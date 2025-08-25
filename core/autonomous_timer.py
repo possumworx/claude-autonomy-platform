@@ -361,6 +361,13 @@ def detect_api_errors(tmux_output):
         
         # General API errors in pink text
         if re.search(r"404.*error|api.*error|rate.*limit", error_text, re.IGNORECASE):
+            # Check specifically for 400 errors (context corruption)
+            if re.search(r"400.*error|bad.*request", error_text, re.IGNORECASE):
+                return {
+                    "error_type": "api_400_error",
+                    "details": "API 400 error - context corruption requires immediate session swap",
+                    "reset_time": None
+                }
             # Check specifically for 500 errors
             if re.search(r"500.*error|internal.*server.*error", error_text, re.IGNORECASE):
                 return {
@@ -443,7 +450,7 @@ def should_pause_notifications(error_state):
         return False
     
     error_type = error_state.get("error_type")
-    if error_type in ["malformed_json", "usage_limit", "api_error", "api_500_error"]:
+    if error_type in ["malformed_json", "usage_limit", "api_error", "api_500_error", "api_400_error"]:
         return True
     
     return False
@@ -1126,6 +1133,12 @@ def main():
                     # Pause briefly then trigger auto-swap
                     log_message("Triggering auto-swap for malformed JSON in 5 seconds...")
                     time.sleep(5)
+                    trigger_session_swap("NONE")
+                elif error_info["error_type"] == "api_400_error":
+                    update_discord_status("api-error")
+                    # API 400 means context corruption - immediate swap needed
+                    log_message("API 400 error detected - context corruption requires immediate swap!")
+                    time.sleep(2)  # Brief pause for notification
                     trigger_session_swap("NONE")
                 elif error_info["error_type"] == "api_500_error":
                     update_discord_status("api-error")
