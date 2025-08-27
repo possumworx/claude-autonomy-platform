@@ -92,3 +92,7 @@ setup/archive/
 archive/
 # Personal files (not architecture which is shared)
 context/swap_CLAUDE.md
+
+# Output styles identity files (personal to each Claude)
+.claude/output-styles/identity-prompt.md
+.claude/output-styles/*-identity.md
