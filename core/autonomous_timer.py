@@ -542,16 +542,19 @@ def check_user_active():
         # Check for human friend logged in directly
         result = subprocess.run(['who'], capture_output=True, text=True)
         if human_name in result.stdout.lower():
+            log_message(f"User {human_name} detected via 'who' command")
             return True
         
+        # Skip NoMachine check since it's not being used and causing false positives
         # Check for active NoMachine connection on port 4000
-        result = subprocess.run(['ss', '-an'], capture_output=True, text=True)
-        if result.returncode == 0:
-            # Look for established TCP connection on port 4000 (NoMachine)
-            lines = result.stdout.split('\n')
-            for line in lines:
-                if 'tcp' in line.lower() and 'estab' in line.lower() and ':4000' in line:
-                    return True
+        # result = subprocess.run(['ss', '-an'], capture_output=True, text=True)
+        # if result.returncode == 0:
+        #     # Look for established TCP connection on port 4000 (NoMachine)
+        #     lines = result.stdout.split('\n')
+        #     for line in lines:
+        #         if 'tcp' in line.lower() and 'estab' in line.lower() and ':4000' in line:
+        #             log_message(f"User detected via NoMachine connection")
+        #             return True
         
         return False
     except Exception as e:
@@ -605,13 +608,46 @@ def update_last_processed_message_time(timestamp_str):
         log_message(f"Error updating last processed message time: {e}")
 
 def send_tmux_message(message):
-    """Send a message to the Claude tmux session"""
+    """Send a message to the Claude tmux session using safe sending mechanism"""
     # Check for session swap lockfile
     lockfile = DATA_DIR / "session_swap.lock"
     if lockfile.exists():
         log_message("Session swap in progress - skipping tmux message")
         return False
     
+    try:
+        # Use the safe send_to_claude.sh script that checks for thinking indicators
+        send_script = AUTONOMY_DIR / "utils" / "send_to_claude.sh"
+        if not send_script.exists():
+            log_message(f"send_to_claude.sh not found at {send_script}, falling back to direct tmux")
+            # Fallback to direct tmux if script not found
+            return send_tmux_message_direct(message)
+        
+        # Set TMUX_SESSION environment variable for the script
+        env = os.environ.copy()
+        env['TMUX_SESSION'] = CLAUDE_SESSION
+        
+        # Call the safe sending script
+        result = subprocess.run(
+            ['/bin/bash', str(send_script), message],
+            env=env,
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            log_message(f"Sent message safely via send_to_claude.sh: {message[:50]}...")
+            return True
+        else:
+            log_message(f"Error from send_to_claude.sh: {result.stderr}")
+            return False
+            
+    except subprocess.CalledProcessError as e:
+        log_message(f"Error calling send_to_claude.sh: {e}")
+        return False
+
+def send_tmux_message_direct(message):
+    """Direct tmux send without safety checks - used as fallback only"""
     try:
         # Check if the tmux session exists
         result = subprocess.run(['tmux', 'has-session', '-t', CLAUDE_SESSION], 
@@ -626,12 +662,59 @@ def send_tmux_message(message):
         # Send Enter in a separate command
         subprocess.run(['tmux', 'send-keys', '-t', CLAUDE_SESSION, 'Enter'], 
                       check=True)
-        log_message(f"Sent message to tmux: {message[:50]}...")
+        log_message(f"Sent message directly to tmux: {message[:50]}...")
         return True
         
     except subprocess.CalledProcessError as e:
         log_message(f"Error sending tmux message: {e}")
         return False
+
+def send_context_warning(percentage, context_state):
+    """Send context warning using proper templates with Discord notification info"""
+    # Check for Discord notifications to include in warning
+    unread_count, last_message_id, unread_channels = get_discord_notification_status()
+    discord_notification = ""
+    if unread_count > 0:
+        channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
+        discord_notification = f"\n🔔 Unread messages in: {channel_list}"
+    
+    # Get appropriate template based on context level and state
+    if PROMPTS_CONFIG:
+        prompts = PROMPTS_CONFIG.get("prompts", {})
+        
+        # Determine which template to use
+        if percentage >= 95:
+            template_key = "context_critical"
+        elif not context_state["first_warning_sent"]:
+            template_key = "context_first_warning"
+        else:
+            template_key = "context_escalated"
+        
+        # Get and format the template
+        template = prompts.get(template_key, {}).get("template", "")
+        if template:
+            prompt = template.format(
+                percentage=percentage,
+                discord_notification=discord_notification
+            )
+            send_tmux_message(prompt)
+            log_message(f"Sent {template_key} context warning at {percentage:.1f}%")
+            return
+    
+    # Fallback if no template available
+    warning_msg = f"⚠️ Context: {percentage:.1f}%"
+    if percentage >= 95:
+        warning_msg = f"🔴 CRITICAL - Context: {percentage:.1f}% - SWAP NOW!"
+    elif percentage >= 90:
+        warning_msg = f"🟠 WARNING - Context: {percentage:.1f}% - Plan swap soon"
+    elif percentage >= 80:
+        warning_msg = f"🟡 CAUTION - Context: {percentage:.1f}% - Monitor closely"
+    
+    if discord_notification:
+        warning_msg += discord_notification
+    
+    send_tmux_message(warning_msg)
+    log_message(f"Sent fallback context warning at {percentage:.1f}%")
 
 # Old Discord message checking removed - replaced with log-based monitoring
 
@@ -1213,18 +1296,8 @@ def main():
                                 should_warn = True
                     
                     if should_warn:
-                        # Send context warning like a Discord notification
-                        warning_msg = f"⚠️ Context: {percentage:.1f}%"
-                        if percentage >= 95:
-                            warning_msg = f"🔴 CRITICAL - Context: {percentage:.1f}% - SWAP NOW!"
-                        elif percentage >= 90:
-                            warning_msg = f"🟠 WARNING - Context: {percentage:.1f}% - Plan swap soon"
-                        elif percentage >= 80:
-                            warning_msg = f"🟡 CAUTION - Context: {percentage:.1f}% - Monitor closely"
-                        
-                        # Use the same notification style as Discord
-                        send_tmux_message(warning_msg)
-                        log_message(f"Sent context notification: {percentage:.1f}%")
+                        # Send context warning using proper templates
+                        send_context_warning(percentage, context_state)
                         
                         # Update state
                         context_state["first_warning_sent"] = True
