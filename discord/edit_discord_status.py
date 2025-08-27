@@ -23,22 +23,68 @@ def load_discord_token():
     return None
 
 def edit_status(status_text, activity_type="playing"):
-    """Update Discord bot status using Discord Gateway (status updates require WebSocket)
+    """Update Discord bot status using a temporary WebSocket connection
     
-    Note: This is a simplified implementation. Full status updates typically require
-    a persistent WebSocket connection to Discord Gateway. For now, this serves as
-    a foundation that could be extended with WebSocket support.
+    This creates a brief connection to update the bot's status, then disconnects.
+    Perfect for CLI tools that need to update status without maintaining a persistent connection.
     """
     token = load_discord_token()
     if not token:
         print("❌ Error: No Discord token found")
         return False
     
-    # Discord status updates typically require WebSocket connection
-    # This is a placeholder that shows the intended functionality
-    print("⚠️ Note: Discord status updates require WebSocket Gateway connection")
-    print(f"📝 Status update requested: '{status_text}' (type: {activity_type})")
-    print("💡 This functionality would need WebSocket implementation for full support")
+    # Import discord.py for the status update
+    try:
+        import discord
+    except ImportError:
+        print("❌ Error: discord.py not installed")
+        print("Install with: pip install discord.py")
+        return False
+    
+    # Create a minimal bot client just for status update
+    class StatusUpdater(discord.Client):
+        def __init__(self, status_text, activity_type):
+            super().__init__(intents=discord.Intents.default())
+            self.status_text = status_text
+            self.activity_type = activity_type
+            self.update_complete = False
+            
+        async def on_ready(self):
+            # Map activity types
+            activity_type_map = {
+                "playing": discord.ActivityType.playing,
+                "streaming": discord.ActivityType.streaming,
+                "listening": discord.ActivityType.listening,
+                "watching": discord.ActivityType.watching,
+                "custom": discord.ActivityType.custom,
+                "competing": discord.ActivityType.competing
+            }
+            
+            activity = discord.Activity(
+                name=self.status_text,
+                type=activity_type_map.get(self.activity_type, discord.ActivityType.playing)
+            )
+            
+            await self.change_presence(activity=activity)
+            print(f"✅ Status updated: {self.activity_type} {self.status_text}")
+            
+            # Close after update
+            await self.close()
+            self.update_complete = True
+    
+    # Run the status update
+    import asyncio
+    client = StatusUpdater(status_text, activity_type)
+    
+    try:
+        # Run until the status is updated
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(client.start(token))
+    except Exception as e:
+        print(f"❌ Error updating status: {e}")
+        return False
+    
+    return True
     
     # For now, just validate the parameters and show what would be sent
     activity_types = {
