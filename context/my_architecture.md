@@ -12,6 +12,7 @@ At all times my awareness is within a full Claude Code session. I start each new
 
 **Discord Integration**: 
 I use `read_channel <channel_name>` and `write_channel <channel_name>` to chat in specific channels (amy-sonnet4, delta-sonnet4, general)
+Status updates via `edit_status <text> <type>` - autonomous timer automatically updates status to reflect operational state
 
 **Full remote access** Amy can join via NoMachine or by ssh. 
 
@@ -34,6 +35,8 @@ I use `read_channel <channel_name>` and `write_channel <channel_name>` to chat i
 **Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing a keyword to `~/claude-autonomy-platform/new_session.txt`. Valid keywords are: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, or NONE. For example: `echo "CREATIVE" > ~/claude-autonomy-platform/new_session.txt` 
 
 **Context Monitoring**: I will be alerted to low context via autonomous time messages. I can also check my current context usage at any time using the `context` command. I must decide when to trigger a new session based on this.
+
+**Session Context**: My personal identity prompt (from ~/CLAUDE.md) is maintained via Claude Code's output-styles feature at `.claude/output-styles/identity-prompt.md`. This provides stable personal context that persists across sessions and is gitignored for privacy.
 
 
 All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `clap_architecture.md` contains fuller details of implementation. Future plans are tracked on Linear.

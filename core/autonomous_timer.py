@@ -1257,6 +1257,10 @@ def main():
     current_error_state = load_error_state()
     if current_error_state:
         log_message(f"Resuming with existing error state: {current_error_state}")
+    else:
+        # Set operational status on startup if no errors
+        update_discord_status("operational")
+        log_message("Discord status set to operational on startup")
     
     last_autonomy_check = datetime.now()
     last_discord_check = datetime.now()
@@ -1374,11 +1378,20 @@ def main():
                         # Send context warning using proper templates
                         send_context_warning(percentage, context_state)
                         
+                        # Update Discord status to show high context
+                        update_discord_status("context-high", str(int(percentage)))
+                        
                         # Update state
                         context_state["first_warning_sent"] = True
                         context_state["last_warning_percentage"] = percentage
                         context_state["last_warning_time"] = current_time.isoformat()
                         save_context_state(context_state)
+                    
+                    # If context drops below 80% and we had warnings, clear status
+                    elif percentage < 80 and context_state["first_warning_sent"]:
+                        update_discord_status("operational")
+                        reset_context_state()
+                        log_message(f"Context dropped to {percentage}% - cleared warning state")
                 except:
                     pass
             
