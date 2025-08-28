@@ -45,12 +45,11 @@ send_to_claude() {
         # 174 = dark orange-red (original)
         # 208-216 = lighter oranges (for animated wave effect)
         # 202-209 = orange range
-        # Pattern 1: Ellipsis with any orange/red color
-        # Pattern 2: "Thinking…(" with ellipsis in any orange shade
-        # Pattern 3: Animated indicators with original color
-        if echo "$pane_content" | grep -E '\[38;5;(174|20[2-9]|21[0-6])m.*…' || \
-           echo "$pane_content" | grep -E 'ing.*\[38;5;(174|20[2-9]|21[0-6])m…' | grep -q '(' || \
-           echo "$pane_content" | grep -E '\[38;5;174m[[:space:]]*[.+*❄✿✶]' | grep -qv 'tokens'; then
+        # Pattern 1: "Thinking…(" with ellipsis in any orange shade (with parenthesis)
+        # Pattern 2: Animated indicators with original color
+        # Exclude "Improvising" which is part of normal UI
+        if (echo "$pane_content" | grep -E 'Thinking.*\[38;5;(174|20[2-9]|21[0-6])m…' | grep -q '(') || \
+           (echo "$pane_content" | grep -E '\[38;5;174m[[:space:]]*[.+*❄✿✶]' | grep -qv 'tokens' | grep -qv 'Improvising'); then
             
             # Log every 30 seconds
             if [ $((attempt % 30)) -eq 0 ]; then
