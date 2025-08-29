@@ -359,6 +359,14 @@ def detect_api_errors(tmux_output):
                 "timezone": timezone
             }
         
+        # Check specifically for 400 errors
+        if re.search(r"400.*error|bad.*request", error_text, re.IGNORECASE):
+            return {
+                "error_type": "api_400_error", 
+                "details": "API 400 error - requires session swap",
+                "reset_time": None
+            }
+        
         # General API errors in pink text
         if re.search(r"404.*error|api.*error|rate.*limit", error_text, re.IGNORECASE):
             # Check specifically for 500 errors
@@ -1217,6 +1225,17 @@ DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
             message = f"{emoji} {prefix} You have unread messages in {unread_count} channels"
     
     message += f"\nUse 'read_channel <channel-name>' to view messages"
+    
+    # Add context percentage if available
+    if percentage > 0:
+        if percentage >= 70:
+            status_emoji = "🔴"
+        elif percentage >= 50:
+            status_emoji = "🟡"
+        else:
+            status_emoji = "🟢"
+        message += f"\nContext: {percentage:.1f}% {status_emoji}"
+    
     message += f"\nReply using Discord tools, NOT in this Claude stream!"
     
     success = send_tmux_message(message)
