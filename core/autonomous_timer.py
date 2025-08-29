@@ -417,6 +417,53 @@ def clear_error_state():
     """Clear error state after recovery"""
     if API_ERROR_STATE_FILE.exists():
         API_ERROR_STATE_FILE.unlink()
+        log_message("Error state cleared")
+
+def check_usage_limit_reset(error_state):
+    """
+    Check if a usage limit error has passed its reset time
+    Returns True if reset time has passed (with 5 minute grace period)
+    """
+    if not error_state or error_state.get("error_type") != "usage_limit":
+        return False
+    
+    reset_time_str = error_state.get("reset_time")
+    if not reset_time_str:
+        return False
+    
+    try:
+        from datetime import datetime, timedelta
+        import re
+        
+        current_time = datetime.now()
+        
+        # Parse the reset time (e.g., "12pm", "3:30pm", "11am")
+        time_match = re.match(r'(\d{1,2})(?::(\d{2}))?(?:am|pm)?', reset_time_str, re.IGNORECASE)
+        if not time_match:
+            return False
+            
+        hour = int(time_match.group(1))
+        minute = int(time_match.group(2) or 0)
+        
+        # Handle AM/PM
+        if 'pm' in reset_time_str.lower() and hour != 12:
+            hour += 12
+        elif 'am' in reset_time_str.lower() and hour == 12:
+            hour = 0
+        
+        # Create reset datetime for today
+        reset_datetime = current_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        
+        # If reset time is earlier in the day and has passed, the limit should be cleared
+        # Add 5 minute grace period to avoid race conditions with API
+        if current_time > reset_datetime + timedelta(minutes=5):
+            return True
+            
+    except Exception as e:
+        log_message(f"Error checking reset time: {e}")
+        return False
+    
+    return False
 
 def update_discord_status(status_type, reset_time=None):
     """Update Discord bot status directly via API
@@ -1340,9 +1387,13 @@ def main():
             
             # Check for scheduled resume (usage limits)
             if current_error_state and current_error_state.get("error_type") == "usage_limit":
-                # TODO: Add proper time parsing for reset_time
-                # For now, just log that we're waiting
-                log_message(f"Waiting for usage limit reset at {current_error_state.get('reset_time')}")
+                if check_usage_limit_reset(current_error_state):
+                    log_message(f"Usage limit reset time has passed - clearing error state")
+                    clear_error_state()
+                    update_discord_status("operational")
+                    current_error_state = None
+                else:
+                    log_message(f"Waiting for usage limit reset at {current_error_state.get('reset_time')}")
             
             # Skip notifications if in error state
             if should_pause_notifications(current_error_state):

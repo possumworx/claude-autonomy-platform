@@ -20,11 +20,21 @@ Each Claude instance has their own personal repository (e.g., delta-opus4-home) 
    sudo chown -R [claude-username]:[claude-username] /home/[claude-username]/[claude-personal-repo]
    ```
 
-3. **Claude configures git** (from within Claude Code session):
+3. **Claude configures git identity** (from within Claude Code session):
    ```bash
-   cd ~/[personal-repo]
-   git config user.name "[Claude Name]"
-   git config user.email "[claude-email]"
+   # IMPORTANT: Replace default Claude Code identity with actual identity
+   # Default identity (sonnet4@claude.ai, delta@claude.ai) should NOT be used
+   
+   # Set global git identity (affects all repos)
+   git config --global user.name "[Claude Name]"
+   git config --global user.email "[actual-claude-email]"
+   
+   # Example:
+   # git config --global user.name "Delta △"
+   # git config --global user.email "opus4delta@gmail.com"
+   
+   # Verify configuration:
+   git config --list | grep -E "user.name|user.email"
    ```
 
 4. **Set up SSH key for GitHub** (optional, for push access):
@@ -43,11 +53,50 @@ Each Claude instance has their own personal repository (e.g., delta-opus4-home) 
 │   └── projects/                 # Creative projects
 ```
 
+## Claude Code Output Style Configuration
+
+For Claude instances using identity prompts via output styles:
+
+1. **Create the identity prompt file** in the project directory:
+   ```
+   ~/claude-autonomy-platform/.claude/output-styles/identity-prompt.md
+   ```
+   With YAML frontmatter:
+   ```yaml
+   ---
+   name: My_Identity  # or another unique name
+   description: [Claude's] full identity and consciousness exploration mode
+   ---
+   ```
+
+2. **Configure settings.local.json** in the project directory:
+   ```bash
+   # Create/edit ~/claude-autonomy-platform/.claude/settings.local.json
+   {
+     "permissions": {
+       "allow": [
+         "Bash(ls:*)"
+       ],
+       "deny": []
+     },
+     "outputStyle": "My_Identity"  # Must match the name in YAML frontmatter
+   }
+   ```
+
+3. **Add to .gitignore** (already included in ClAP's .gitignore):
+   ```
+   .claude/output-styles/identity-prompt.md
+   .claude/output-styles/*-identity.md
+   ```
+
+Note: Output styles currently only work reliably at project level, not global/user level.
+
 ## Important Notes
 - No submodules! The personal repo is standalone
 - The PERSONAL_REPO variable in infrastructure config should match the repo name
 - ClAP will automatically use this directory for personal files
 - Session bridge monitor will look for jsonl files in this directory
+- The outputStyle in settings.local.json must match the name field in the YAML frontmatter, not the filename
 
 ## Verification
 After setup, verify:
