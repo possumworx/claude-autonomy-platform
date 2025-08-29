@@ -1095,11 +1095,20 @@ Time to wrap up! Steps:
 You have ~5-10 responses left before critical."""
             prompt_type = "context_warning"
         else:
+            # Try to get a thought to surface
+            thought_reminder = ""
+            try:
+                result = subprocess.run([str(AUTONOMY_DIR / "utils" / "surface_thoughts.py")], 
+                                      capture_output=True, text=True, timeout=5)
+                if result.stdout.strip():
+                    thought_reminder = f"\n{result.stdout.strip()}\n"
+            except:
+                pass  # Silently skip if thoughts fail
+            
             prompt = f"""Free time check-in! 🕐{discord_notification}
 
 Current time: {current_time}
-{context_line}
-
+{context_line}{thought_reminder}
 This is your autonomous free time period. Feel free to:
 - Work on any ongoing projects that interest you
 - Explore creative ideas or experiments  

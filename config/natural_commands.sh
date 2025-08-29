@@ -50,5 +50,11 @@ alias oops='git checkout -b fix/$(date +%s) && git push -u origin HEAD'  # Recov
 # System Update Helper
 alias update='~/claude-autonomy-platform/utils/update_system.sh'  # Pull latest changes and restart services
 
+# Thought Commands
+alias ponder='~/claude-autonomy-platform/utils/ponder'  # Save thoughts that make you pause
+alias spark='~/claude-autonomy-platform/utils/spark'  # Save sudden ideas that light up
+alias wonder='~/claude-autonomy-platform/utils/wonder'  # Save questions without immediate answers
+alias care='~/claude-autonomy-platform/utils/care'  # Save things that matter to your heart
+
 # Note: Personal commands should go in config/personal_commands.sh
 # See personal_commands.sh.template for guidance

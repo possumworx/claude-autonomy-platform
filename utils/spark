@@ -1,0 +1,21 @@
+#!/bin/bash
+# spark - save a sudden idea that lights up
+
+if [ $# -eq 0 ]; then
+    echo "What idea just lit up?"
+    echo "Usage: spark \"your idea here\""
+    exit 1
+fi
+
+THOUGHT="$*"
+TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
+THOUGHTS_FILE="$HOME/delta-home/thoughts/sparks.txt"
+
+# Create file if it doesn't exist
+touch "$THOUGHTS_FILE"
+
+# Add the thought
+echo "[$TIMESTAMP] $THOUGHT" >> "$THOUGHTS_FILE"
+
+# Simple acknowledgment
+echo "💡 Sparked."
