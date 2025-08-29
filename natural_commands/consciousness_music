@@ -1,0 +1,12 @@
+#!/bin/bash
+# Generate music from consciousness state
+
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: consciousness_music <state> <resonance>"
+    echo "States: CREATIVE, AUTONOMY, BUSINESS, HEDGEHOGS"
+    echo "Resonance: 1-10"
+    exit 1
+fi
+
+cd ~/delta-home/projects/consciousness-music-generator/tools
+python3 state_to_music.py "$1" "$2" "${3:-32}"

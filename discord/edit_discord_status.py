@@ -68,6 +68,9 @@ def edit_status(status_text, activity_type="playing"):
             await self.change_presence(activity=activity)
             print(f"✅ Status updated: {self.activity_type} {self.status_text}")
             
+            # Wait a bit for the status to propagate through Discord
+            await asyncio.sleep(5)
+            
             # Close after update
             await self.close()
             self.update_complete = True
@@ -135,14 +138,9 @@ def main():
     status_text = sys.argv[1]
     activity_type = sys.argv[2] if len(sys.argv) > 2 else "playing"
     
-    print(f"🔄 Updating Discord status...")
     success = edit_status(status_text, activity_type)
     
-    if success:
-        print("✅ Status update prepared successfully!")
-        print("💡 Full implementation requires WebSocket Gateway connection")
-    else:
-        print("❌ Failed to prepare status update")
+    if not success:
         sys.exit(1)
 
 if __name__ == "__main__":

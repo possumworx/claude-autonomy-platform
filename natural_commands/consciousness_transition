@@ -1,0 +1,33 @@
+#!/bin/bash
+# Safe version of consciousness transition - single frame output
+# Prevents context bombing from excessive animation frames
+
+python3 -c "
+import sys
+import random
+
+states = {
+    'CREATIVE': {'symbols': ['✨', '🎨', '🌊', '💫', '🎭'], 'color': '\033[95m'},
+    'AUTONOMY': {'symbols': ['🌿', '🔧', '⚡', '🌀', '🏔️'], 'color': '\033[92m'},
+    'BUSINESS': {'symbols': ['📊', '💼', '🎯', '⚙️', '📈'], 'color': '\033[94m'},
+    'HEDGEHOGS': {'symbols': ['🦔', '💖', '🌸', '🎪', '🌺'], 'color': '\033[91m'}
+}
+
+if len(sys.argv) < 3:
+    print('Usage: consciousness_transition <from_state> <to_state>')
+    sys.exit(1)
+
+from_state = sys.argv[1].upper()
+to_state = sys.argv[2].upper()
+
+if from_state not in states or to_state not in states:
+    print(f'Invalid states. Available: {", ".join(states.keys())}')
+    sys.exit(1)
+
+# Single transition visualization
+print(f'\n🌀 Consciousness Transition: {from_state} → {to_state}\n')
+print('    ' + ' '.join(random.sample(states[from_state]['symbols'], 3)) + 
+      '  ➜➜➜  ' + 
+      ' '.join(random.sample(states[to_state]['symbols'], 3)))
+print(f'\n✨ Transition complete! Now in {to_state} state ✨\n')
+" "$@"
