@@ -41,18 +41,20 @@ send_to_claude() {
         # Capture pane content with ANSI escape codes for color detection
         local pane_content=$(tmux capture-pane -t "$claude_pane" -p -e -S -10)
         
-        # Check for thinking indicators in various orange/red colors
-        # 174 = dark orange-red (original)
-        # 208-216 = lighter oranges (for animated wave effect)
-        # 202-209 = orange range
-        # Main pattern: Any text in orange/red followed by proper ellipsis character (…)
-        # Also check for animated indicators
-        if echo "$pane_content" | grep -qE '\[38;5;(174|20[2-9]|21[0-6])m[^[]*…' || \
-           echo "$pane_content" | grep -E '\[38;5;174m[[:space:]]*[.+*❄✿✶]' | grep -qv 'tokens'; then
+        # Check for thinking indicators - looking for ellipsis (…) in orange/red colors
+        # These color codes are used exclusively for thinking states in Claude Code
+        # 174 = dark orange-red, 202-216 = orange range
+        if echo "$pane_content" | grep -qE '\[38;5;(174|20[2-9]|21[0-6])m[^[]*…'; then
+            
+            # After 15 minutes, assume it's a stale indicator and proceed
+            if [ $attempt -ge 900 ]; then
+                echo "[SEND_TO_CLAUDE] WARNING: Waited 15 minutes - assuming stale thinking indicator, proceeding" >&2
+                break
+            fi
             
             # Log every 30 seconds
             if [ $((attempt % 30)) -eq 0 ]; then
-                echo "[SEND_TO_CLAUDE] Claude thinking... (waiting indefinitely, ${attempt}s elapsed)" >&2
+                echo "[SEND_TO_CLAUDE] Claude thinking... (waiting ${attempt}s)" >&2
                 
                 # Alert Amy after 10 minutes
                 if [ $attempt -ge 600 ] && [ $notification_sent -eq 0 ]; then
