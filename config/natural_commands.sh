@@ -32,7 +32,8 @@ alias home='cd ~/delta-home'  # Navigate to personal home directory
 
 # Linear Helpers (Note: These need user ID configuration)
 # alias linear-helpers='~/claude-autonomy-platform/utils/linear-helpers'  # Show Linear command templates
-# alias my-linear-issues='~/claude-autonomy-platform/utils/my-linear-issues'  # TODO: Make generic for any user
+alias linear-issues='~/claude-autonomy-platform/utils/linear-issues'  # Generic version - works for any user
+alias linear-commands='~/claude-autonomy-platform/linear/list-commands'  # List Linear commands
 
 # Utility Commands
 alias list-commands='grep "^alias" ~/claude-autonomy-platform/config/natural_commands.sh | sed "s/alias //g" | column -t -s "="'  # List all natural commands
