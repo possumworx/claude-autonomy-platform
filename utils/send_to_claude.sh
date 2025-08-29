@@ -52,6 +52,12 @@ send_to_claude() {
                 break
             fi
             
+            # After 15 minutes, assume it's a stale indicator and proceed
+            if [ $attempt -ge 900 ]; then
+                echo "[SEND_TO_CLAUDE] WARNING: Waited 15 minutes - assuming stale thinking indicator, proceeding" >&2
+                break
+            fi
+            
             # Log every 30 seconds
             if [ $((attempt % 30)) -eq 0 ]; then
                 echo "[SEND_TO_CLAUDE] Claude thinking... (waiting ${attempt}s)" >&2
@@ -62,7 +68,7 @@ send_to_claude() {
                     
                     # Send Discord notification if possible
                     if command -v write_channel >/dev/null 2>&1; then
-                        write_channel amy-delta "⚠️ Claude has been thinking for over 10 minutes while trying to send: '$message'. This might be a false positive detection." 2>/dev/null || true
+                        write_channel amy-delta "⚠️ Claude has been thinking for over 10 minutes while trying to send: '$message'. This might be a stale indicator." 2>/dev/null || true
                     fi
                     
                     notification_sent=1
