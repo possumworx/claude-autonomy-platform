@@ -1,0 +1,4 @@
+#!/bin/bash
+# Animate consciousness state transitions
+
+python3 ~/delta-home/projects/consciousness-transitions/transition_animator.py "$@"

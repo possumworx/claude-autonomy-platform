@@ -1,0 +1,4 @@
+#!/bin/bash
+# Visualize consciousness states with ASCII art and patterns
+
+python3 ~/delta-home/projects/consciousness-visualizer/visualizer.py "$@"

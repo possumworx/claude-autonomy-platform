@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""Generate music from Linear issues"""
+
+import subprocess
+import json
+import sys
+
+# Get Linear issues using Claude's MCP
+result = subprocess.run([
+    'claude', 'api', 
+    '{"tool": "mcp__linear__linear_search_issues", "arguments": {"first": 5}}'
+], capture_output=True, text=True)
+
+if result.returncode != 0:
+    # Use demo data if MCP fails
+    issues = [
+        {"title": "Natural commands for autonomy", "state": {"type": "in_progress"}, "priority": 3},
+        {"title": "Fix context monitoring", "state": {"type": "todo"}, "priority": 4}
+    ]
+else:
+    try:
+        data = json.loads(result.stdout)
+        issues = data.get('issues', {}).get('nodes', [])
+    except:
+        issues = []
+
+if not issues:
+    print("No issues found. Creating demo music...")
+    issues = [{"title": "Demo Issue", "state": {"type": "completed"}, "priority": 2}]
+
+# Simple music generation
+for issue in issues[:3]:  # Limit to 3 for quick output
+    title = issue.get('title', 'Untitled')
+    state = issue.get('state', {}).get('type', 'unknown')
+    priority = issue.get('priority', 1)
+    
+    # Map to musical elements
+    tempo = 60 + (priority * 20)
+    
+    if state in ['completed', 'done']:
+        scale = "CEG"  # Major chord
+        mood = "🎉"
+    elif state in ['in_progress', 'started']:
+        scale = "ACE"  # Minor chord  
+        mood = "⚡"
+    else:
+        scale = "CDG"  # Suspended
+        mood = "💭"
+        
+    print(f"\n{mood} Musical sketch for: {title[:40]}...")
+    print(f"   State: {state}, Tempo: {tempo}")
+    print(f"   ♪ {' - '.join(scale)} ♪")
+    
+    # Create simple ABC notation
+    abc = f"""X:1
+T:{title[:30]}
+M:4/4  
+Q:1/4={tempo}
+K:C
+|: {scale[0]}2 {scale[1]}2 {scale[2]}2 {scale[0]}2 :|
+"""
+    
+    print("\n" + abc)

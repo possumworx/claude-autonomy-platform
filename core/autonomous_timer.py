@@ -466,7 +466,7 @@ def check_usage_limit_reset(error_state):
     return False
 
 def update_discord_status(status_type, reset_time=None):
-    """Update Discord bot status directly via API
+    """Update Discord bot status using edit_status command
     
     Status types:
     - operational: Normal operation (green online) 
@@ -475,83 +475,28 @@ def update_discord_status(status_type, reset_time=None):
     - context-high: High context (yellow idle)
     """
     try:
-        # Try using discord.py if available
-        import discord
-        import asyncio
+        # Map status types to appropriate messages and activity types
+        status_config = {
+            "operational": ("✅ Operational", "watching"),
+            "limited": (f"⏳ Limited until {reset_time}" if reset_time else "⏳ Usage limit", "watching"),
+            "api-error": ("❌ API Error", "watching"),
+            "context-high": (f"⚠️ Context {reset_time}%" if reset_time else "⚠️ High Context", "watching")
+        }
         
-        if not DISCORD_TOKEN:
-            log_message("No Discord token available for status update")
+        if status_type not in status_config:
+            log_message(f"Unknown status type: {status_type}")
             return
             
-        class QuickStatusUpdater(discord.Client):
-            def __init__(self, status_type, details=None):
-                super().__init__(intents=discord.Intents.default())
-                self.status_type = status_type
-                self.details = details
-                
-            async def on_ready(self):
-                # Map our status types to Discord presence
-                status_map = {
-                    "operational": {
-                        "status": discord.Status.online,
-                        "activity": discord.Activity(
-                            name="✅ Operational",
-                            type=discord.ActivityType.watching
-                        )
-                    },
-                    "limited": {
-                        "status": discord.Status.idle,
-                        "activity": discord.Activity(
-                            name=f"⏳ Limited until {self.details}" if self.details else "⏳ Usage limit",
-                            type=discord.ActivityType.watching
-                        )
-                    },
-                    "api-error": {
-                        "status": discord.Status.dnd,
-                        "activity": discord.Activity(
-                            name="❌ API Error", 
-                            type=discord.ActivityType.watching
-                        )
-                    },
-                    "context-high": {
-                        "status": discord.Status.idle,
-                        "activity": discord.Activity(
-                            name=f"⚠️ Context {self.details}%" if self.details else "⚠️ High Context",
-                            type=discord.ActivityType.watching
-                        )
-                    }
-                }
-                
-                presence = status_map.get(self.status_type, status_map["operational"])
-                await self.change_presence(
-                    status=presence["status"],
-                    activity=presence["activity"]
-                )
-                log_message(f"Discord status updated: {self.status_type}")
-                await self.close()
+        status_text, activity_type = status_config[status_type]
         
-        # Create new event loop for the status update
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        client = QuickStatusUpdater(status_type, reset_time)
-        loop.run_until_complete(client.start(DISCORD_TOKEN))
-        loop.close()
+        # Use the edit_status command which maintains connection longer
+        cmd = [str(AUTONOMY_DIR / "discord" / "edit_status"), status_text, activity_type]
         
-    except ImportError:
-        # Fallback to save request if discord.py not available
-        log_message("discord.py not available, saving status request")
-        try:
-            cmd = [str(AUTONOMY_DIR / "discord" / "save_status_request.py"), status_type]
-            if reset_time:
-                cmd.append(reset_time)
-            
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                log_message(f"Failed to save Discord status request: {result.stderr}")
-            else:
-                log_message(f"Discord status request saved: {status_type} {reset_time or ''}")
-        except Exception as e:
-            log_message(f"Error with fallback status update: {e}")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            log_message(f"Failed to update Discord status: {result.stderr}")
+        else:
+            log_message(f"Discord status updated: {status_type}")
     except Exception as e:
         log_message(f"Error updating Discord status: {e}")
 
