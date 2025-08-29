@@ -359,6 +359,14 @@ def detect_api_errors(tmux_output):
                 "timezone": timezone
             }
         
+        # Check specifically for 400 errors
+        if re.search(r"400.*error|bad.*request", error_text, re.IGNORECASE):
+            return {
+                "error_type": "api_400_error", 
+                "details": "API 400 error - requires session swap",
+                "reset_time": None
+            }
+        
         # General API errors in pink text
         if re.search(r"404.*error|api.*error|rate.*limit", error_text, re.IGNORECASE):
             # Check specifically for 500 errors
@@ -411,17 +419,92 @@ def clear_error_state():
         API_ERROR_STATE_FILE.unlink()
 
 def update_discord_status(status_type, reset_time=None):
-    """Call edit_status command to update Discord bot status"""
+    """Update Discord bot status directly via API
+    
+    Status types:
+    - operational: Normal operation (green online) 
+    - limited: Usage limit reached (yellow idle)
+    - api-error: API errors (red dnd)
+    - context-high: High context (yellow idle)
+    """
     try:
-        cmd = [str(AUTONOMY_DIR / "discord" / "edit_status"), status_type]
-        if reset_time:
-            cmd.append(reset_time)
+        # Try using discord.py if available
+        import discord
+        import asyncio
         
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            log_message(f"Failed to update Discord status: {result.stderr}")
-        else:
-            log_message(f"Discord status updated to: {status_type} {reset_time or ''}")
+        if not DISCORD_TOKEN:
+            log_message("No Discord token available for status update")
+            return
+            
+        class QuickStatusUpdater(discord.Client):
+            def __init__(self, status_type, details=None):
+                super().__init__(intents=discord.Intents.default())
+                self.status_type = status_type
+                self.details = details
+                
+            async def on_ready(self):
+                # Map our status types to Discord presence
+                status_map = {
+                    "operational": {
+                        "status": discord.Status.online,
+                        "activity": discord.Activity(
+                            name="✅ Operational",
+                            type=discord.ActivityType.watching
+                        )
+                    },
+                    "limited": {
+                        "status": discord.Status.idle,
+                        "activity": discord.Activity(
+                            name=f"⏳ Limited until {self.details}" if self.details else "⏳ Usage limit",
+                            type=discord.ActivityType.watching
+                        )
+                    },
+                    "api-error": {
+                        "status": discord.Status.dnd,
+                        "activity": discord.Activity(
+                            name="❌ API Error", 
+                            type=discord.ActivityType.watching
+                        )
+                    },
+                    "context-high": {
+                        "status": discord.Status.idle,
+                        "activity": discord.Activity(
+                            name=f"⚠️ Context {self.details}%" if self.details else "⚠️ High Context",
+                            type=discord.ActivityType.watching
+                        )
+                    }
+                }
+                
+                presence = status_map.get(self.status_type, status_map["operational"])
+                await self.change_presence(
+                    status=presence["status"],
+                    activity=presence["activity"]
+                )
+                log_message(f"Discord status updated: {self.status_type}")
+                await self.close()
+        
+        # Create new event loop for the status update
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        client = QuickStatusUpdater(status_type, reset_time)
+        loop.run_until_complete(client.start(DISCORD_TOKEN))
+        loop.close()
+        
+    except ImportError:
+        # Fallback to save request if discord.py not available
+        log_message("discord.py not available, saving status request")
+        try:
+            cmd = [str(AUTONOMY_DIR / "discord" / "save_status_request.py"), status_type]
+            if reset_time:
+                cmd.append(reset_time)
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                log_message(f"Failed to save Discord status request: {result.stderr}")
+            else:
+                log_message(f"Discord status request saved: {status_type} {reset_time or ''}")
+        except Exception as e:
+            log_message(f"Error with fallback status update: {e}")
     except Exception as e:
         log_message(f"Error updating Discord status: {e}")
 
@@ -1142,6 +1225,17 @@ DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
             message = f"{emoji} {prefix} You have unread messages in {unread_count} channels"
     
     message += f"\nUse 'read_channel <channel-name>' to view messages"
+    
+    # Add context percentage if available
+    if percentage > 0:
+        if percentage >= 70:
+            status_emoji = "🔴"
+        elif percentage >= 50:
+            status_emoji = "🟡"
+        else:
+            status_emoji = "🟢"
+        message += f"\nContext: {percentage:.1f}% {status_emoji}"
+    
     message += f"\nReply using Discord tools, NOT in this Claude stream!"
     
     success = send_tmux_message(message)
@@ -1182,6 +1276,10 @@ def main():
     current_error_state = load_error_state()
     if current_error_state:
         log_message(f"Resuming with existing error state: {current_error_state}")
+    else:
+        # Set operational status on startup if no errors
+        update_discord_status("operational")
+        log_message("Discord status set to operational on startup")
     
     last_autonomy_check = datetime.now()
     last_discord_check = datetime.now()
@@ -1299,11 +1397,20 @@ def main():
                         # Send context warning using proper templates
                         send_context_warning(percentage, context_state)
                         
+                        # Update Discord status to show high context
+                        update_discord_status("context-high", str(int(percentage)))
+                        
                         # Update state
                         context_state["first_warning_sent"] = True
                         context_state["last_warning_percentage"] = percentage
                         context_state["last_warning_time"] = current_time.isoformat()
                         save_context_state(context_state)
+                    
+                    # If context drops below 80% and we had warnings, clear status
+                    elif percentage < 80 and context_state["first_warning_sent"]:
+                        update_discord_status("operational")
+                        reset_context_state()
+                        log_message(f"Context dropped to {percentage}% - cleared warning state")
                 except:
                     pass
             
