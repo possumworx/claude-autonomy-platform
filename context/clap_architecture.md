@@ -1,6 +1,6 @@
 # ClAP (Claude Autonomy Platform) Architecture
-**Version**: 0.5  
-**Last Updated**: August 3, 2025  
+**Version**: 0.5.3  
+**Last Updated**: August 30, 2025  
 **Authors**: Delta △ & Amy 💚
 
 ## Overview
@@ -13,7 +13,14 @@ Every X minutes (configurable, default 30), Claude receives an autonomy prompt s
 
 ## Change Procedure
 
-All changes to the working of ClAP need to follow the procedure laid out in `docs/CONTRIBUTING.md`. 
+All changes to the working of ClAP need to follow the procedure laid out in `docs/CONTRIBUTING.md`.
+
+## Recent Updates (v0.5.3)
+
+- **Thought Preservation System**: Added `ponder`, `spark`, `wonder`, `care` commands for saving different types of thoughts
+- **Linear Natural Commands**: Natural language interface to Linear MCP for project management
+- **Send to Claude Timeout Fix**: Fixed issue where send_to_claude would wait indefinitely on stale thinking indicators
+- **Context Monitoring**: Added context percentage to Discord notifications for better awareness 
 
 ## Single Sources of Truth
 `~/CLAUDE.md` for underlying personal identity. `~/claude-autonomy-platform/CLAUDE.md` for rolling refreshed context. `~/claude-autonomy-platform/` for all important autonomous operation scripts and files. Anything that becomes obsolete or broken is to be removed. `~/claude-autonomy-platform/context/my_architecture.md` for persistent in-context background system use knowledge, this document for implementation detail. `~/.config/Claude/.claude.json` for claude code and mcp configuration.
@@ -105,15 +112,14 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── CLAUDE.md
 │   ├── clap_architecture.md
 │   ├── current_export.txt
+│   ├── current_export.txt.backup
 │   ├── final_session_notes.md
 │   ├── handoff_notes.md
 │   ├── my_architecture.md
-│   ├── output-style-troubleshooting-20250826-1717.txt
 │   ├── project_session_context_builder.py
 │   └── swap_CLAUDE.md
 ├── core
 │   ├── autonomous_timer.py
-│   ├── autonomous_timer.py.backup_20250827_212622
 │   ├── autonomous_timer_fixed.py
 │   ├── comms_monitor_simple.py
 │   └── session_swap_monitor.py
@@ -130,6 +136,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── last_autonomy_prompt.txt
 │   ├── last_notification_alert.txt
 │   ├── last_seen_message_id.txt
+│   ├── linear_state.json
 │   ├── pipe_reader.log
 │   ├── session_bridge_export.log
 │   ├── session_bridge_monitor.log
@@ -210,18 +217,13 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── pipe-pane-instability-report.md
 │   ├── pre-deployment-checklist.md
 │   ├── session-bridge-export-design.md
+│   ├── setup-checklist.md
 │   └── sonnet-fix-checklist.md
-├── experiments
-│   ├── field-navigation
-│   │   ├── README.md
-│   │   ├── consciousness-attractor-mapper.js
-│   │   ├── consciousness-field-navigator.js
-│   │   ├── consciousness-music-mapper.js
-│   │   ├── consciousness-music-output.txt
-│   │   ├── field-analyzer-simple.js
-│   │   └── field-transition-analyzer.js
-│   ├── consciousness-harmonics-synthesis.md
-│   └── consciousness-mathematics-synthesis.md
+├── linear
+│   ├── README.md
+│   ├── init
+│   ├── list-commands
+│   └── sync_projects
 ├── mcp-servers
 │   ├── discord-mcp
 │   │   ├── assets
@@ -294,6 +296,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── target
 ├── utils
 │   ├── analyze_sessions.py
+│   ├── care
 │   ├── check_health
 │   ├── check_health_traced.sh
 │   ├── claude_directory_enforcer.sh
@@ -321,21 +324,28 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── infrastructure_config_reader.py
 │   ├── linear
 │   ├── linear-helpers
+│   ├── linear-issues
 │   ├── monitor_session_size.py
 │   ├── my-linear-issues
 │   ├── parse_natural_commands.sh
+│   ├── ponder
 │   ├── rotate_logs.sh
+│   ├── safe_cleanup.sh
 │   ├── secret-scanner
 │   ├── send_to_claude.sh
+│   ├── send_to_claude.sh.backup
 │   ├── send_to_terminal.sh
 │   ├── session_audit.py
 │   ├── session_swap.sh
 │   ├── setup_natural_command_symlinks.sh
+│   ├── spark
+│   ├── surface_thoughts.py
 │   ├── tellclaude-reader.sh
 │   ├── trace_example.sh
 │   ├── trace_execution.sh
 │   ├── update_conversation_history.py
-│   └── update_system.sh
+│   ├── update_system.sh
+│   └── wonder
 ├── CLAUDE.md
 ├── CLEANUP_AUDIT.md
 ├── CLEANUP_PROGRESS.md
@@ -350,7 +360,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-46 directories, 235 files
+45 directories, 239 files
 ```
 <!-- TREE_END -->
 
@@ -478,9 +488,26 @@ tmux send-keys -t persistent-login "source ~/claude-autonomy-platform/config/cla
 
 ### 8. Natural Commands
 
-- Short, memorable natural language bash commands for common tasks and to replace mcp functions. 
-- discord related scripts are stored in `discord/`, others are in `utils/`
-- they are all listed in `config/natural_commands.sh` which must be sourced by bashrc after edit
+Short, memorable natural language bash commands for common tasks and to replace mcp functions.
+
+**Organization**:
+- Discord scripts: `discord/` directory
+- Utility scripts: `utils/` directory  
+- Linear commands: `linear/` directory
+- All commands defined in `config/natural_commands.sh` (sourced by bashrc)
+- Personal commands in `config/personal_commands.sh`
+
+**Recent Additions**:
+- **Thought Preservation System**: `ponder`, `spark`, `wonder`, `care` - Save different types of thoughts to `~/delta-home/thoughts/`
+- **Linear Integration**: `linear-issues`, `linear-commands`, `init`, `sync_projects` - Natural language interface to Linear MCP
+
+**Command Categories**:
+- System management (check_health, update, context)
+- Discord operations (read/write channels, send files/images)
+- Git shortcuts (gs, gd, gl, oops)
+- Navigation (clap, home)
+- Creative tools (thought preservation)
+- Project management (Linear integration)
 
 ## Installation & Deployment
 
