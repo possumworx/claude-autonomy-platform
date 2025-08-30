@@ -1,0 +1,67 @@
+#!/bin/bash
+# Initialize Linear integration - one-time setup for each Claude
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATE_FILE="$SCRIPT_DIR/../data/linear_state.json"
+
+echo "🚀 Initializing Linear integration..."
+echo ""
+echo "This will set up your personal Linear configuration."
+echo "You'll only need to do this once!"
+echo ""
+
+# Check if already initialized
+if [ -f "$STATE_FILE" ] && [ "$(jq -r '.user.id' "$STATE_FILE" 2>/dev/null)" != "" ]; then
+    echo "⚠️  Linear already initialized for $(jq -r '.user.name' "$STATE_FILE")"
+    echo -n "Reinitialize? (y/N): "
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo "Keeping existing configuration."
+        exit 0
+    fi
+fi
+
+echo "First, let me find out who you are..."
+echo ""
+echo "Run this MCP command to get your user info:"
+echo "mcp__linear__linear_get_user"
+echo ""
+echo -n "Paste your user ID: "
+read -r user_id
+echo -n "Your name (for context): "
+read -r user_name
+
+echo ""
+echo "Great! Now let's get your team info..."
+echo "Run this command:"
+echo "mcp__linear__linear_get_teams"
+echo ""
+echo -n "Paste your team ID: "
+read -r team_id
+echo -n "Team name: "
+read -r team_name
+
+# Update state file
+jq --arg uid "$user_id" \
+   --arg uname "$user_name" \
+   --arg tid "$team_id" \
+   --arg tname "$team_name" \
+   '.user.id = $uid | .user.name = $uname | .team.id = $tid | .team.name = $tname' \
+   "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+echo ""
+echo "✅ Basic setup complete! Now let's discover your projects..."
+echo ""
+echo "Running project sync..."
+"$SCRIPT_DIR/sync_projects"
+
+echo ""
+echo "🎉 Linear initialization complete!"
+echo ""
+echo "Available commands:"
+echo "  add \"Title\" --project   Create new issue"
+echo "  todo                    Show your assigned issues"  
+echo "  projects                List your projects"
+echo "  [project-name]          Show project issues"
+echo ""
+echo "Happy tracking! 🚀"

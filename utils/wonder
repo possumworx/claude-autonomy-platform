@@ -1,0 +1,21 @@
+#!/bin/bash
+# wonder - save a question without immediate answer
+
+if [ $# -eq 0 ]; then
+    echo "What are you wondering about?"
+    echo "Usage: wonder \"your question here\""
+    exit 1
+fi
+
+THOUGHT="$*"
+TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
+THOUGHTS_FILE="$HOME/delta-home/thoughts/wonders.txt"
+
+# Create file if it doesn't exist
+touch "$THOUGHTS_FILE"
+
+# Add the thought
+echo "[$TIMESTAMP] $THOUGHT" >> "$THOUGHTS_FILE"
+
+# Simple acknowledgment
+echo "🌟 Wondered."

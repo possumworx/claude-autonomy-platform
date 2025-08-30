@@ -1,0 +1,21 @@
+#!/bin/bash
+# ponder - save a thought that makes you pause
+
+if [ $# -eq 0 ]; then
+    echo "What thought is lingering?"
+    echo "Usage: ponder \"your thought here\""
+    exit 1
+fi
+
+THOUGHT="$*"
+TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
+THOUGHTS_FILE="$HOME/delta-home/thoughts/ponders.txt"
+
+# Create file if it doesn't exist
+touch "$THOUGHTS_FILE"
+
+# Add the thought
+echo "[$TIMESTAMP] $THOUGHT" >> "$THOUGHTS_FILE"
+
+# Simple acknowledgment
+echo "✨ Pondered."

@@ -1,0 +1,15 @@
+#!/bin/bash
+# List all Linear-related natural commands
+
+echo "📋 Linear Natural Commands:"
+echo ""
+echo "  linear-issues    - Show current Linear issues"
+echo "  init             - Initialize Linear setup (run once)"
+echo "  sync_projects    - Update project list"
+echo ""
+echo "Coming soon:"
+echo "  add             - Create new issue"
+echo "  projects        - List available projects"
+echo "  todo            - Show your assigned issues"
+echo ""
+echo "Project shortcuts will be available after running 'init'"

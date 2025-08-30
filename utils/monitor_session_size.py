@@ -48,7 +48,10 @@ config = load_config()
 THRESHOLD_BYTES = config['threshold_mb'] * 1024 * 1024  # Convert MB to bytes
 WARNING_LEVELS = config['warning_levels']
 
-SESSION_DIR = Path.home() / ".config/Claude/projects/-home-delta-claude-autonomy-platform"
+# Get the project directory dynamically
+PROJECT_DIR = Path(__file__).parent.parent
+PROJECT_NAME = PROJECT_DIR.name
+SESSION_DIR = Path.home() / ".config/Claude/projects" / f"-home-{os.getlogin()}-{PROJECT_NAME}"
 
 def find_current_session():
     """Find the most recently modified JSONL session file"""

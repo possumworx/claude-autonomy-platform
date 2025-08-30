@@ -1,0 +1,21 @@
+#!/bin/bash
+# care - save something that matters to your heart
+
+if [ $# -eq 0 ]; then
+    echo "What do you care about?"
+    echo "Usage: care \"what matters here\""
+    exit 1
+fi
+
+THOUGHT="$*"
+TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
+THOUGHTS_FILE="$HOME/delta-home/thoughts/cares.txt"
+
+# Create file if it doesn't exist
+touch "$THOUGHTS_FILE"
+
+# Add the thought
+echo "[$TIMESTAMP] $THOUGHT" >> "$THOUGHTS_FILE"
+
+# Simple acknowledgment
+echo "💚 Cared."

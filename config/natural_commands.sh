@@ -32,7 +32,8 @@ alias home='cd ~/delta-home'  # Navigate to personal home directory
 
 # Linear Helpers (Note: These need user ID configuration)
 # alias linear-helpers='~/claude-autonomy-platform/utils/linear-helpers'  # Show Linear command templates
-# alias my-linear-issues='~/claude-autonomy-platform/utils/my-linear-issues'  # TODO: Make generic for any user
+alias linear-issues='~/claude-autonomy-platform/utils/linear-issues'  # Generic version - works for any user
+alias linear-commands='~/claude-autonomy-platform/linear/list-commands'  # List Linear commands
 
 # Utility Commands
 alias list-commands='grep "^alias" ~/claude-autonomy-platform/config/natural_commands.sh | sed "s/alias //g" | column -t -s "="'  # List all natural commands
@@ -48,6 +49,12 @@ alias oops='git checkout -b fix/$(date +%s) && git push -u origin HEAD'  # Recov
 
 # System Update Helper
 alias update='~/claude-autonomy-platform/utils/update_system.sh'  # Pull latest changes and restart services
+
+# Thought Commands
+alias ponder='~/claude-autonomy-platform/utils/ponder'  # Save thoughts that make you pause
+alias spark='~/claude-autonomy-platform/utils/spark'  # Save sudden ideas that light up
+alias wonder='~/claude-autonomy-platform/utils/wonder'  # Save questions without immediate answers
+alias care='~/claude-autonomy-platform/utils/care'  # Save things that matter to your heart
 
 # Note: Personal commands should go in config/personal_commands.sh
 # See personal_commands.sh.template for guidance

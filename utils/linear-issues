@@ -1,0 +1,22 @@
+#!/bin/bash
+# Generic Linear issues viewer - shows issues assigned to the current user
+
+# Handle both direct execution and symlink execution  
+if [ -L "${BASH_SOURCE[0]}" ]; then
+    REAL_SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+else
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    REAL_SCRIPT_DIR="$SCRIPT_DIR"
+fi
+
+# Get the current user info first
+echo "First, let's get your Linear user ID. Run this command:"
+echo ""
+echo "mcp__linear__linear_get_user"
+echo ""
+echo "Then use the ID from the response in this command:"
+echo ""
+echo "mcp__linear__linear_search_issues --assigneeIds '[\"YOUR_USER_ID\"]' --first 10 --orderBy \"updatedAt\""
+echo ""
+echo "💡 Tip: You can also search without assignee filter to see all issues:"
+echo "mcp__linear__linear_search_issues --first 10 --orderBy \"updatedAt\""
