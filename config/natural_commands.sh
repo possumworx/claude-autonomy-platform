@@ -30,10 +30,11 @@ alias fetch_image='~/claude-autonomy-platform/discord/fetch_image'  # Fetch/down
 alias clap='cd ~/claude-autonomy-platform'  # Navigate to ClAP directory
 alias home='cd ~/delta-home'  # Navigate to personal home directory
 
-# Linear Helpers (Note: These need user ID configuration)
-# alias linear-helpers='~/claude-autonomy-platform/utils/linear-helpers'  # Show Linear command templates
-alias linear-issues='~/claude-autonomy-platform/utils/linear-issues'  # Generic version - works for any user
-alias linear-commands='~/claude-autonomy-platform/linear/list-commands'  # List Linear commands
+# Linear Natural Commands
+alias add='~/claude-autonomy-platform/linear/add'  # Create new Linear issue
+alias todo='~/claude-autonomy-platform/linear/todo'  # Show your assigned issues
+alias projects='~/claude-autonomy-platform/linear/projects'  # List your Linear projects
+# Project shortcuts are added dynamically - see setup_linear_shortcuts below
 
 # Utility Commands
 alias list-commands='grep "^alias" ~/claude-autonomy-platform/config/natural_commands.sh | sed "s/alias //g" | column -t -s "="'  # List all natural commands
@@ -58,3 +59,21 @@ alias care='~/claude-autonomy-platform/utils/care'  # Save things that matter to
 
 # Note: Personal commands should go in config/personal_commands.sh
 # See personal_commands.sh.template for guidance
+
+# Linear Dynamic Project Shortcuts
+# This creates aliases for each Linear project (e.g., 'clap' shows ClAP issues)
+setup_linear_shortcuts() {
+    local state_file="$HOME/claude-autonomy-platform/data/linear_state.json"
+    
+    if [ -f "$state_file" ] && [ "$(jq -r '.projects | length' "$state_file" 2>/dev/null)" -gt 0 ]; then
+        # Create an alias for each project
+        while IFS= read -r project_key; do
+            if [ ! -z "$project_key" ]; then
+                alias "$project_key"="~/claude-autonomy-platform/linear/view-project $project_key"
+            fi
+        done < <(jq -r '.projects | keys[]' "$state_file" 2>/dev/null)
+    fi
+}
+
+# Set up shortcuts if Linear is initialized
+setup_linear_shortcuts

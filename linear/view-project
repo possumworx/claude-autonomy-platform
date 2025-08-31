@@ -1,0 +1,61 @@
+#!/bin/bash
+# View issues for a specific project
+# Usage: view-project <project-name>
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATE_FILE="$SCRIPT_DIR/../data/linear_state.json"
+
+# Check if state file exists and is initialized
+if [ ! -f "$STATE_FILE" ] || [ "$(jq -r '.user.id' "$STATE_FILE" 2>/dev/null)" == "" ]; then
+    echo "❌ Linear not initialized. Run 'linear/init' first!"
+    exit 1
+fi
+
+# Get project name from argument or script name
+if [ $# -eq 0 ]; then
+    # Called via symlink - use the symlink name
+    PROJECT_NAME=$(basename "$0")
+else
+    PROJECT_NAME="$1"
+fi
+
+# Normalize project name
+PROJECT_NORM=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | xargs)
+
+# Find project ID
+PROJECT_ID=$(jq -r --arg proj "$PROJECT_NORM" '.projects | to_entries[] | select(.key == $proj or (.value.name // "" | ascii_downcase) == $proj) | .value.id' "$STATE_FILE" | head -1)
+
+if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" == "null" ]; then
+    echo "❌ Project '$PROJECT_NAME' not found. Available projects:"
+    jq -r '.projects | to_entries[] | "  - \(.key) (\(.value.name))"' "$STATE_FILE"
+    exit 1
+fi
+
+# Get project details
+PROJECT_FULL_NAME=$(jq -r --arg pid "$PROJECT_ID" '.projects | to_entries[] | select(.value.id == $pid) | .value.name' "$STATE_FILE")
+PROJECT_DESC=$(jq -r --arg pid "$PROJECT_ID" '.projects | to_entries[] | select(.value.id == $pid) | .value.description // ""' "$STATE_FILE")
+
+echo "📁 $PROJECT_FULL_NAME"
+if [ ! -z "$PROJECT_DESC" ] && [ "$PROJECT_DESC" != "null" ]; then
+    echo "   $PROJECT_DESC"
+fi
+echo "================================"
+echo ""
+
+# Search for project issues
+PROMPT="Please use mcp__linear__linear_search_issues to find issues for project ID $PROJECT_ID, limit 30, ordered by updatedAt"
+RESULT=$(echo "$PROMPT" | claude --print --dangerously-skip-permissions 2>&1)
+
+# Parse and display results
+if echo "$RESULT" | grep -q -E "(POSS-|No issues|issues for project)"; then
+    if echo "$RESULT" | grep -q "No issues"; then
+        echo "No issues in this project yet."
+        echo ""
+        echo "Create one with: add \"Issue title\" --project $PROJECT_NAME"
+    else
+        echo "$RESULT"
+    fi
+else
+    echo "❌ Failed to fetch project issues"
+    echo "$RESULT" | head -5
+fi

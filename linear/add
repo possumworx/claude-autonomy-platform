@@ -1,0 +1,99 @@
+#!/bin/bash
+# Natural command to create Linear issues
+# Usage: add "Issue title" [--project project-name]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATE_FILE="$SCRIPT_DIR/../data/linear_state.json"
+
+# Check if state file exists and is initialized
+if [ ! -f "$STATE_FILE" ] || [ "$(jq -r '.user.id' "$STATE_FILE" 2>/dev/null)" == "" ]; then
+    echo "❌ Linear not initialized. Run 'linear/init' first!"
+    exit 1
+fi
+
+# Parse arguments
+TITLE=""
+PROJECT=""
+PARSING_TITLE=true
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --project|-p)
+            PARSING_TITLE=false
+            shift
+            PROJECT="$1"
+            shift
+            ;;
+        *)
+            if [ "$PARSING_TITLE" = true ]; then
+                if [ -z "$TITLE" ]; then
+                    TITLE="$1"
+                else
+                    TITLE="$TITLE $1"
+                fi
+            else
+                PROJECT="$PROJECT $1"
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Validate title
+if [ -z "$TITLE" ]; then
+    echo "Usage: add \"Issue title\" [--project project-name]"
+    exit 1
+fi
+
+# Get team ID
+TEAM_ID=$(jq -r '.team.id' "$STATE_FILE")
+
+# Handle project if specified
+PROJECT_ID=""
+if [ ! -z "$PROJECT" ]; then
+    # Normalize project name (lowercase, trim)
+    PROJECT_NORM=$(echo "$PROJECT" | tr '[:upper:]' '[:lower:]' | xargs)
+    
+    # Look for project in state
+    PROJECT_ID=$(jq -r --arg proj "$PROJECT_NORM" '.projects | to_entries[] | select(.key == $proj or (.value.name // "" | ascii_downcase) == $proj) | .value.id' "$STATE_FILE" | head -1)
+    
+    if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" == "null" ]; then
+        echo "❌ Project '$PROJECT' not found. Available projects:"
+        jq -r '.projects | to_entries[] | "  - \(.key) (\(.value.name))"' "$STATE_FILE"
+        exit 1
+    fi
+fi
+
+# Create the issue
+echo "Creating issue: $TITLE"
+if [ ! -z "$PROJECT_ID" ]; then
+    PROJECT_NAME=$(jq -r --arg pid "$PROJECT_ID" '.projects | to_entries[] | select(.value.id == $pid) | .value.name' "$STATE_FILE")
+    echo "Project: $PROJECT_NAME"
+fi
+
+# Build the JSON payload
+PAYLOAD=$(jq -n \
+    --arg title "$TITLE" \
+    --arg desc "Created via natural command" \
+    --arg teamId "$TEAM_ID" \
+    --arg projectId "$PROJECT_ID" \
+    '{
+        title: $title,
+        description: $desc,
+        teamId: $teamId
+    } | if $projectId != "" then .projectId = $projectId else . end')
+
+# Create the issue using Claude with MCP
+PROMPT="Please create a Linear issue using mcp__linear__linear_create_issue with these parameters: $PAYLOAD"
+RESULT=$(echo "$PROMPT" | claude --print --dangerously-skip-permissions 2>&1)
+
+if echo "$RESULT" | grep -q -E "(Created issue|successfully)"; then
+    # Extract issue ID from result  
+    ISSUE_ID=$(echo "$RESULT" | grep -oE "POSS-[0-9]+" | head -1)
+    echo "✅ Created issue: $ISSUE_ID"
+    echo "$RESULT" | grep -o "https://linear.app[^ ]*" | head -1 || true
+else
+    echo "❌ Failed to create issue"
+    echo "$RESULT"
+    exit 1
+fi
