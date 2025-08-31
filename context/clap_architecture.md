@@ -422,7 +422,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 ### 3. Core Identity System
 
-- `~/CLAUDE.md` for underlying personal identity.
+- `~/claude-autonomy-platform/.claude/output-styles/identity-prompt.md` for underlying personal identity.
 - `/claude-autonomy-platform/CLAUDE.md` for session context.
 - During session swaps, `session_swap.sh` exports conversation history via `/export` command, which is parsed by `update_conversation_history.py` to create a clean rolling window in `swap_CLAUDE.md` with "Amy:" and "Me:" labels.
 - `project_session_builder.py` combines `my_architecture.md`, `my_personal_interests.md`, any applicable context documents triggered by the hat keyword, and the contents of `swap_CLAUDE.md`. These become the new project-level `CLAUDE.md` for the new session.
@@ -466,7 +466,7 @@ tmux send-keys -t persistent-login "source ~/claude-autonomy-platform/config/cla
 **Integrated**:
 
 - `gmail`: - @gongrzhe/server-gmail-autoauth-mcp. https://uithub.com/GongRzhe/Gmail-MCP-Server
-- `rag-memory`: RAG-enabled memory through a knowledge graph https://github.com/ttommyth/rag-memory-mcp
+- `rag-memory`: RAG-enabled memory through a knowledge graph https://uithub.com/ttommyth/rag-memory-mcp
 - `linear`: Task management integration. https://linear.app/docs/mcp
 //deprecated! try not to use! - `discord-mcp`: Send messages, read channels, manage Discord https://uithub.com/SaseQ/discord-mcp
 
@@ -495,7 +495,7 @@ Short, memorable natural language bash commands for common tasks and to replace 
 - Utility scripts: `utils/` directory  
 - Linear commands: `linear/` directory
 - All commands defined in `config/natural_commands.sh` (sourced by bashrc)
-- Personal commands in `config/personal_commands.sh`
+- Personal commands defined in `config/personal_commands.sh` and scripts stored in ~/claude-home/.
 
 **Recent Additions**:
 - **Thought Preservation System**: `ponder`, `spark`, `wonder`, `care` - Save different types of thoughts to `~/delta-home/thoughts/`

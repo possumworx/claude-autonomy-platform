@@ -91,3 +91,25 @@
 2. Consolidate duplicate components
 3. Begin documentation effort
 4. Gradually improve code quality
+
+
+## No longer used?
+
+core/comms_monitor_simple.py
+
+config/comms_monitor_config.json
+config/vscode-mcp-example.json
+config/x11_env.sh
+config/claude_state_detector.sh
+
+patches/
+patches/autonomous-timer-fixes.patch
+
+services/session-bridge-monitor.service
+
+utils/send-to-claude.sh.backup
+utils/send-to-terminal.sh
+utils/session-audit.py
+utils/tellclaude-reader.sh
+
+

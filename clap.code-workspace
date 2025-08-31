@@ -30,7 +30,7 @@
       "titleBar.activeForeground": "#FAFBFC"
     },
     "git.branchPrefix": "CLA-",
-    "git.inputValidation": "always",
+    "git.inputValidation": true,
     "[python]": {
       "editor.defaultFormatter": "ms-python.python"
     },
