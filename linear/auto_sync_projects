@@ -1,0 +1,57 @@
+#!/bin/bash
+# Automatically sync Linear projects without user interaction
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATE_FILE="$SCRIPT_DIR/../data/linear_state.json"
+
+echo "🔄 Auto-syncing Linear projects..."
+
+# Get team ID
+TEAM_ID=$(jq -r '.team.id' "$STATE_FILE")
+
+# Search for all projects
+PROJECTS_JSON=$(claude exec mcp__linear__linear_search_projects "{}" 2>&1)
+
+# Check if we got valid JSON
+if ! echo "$PROJECTS_JSON" | jq empty 2>/dev/null; then
+    echo "❌ Failed to fetch projects"
+    exit 1
+fi
+
+# Clear existing projects
+jq '.projects = {}' "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+# Process each project
+echo "$PROJECTS_JSON" | jq -r '.projects.nodes[] | @json' | while read -r project; do
+    PROJECT_DATA=$(echo "$project" | jq -r)
+    
+    PROJECT_ID=$(echo "$PROJECT_DATA" | jq -r '.id')
+    PROJECT_NAME=$(echo "$PROJECT_DATA" | jq -r '.name')
+    PROJECT_DESC=$(echo "$PROJECT_DATA" | jq -r '.description // ""')
+    
+    # Create a simple key from the project name (lowercase, no spaces)
+    PROJECT_KEY=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-')
+    
+    # Skip if no valid key
+    if [ -z "$PROJECT_KEY" ]; then
+        continue
+    fi
+    
+    echo "  + $PROJECT_KEY → $PROJECT_NAME"
+    
+    # Update state file
+    jq --arg key "$PROJECT_KEY" \
+       --arg id "$PROJECT_ID" \
+       --arg name "$PROJECT_NAME" \
+       --arg desc "$PROJECT_DESC" \
+       --arg tid "$TEAM_ID" \
+       '.projects[$key] = {id: $id, name: $name, description: $desc, team_id: $tid}' \
+       "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
+done
+
+# Update last sync time
+jq --arg time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '.last_sync = $time' "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+PROJECT_COUNT=$(jq -r '.projects | length' "$STATE_FILE")
+echo ""
+echo "✅ Synced $PROJECT_COUNT projects"

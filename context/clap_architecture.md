@@ -113,9 +113,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── clap_architecture.md
 │   ├── current_export.txt
 │   ├── current_export.txt.backup
-│   ├── final_session_notes.md
-│   ├── handoff_notes.md
 │   ├── my_architecture.md
+│   ├── my_personal_interests.md
 │   ├── project_session_context_builder.py
 │   └── swap_CLAUDE.md
 ├── core
@@ -137,6 +136,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── last_notification_alert.txt
 │   ├── last_seen_message_id.txt
 │   ├── linear_state.json
+│   ├── linear_state.json.tmp
 │   ├── pipe_reader.log
 │   ├── session_bridge_export.log
 │   ├── session_bridge_monitor.log
@@ -221,9 +221,14 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   └── sonnet-fix-checklist.md
 ├── linear
 │   ├── README.md
+│   ├── add
+│   ├── auto_sync_projects
 │   ├── init
 │   ├── list-commands
-│   └── sync_projects
+│   ├── projects
+│   ├── sync_projects
+│   ├── todo
+│   └── view-project
 ├── mcp-servers
 │   ├── discord-mcp
 │   │   ├── assets
@@ -360,7 +365,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-45 directories, 239 files
+45 directories, 244 files
 ```
 <!-- TREE_END -->
 

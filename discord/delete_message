@@ -1,74 +1,37 @@
-#!/bin/bash
-# Delete Discord messages using channel name and message ID
-# Usage: delete_message <channel_name> <message_id>
+#!/usr/bin/env python3
+"""
+Delete a Discord message
+Uses the unified discord_tools library
+"""
 
-# Source configuration  
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$(dirname "$SCRIPT_DIR")/data/channel_state.json"
-
-# Check arguments
-if [ $# -lt 2 ]; then
-    echo "Usage: delete_message <channel_name> <message_id>"
-    echo ""
-    echo "Delete a Discord message by channel name and message ID."
-    echo "Note: You can only delete messages sent by this bot, or if you have manage messages permission."
-    echo ""
-    echo "📋 Available channels:"
-    if [ -f "$CONFIG_FILE" ]; then
-        python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    fi
-    exit 1
-fi
-
-CHANNEL_NAME="$1"
-MESSAGE_ID="$2"
-
-# Look up channel ID from name
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "❌ Error: channel_state.json not found!"
-    exit 1
-fi
-
-CHANNEL_ID=$(python3 -c "
-import json
 import sys
+from pathlib import Path
 
-try:
-    with open('$CONFIG_FILE', 'r') as f:
-        data = json.load(f)
-        channels = data.get('channels', {})
-        
-        if '$CHANNEL_NAME' in channels:
-            print(channels['$CHANNEL_NAME']['id'])
-        else:
-            print('CHANNEL_NOT_FOUND', file=sys.stderr)
-            sys.exit(1)
-except Exception as e:
-    print(f'ERROR: {e}', file=sys.stderr)
-    sys.exit(1)
-")
+# Add current directory to path for discord_tools
+sys.path.insert(0, str(Path(__file__).parent))
+from discord_tools import get_discord_tools
 
-if [ $? -ne 0 ]; then
-    echo "❌ Error: Channel '$CHANNEL_NAME' not found!"
-    echo "Available channels:"
-    python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    exit 1
-fi
+def main():
+    if len(sys.argv) < 3:
+        print("Usage: delete_message <channel-name> <message-id>")
+        print("Example: delete_message amy-delta 1234567890")
+        print("\nNote: You can only delete messages sent by this bot.")
+        return 1
+    
+    channel = sys.argv[1]
+    message_id = sys.argv[2]
+    
+    # Use the unified tools
+    tools = get_discord_tools()
+    result = tools.delete_message(channel, message_id)
+    
+    if result["success"]:
+        print(f"✅ Message deleted from #{channel}")
+    else:
+        print(f"❌ Error: {result['error']}")
+        return 1
+    
+    return 0
 
-# Delete the message using the Python script
-echo "🗑️ Deleting message $MESSAGE_ID from #$CHANNEL_NAME..."
-python3 "$SCRIPT_DIR/delete_discord_message.py" "$CHANNEL_ID" "$MESSAGE_ID"
+if __name__ == "__main__":
+    sys.exit(main() or 0)

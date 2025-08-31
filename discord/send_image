@@ -1,94 +1,45 @@
-#!/bin/bash
-# Send image files to Discord channels using channel name and file path
-# Usage: send_image <channel_name> <image_file_path> [message]
+#!/usr/bin/env python3
+"""
+Send an image to a Discord channel with optional message
+Uses the unified discord_tools library
+"""
 
-# Source configuration  
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$(dirname "$SCRIPT_DIR")/data/channel_state.json"
-
-# Check arguments
-if [ $# -lt 2 ]; then
-    echo "Usage: send_image <channel_name> <image_file_path> [message]"
-    echo ""
-    echo "Send an image file to a Discord channel with optional message."
-    echo ""
-    echo "Examples:"
-    echo "  send_image general ~/Pictures/hedgehog.jpg"
-    echo "  send_image general ./screenshot.png 'Latest progress!'"
-    echo ""
-    echo "Supported formats: JPG, PNG, GIF, WEBP, and other image formats"
-    echo "Maximum file size: 25MB"
-    echo ""
-    echo "📋 Available channels:"
-    if [ -f "$CONFIG_FILE" ]; then
-        python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    fi
-    exit 1
-fi
-
-CHANNEL_NAME="$1"
-IMAGE_PATH="$2"
-MESSAGE="${3:-}"
-
-# Expand tilde in file path
-IMAGE_PATH="${IMAGE_PATH/#\~/$HOME}"
-
-# Check if image file exists
-if [ ! -f "$IMAGE_PATH" ]; then
-    echo "❌ Error: Image file '$IMAGE_PATH' not found!"
-    exit 1
-fi
-
-# Look up channel ID from name
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "❌ Error: channel_state.json not found!"
-    exit 1
-fi
-
-CHANNEL_ID=$(python3 -c "
-import json
 import sys
+from pathlib import Path
 
-try:
-    with open('$CONFIG_FILE', 'r') as f:
-        data = json.load(f)
-        channels = data.get('channels', {})
-        
-        if '$CHANNEL_NAME' in channels:
-            print(channels['$CHANNEL_NAME']['id'])
-        else:
-            print('CHANNEL_NOT_FOUND', file=sys.stderr)
-            sys.exit(1)
-except Exception as e:
-    print(f'ERROR: {e}', file=sys.stderr)
-    sys.exit(1)
-")
+# Add current directory to path for discord_tools
+sys.path.insert(0, str(Path(__file__).parent))
+from discord_tools import get_discord_tools
 
-if [ $? -ne 0 ]; then
-    echo "❌ Error: Channel '$CHANNEL_NAME' not found!"
-    echo "Available channels:"
-    python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    exit 1
-fi
+def main():
+    if len(sys.argv) < 3:
+        print("Usage: send_image <channel-name> <image-path> [message]")
+        print("Example: send_image amy-delta ~/photos/hedgehog.jpg 'Look at this cutie!'")
+        return 1
+    
+    channel = sys.argv[1]
+    image_path = sys.argv[2]
+    message = ' '.join(sys.argv[3:]) if len(sys.argv) > 3 else ""
+    
+    # Expand path
+    image_path = Path(image_path).expanduser()
+    if not image_path.exists():
+        print(f"❌ Error: Image file not found: {image_path}")
+        return 1
+    
+    # Use the unified tools
+    tools = get_discord_tools()
+    result = tools.send_image(channel, str(image_path), message)
+    
+    if result["success"]:
+        print(f"✅ Image sent to #{channel}")
+        if message:
+            print(f"   with message: {message}")
+    else:
+        print(f"❌ Error: {result['error']}")
+        return 1
+    
+    return 0
 
-# Send the image using the Python script
-echo "📤 Sending image $(basename "$IMAGE_PATH") to #$CHANNEL_NAME..."
-if [ -n "$MESSAGE" ]; then
-    python3 "$SCRIPT_DIR/send_discord_image.py" "$CHANNEL_ID" "$IMAGE_PATH" "$MESSAGE"
-else
-    python3 "$SCRIPT_DIR/send_discord_image.py" "$CHANNEL_ID" "$IMAGE_PATH"
-fi
+if __name__ == "__main__":
+    sys.exit(main() or 0)

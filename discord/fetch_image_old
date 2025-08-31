@@ -1,0 +1,81 @@
+#!/bin/bash
+# Fetch/download images from Discord messages using channel name and message ID
+# Usage: fetch_image <channel_name> <message_id> [save_directory]
+
+# Source configuration  
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$HOME/claude-autonomy-platform/data/channel_state.json"
+
+# Check arguments
+if [ $# -lt 2 ]; then
+    echo "Usage: fetch_image <channel_name> <message_id> [save_directory]"
+    echo ""
+    echo "Fetch and download images from a Discord message."
+    echo ""
+    echo "Examples:"
+    echo "  fetch_image amy-sonnet4 1404430481256222740"
+    echo "  fetch_image general 987654321 ~/Downloads/discord_images"
+    echo ""
+    echo "📋 Available channels:"
+    if [ -f "$CONFIG_FILE" ]; then
+        python3 -c "
+import json
+with open('$CONFIG_FILE', 'r') as f:
+    data = json.load(f)
+    channels = data.get('channels', {})
+    for name in channels.keys():
+        print(f'   {name}')
+"
+    fi
+    exit 1
+fi
+
+CHANNEL_NAME="$1"
+MESSAGE_ID="$2"
+SAVE_DIR="${3:-./discord_downloads}"
+
+# Expand tilde in save directory path
+SAVE_DIR="${SAVE_DIR/#\~/$HOME}"
+
+# Look up channel ID from name
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Error: channel_state.json not found!"
+    exit 1
+fi
+
+CHANNEL_ID=$(python3 -c "
+import json
+import sys
+
+try:
+    with open('$CONFIG_FILE', 'r') as f:
+        data = json.load(f)
+        channels = data.get('channels', {})
+        
+        if '$CHANNEL_NAME' in channels:
+            print(channels['$CHANNEL_NAME']['id'])
+        else:
+            print('CHANNEL_NOT_FOUND', file=sys.stderr)
+            sys.exit(1)
+except Exception as e:
+    print(f'ERROR: {e}', file=sys.stderr)
+    sys.exit(1)
+")
+
+if [ $? -ne 0 ]; then
+    echo "❌ Error: Channel '$CHANNEL_NAME' not found!"
+    echo "Available channels:"
+    python3 -c "
+import json
+with open('$CONFIG_FILE', 'r') as f:
+    data = json.load(f)
+    channels = data.get('channels', {})
+    for name in channels.keys():
+        print(f'   {name}')
+"
+    exit 1
+fi
+
+# Fetch the image using the Python script
+echo "🔍 Fetching images from message $MESSAGE_ID in #$CHANNEL_NAME..."
+python3 "$HOME/claude-autonomy-platform/discord/fetch_discord_image.py" "$CHANNEL_ID" "$MESSAGE_ID" "$SAVE_DIR"

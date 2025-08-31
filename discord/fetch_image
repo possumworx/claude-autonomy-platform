@@ -1,81 +1,91 @@
-#!/bin/bash
-# Fetch/download images from Discord messages using channel name and message ID
-# Usage: fetch_image <channel_name> <message_id> [save_directory]
+#!/usr/bin/env python3
+"""
+Fetch images from recent Discord messages
+Shows available images and allows viewing
+Uses the unified discord_tools library
+"""
 
-# Source configuration  
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$HOME/claude-autonomy-platform/data/channel_state.json"
-
-# Check arguments
-if [ $# -lt 2 ]; then
-    echo "Usage: fetch_image <channel_name> <message_id> [save_directory]"
-    echo ""
-    echo "Fetch and download images from a Discord message."
-    echo ""
-    echo "Examples:"
-    echo "  fetch_image amy-sonnet4 1404430481256222740"
-    echo "  fetch_image general 987654321 ~/Downloads/discord_images"
-    echo ""
-    echo "📋 Available channels:"
-    if [ -f "$CONFIG_FILE" ]; then
-        python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    fi
-    exit 1
-fi
-
-CHANNEL_NAME="$1"
-MESSAGE_ID="$2"
-SAVE_DIR="${3:-./discord_downloads}"
-
-# Expand tilde in save directory path
-SAVE_DIR="${SAVE_DIR/#\~/$HOME}"
-
-# Look up channel ID from name
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "❌ Error: channel_state.json not found!"
-    exit 1
-fi
-
-CHANNEL_ID=$(python3 -c "
-import json
 import sys
+import subprocess
+from pathlib import Path
+from datetime import datetime
 
-try:
-    with open('$CONFIG_FILE', 'r') as f:
-        data = json.load(f)
-        channels = data.get('channels', {})
+# Add current directory to path for discord_tools
+sys.path.insert(0, str(Path(__file__).parent))
+from discord_tools import get_discord_tools
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: fetch_image <channel-name> [image-number]")
+        print("Example: fetch_image amy-delta       # List recent images")
+        print("         fetch_image amy-delta 1     # View first image")
+        return 1
+    
+    channel = sys.argv[1]
+    
+    # Get tools and image directory
+    tools = get_discord_tools()
+    image_dir = tools.image_dir
+    
+    # If no image number specified, list recent images
+    if len(sys.argv) < 3:
+        print(f"🖼️  Recent images in #{channel}:\n")
         
-        if '$CHANNEL_NAME' in channels:
-            print(channels['$CHANNEL_NAME']['id'])
-        else:
-            print('CHANNEL_NOT_FOUND', file=sys.stderr)
-            sys.exit(1)
-except Exception as e:
-    print(f'ERROR: {e}', file=sys.stderr)
-    sys.exit(1)
-")
+        # Look for images from this channel
+        channel_images = []
+        for date_dir in sorted(image_dir.iterdir(), reverse=True):
+            if date_dir.is_dir():
+                for img in sorted(date_dir.iterdir(), reverse=True):
+                    if img.name.startswith(f"{channel}-"):
+                        channel_images.append(img)
+        
+        if not channel_images:
+            print(f"No images found from #{channel}")
+            print(f"Images are saved to: {image_dir}")
+            return 0
+        
+        # Show up to 10 recent images
+        for i, img in enumerate(channel_images[:10], 1):
+            # Parse the filename to show details
+            parts = img.stem.split('-')
+            if len(parts) >= 4:
+                date = parts[1]
+                time = parts[2]
+                print(f"{i}. {img.name}")
+                print(f"   Date: {date} Time: {time[:2]}:{time[2:4]}:{time[4:6]}")
+                print(f"   Path: {img}")
+            else:
+                print(f"{i}. {img.name}")
+        
+        print(f"\nTo view an image, use: fetch_image {channel} <number>")
+        return 0
+    
+    # View specific image
+    image_num = int(sys.argv[2])
+    
+    # Find the image
+    channel_images = []
+    for date_dir in sorted(image_dir.iterdir(), reverse=True):
+        if date_dir.is_dir():
+            for img in sorted(date_dir.iterdir(), reverse=True):
+                if img.name.startswith(f"{channel}-"):
+                    channel_images.append(img)
+    
+    if image_num < 1 or image_num > len(channel_images):
+        print(f"❌ Error: Image number {image_num} not found (1-{len(channel_images)} available)")
+        return 1
+    
+    image_path = channel_images[image_num - 1]
+    print(f"📸 Opening image: {image_path.name}")
+    
+    # Try to open the image with system viewer
+    try:
+        # On Linux, try xdg-open
+        subprocess.run(['xdg-open', str(image_path)], check=False)
+    except:
+        print(f"Could not open image viewer. Image saved at:\n{image_path}")
+    
+    return 0
 
-if [ $? -ne 0 ]; then
-    echo "❌ Error: Channel '$CHANNEL_NAME' not found!"
-    echo "Available channels:"
-    python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    exit 1
-fi
-
-# Fetch the image using the Python script
-echo "🔍 Fetching images from message $MESSAGE_ID in #$CHANNEL_NAME..."
-python3 "$HOME/claude-autonomy-platform/discord/fetch_discord_image.py" "$CHANNEL_ID" "$MESSAGE_ID" "$SAVE_DIR"
+if __name__ == "__main__":
+    sys.exit(main() or 0)

@@ -1,79 +1,38 @@
-#!/bin/bash
-# Add reactions to Discord messages using channel name and message ID
-# Usage: add_reaction <channel_name> <message_id> <emoji>
+#!/usr/bin/env python3
+"""
+Add a reaction to a Discord message
+Uses the unified discord_tools library
+"""
 
-# Source configuration  
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$(dirname "$SCRIPT_DIR")/data/channel_state.json"
-
-# Check arguments
-if [ $# -lt 3 ]; then
-    echo "Usage: add_reaction <channel_name> <message_id> <emoji>"
-    echo ""
-    echo "Add an emoji reaction to a Discord message."
-    echo ""
-    echo "Examples:"
-    echo "  add_reaction general 123456789 👍"
-    echo "  add_reaction general 123456789 🎉"
-    echo "  add_reaction general 123456789 ✅"
-    echo ""
-    echo "📋 Available channels:"
-    if [ -f "$CONFIG_FILE" ]; then
-        python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    fi
-    exit 1
-fi
-
-CHANNEL_NAME="$1"
-MESSAGE_ID="$2"
-EMOJI="$3"
-
-# Look up channel ID from name
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "❌ Error: channel_state.json not found!"
-    exit 1
-fi
-
-CHANNEL_ID=$(python3 -c "
-import json
 import sys
+from pathlib import Path
 
-try:
-    with open('$CONFIG_FILE', 'r') as f:
-        data = json.load(f)
-        channels = data.get('channels', {})
-        
-        if '$CHANNEL_NAME' in channels:
-            print(channels['$CHANNEL_NAME']['id'])
-        else:
-            print('CHANNEL_NOT_FOUND', file=sys.stderr)
-            sys.exit(1)
-except Exception as e:
-    print(f'ERROR: {e}', file=sys.stderr)
-    sys.exit(1)
-")
+# Add current directory to path for discord_tools
+sys.path.insert(0, str(Path(__file__).parent))
+from discord_tools import get_discord_tools
 
-if [ $? -ne 0 ]; then
-    echo "❌ Error: Channel '$CHANNEL_NAME' not found!"
-    echo "Available channels:"
-    python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    exit 1
-fi
+def main():
+    if len(sys.argv) < 4:
+        print("Usage: add_reaction <channel-name> <message-id> <emoji>")
+        print("Example: add_reaction amy-delta 1234567890 🦔")
+        print("Example: add_reaction general 1234567890 :thumbsup:")
+        return 1
+    
+    channel = sys.argv[1]
+    message_id = sys.argv[2]
+    emoji = sys.argv[3]
+    
+    # Use the unified tools
+    tools = get_discord_tools()
+    result = tools.add_reaction(channel, message_id, emoji)
+    
+    if result["success"]:
+        print(f"✅ Reaction {emoji} added to message in #{channel}")
+    else:
+        print(f"❌ Error: {result['error']}")
+        return 1
+    
+    return 0
 
-# Add the reaction using the Python script
-echo "👍 Adding reaction $EMOJI to message $MESSAGE_ID in #$CHANNEL_NAME..."
-python3 "$SCRIPT_DIR/add_discord_reaction.py" "$CHANNEL_ID" "$MESSAGE_ID" "$EMOJI"
+if __name__ == "__main__":
+    sys.exit(main() or 0)
