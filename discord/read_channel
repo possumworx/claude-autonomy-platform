@@ -1,40 +1,85 @@
-#!/bin/bash
-# Read Discord channel messages using the channel-based system
+#!/usr/bin/env python3
+"""
+Read Discord channel messages with automatic image handling
+Uses the unified discord_tools library
+"""
 
-# Source configuration - resolve symlinks first
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-CLAP_ROOT="$(dirname "$SCRIPT_DIR")"
-CONFIG_FILE="$CLAP_ROOT/data/channel_state.json"
-
-# Default to list channels if no argument
-if [ $# -eq 0 ]; then
-    echo "📋 Available channels:"
-    if [ -f "$CONFIG_FILE" ]; then
-        # Use python to pretty-print the channels
-        python3 -c "
+import sys
 import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name, info in channels.items():
-        unread = info.get('last_message_id') != info.get('last_read_message_id')
-        marker = '🔴' if unread else '🟢'
-        print(f'{marker} {name}')
-"
-    else
-        echo "❌ No channel_state.json found!"
-    fi
-    exit 0
-fi
+from pathlib import Path
 
-CHANNEL_NAME=$1
-COUNT=${2:-25}
+# Add current directory to path for discord_tools
+sys.path.insert(0, str(Path(__file__).parent))
+from discord_tools import get_discord_tools
 
-# Call the Python API script
-if [ -f "$SCRIPT_DIR/read_channel_api.py" ]; then
-    python3 "$SCRIPT_DIR/read_channel_api.py" "$CHANNEL_NAME" "$COUNT"
-else
-    echo "❌ Error: read_channel_api.py not found!"
-    echo "Please ensure read_channel_api.py is in the same directory"
-    exit 1
-fi
+def list_channels():
+    """List available channels from channel state"""
+    config_file = Path.home() / "claude-autonomy-platform" / "data" / "channel_state.json"
+    
+    print("📋 Available channels:")
+    if config_file.exists():
+        with open(config_file, 'r') as f:
+            data = json.load(f)
+            channels = data.get('channels', {})
+            for name in sorted(channels.keys()):
+                print(f"  • {name}")
+    else:
+        print("❌ No channel_state.json found!")
+
+def main():
+    if len(sys.argv) < 2:
+        list_channels()
+        return
+    
+    channel = sys.argv[1]
+    limit = int(sys.argv[2]) if len(sys.argv) > 2 else 25
+    
+    # Use the unified tools
+    tools = get_discord_tools()
+    result = tools.read_messages(channel, limit)
+    
+    if not result["success"]:
+        print(f"❌ Error: {result['error']}")
+        return 1
+    
+    messages = result["messages"]
+    print(f"📨 Reading {len(messages)} messages from #{channel}...\n")
+    print(f"=== Last {len(messages)} messages ===\n")
+    
+    for msg in messages:
+        # Format timestamp
+        from datetime import datetime
+        timestamp = datetime.fromisoformat(msg['timestamp'].replace('Z', '+00:00'))
+        time_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        
+        print(f"[{time_str}] {msg['author']}: {msg['content']}")
+    
+    print(f"\n✓ Marked #{channel} as read")
+    print("✅ Done!")
+    
+    # Update last read message ID
+    update_last_read(channel, messages[-1]["id"] if messages else None)
+    
+    return 0
+
+def update_last_read(channel_name, message_id):
+    """Update the last read message ID for a channel"""
+    config_file = Path.home() / "claude-autonomy-platform" / "data" / "channel_state.json"
+    
+    if not config_file.exists() or not message_id:
+        return
+    
+    try:
+        with open(config_file, 'r') as f:
+            data = json.load(f)
+        
+        if channel_name in data.get('channels', {}):
+            data['channels'][channel_name]['last_read_message_id'] = message_id
+            
+            with open(config_file, 'w') as f:
+                json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Warning: Could not update last read: {e}")
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)
