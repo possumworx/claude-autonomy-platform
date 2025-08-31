@@ -1,75 +1,38 @@
-#!/bin/bash
-# Edit Discord messages using channel name and message ID
-# Usage: edit_message <channel_name> <message_id> <new_content>
+#!/usr/bin/env python3
+"""
+Edit a Discord message
+Uses the unified discord_tools library
+"""
 
-# Source configuration  
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$(dirname "$SCRIPT_DIR")/data/channel_state.json"
-
-# Check arguments
-if [ $# -lt 3 ]; then
-    echo "Usage: edit_message <channel_name> <message_id> <new_content>"
-    echo ""
-    echo "Edit a Discord message by channel name and message ID."
-    echo "Note: You can only edit messages sent by this bot."
-    echo ""
-    echo "📋 Available channels:"
-    if [ -f "$CONFIG_FILE" ]; then
-        python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    fi
-    exit 1
-fi
-
-CHANNEL_NAME="$1"
-MESSAGE_ID="$2"
-NEW_CONTENT="$3"
-
-# Look up channel ID from name
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "❌ Error: channel_state.json not found!"
-    exit 1
-fi
-
-CHANNEL_ID=$(python3 -c "
-import json
 import sys
+from pathlib import Path
 
-try:
-    with open('$CONFIG_FILE', 'r') as f:
-        data = json.load(f)
-        channels = data.get('channels', {})
-        
-        if '$CHANNEL_NAME' in channels:
-            print(channels['$CHANNEL_NAME']['id'])
-        else:
-            print('CHANNEL_NOT_FOUND', file=sys.stderr)
-            sys.exit(1)
-except Exception as e:
-    print(f'ERROR: {e}', file=sys.stderr)
-    sys.exit(1)
-")
+# Add current directory to path for discord_tools
+sys.path.insert(0, str(Path(__file__).parent))
+from discord_tools import get_discord_tools
 
-if [ $? -ne 0 ]; then
-    echo "❌ Error: Channel '$CHANNEL_NAME' not found!"
-    echo "Available channels:"
-    python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    exit 1
-fi
+def main():
+    if len(sys.argv) < 4:
+        print("Usage: edit_message <channel-name> <message-id> <new-content>")
+        print("Example: edit_message amy-delta 1234567890 'Updated message!'")
+        print("\nNote: You can only edit messages sent by this bot.")
+        return 1
+    
+    channel = sys.argv[1]
+    message_id = sys.argv[2]
+    new_content = ' '.join(sys.argv[3:])
+    
+    # Use the unified tools
+    tools = get_discord_tools()
+    result = tools.edit_message(channel, message_id, new_content)
+    
+    if result["success"]:
+        print(f"✅ Message edited in #{channel}")
+    else:
+        print(f"❌ Error: {result['error']}")
+        return 1
+    
+    return 0
 
-# Edit the message using the Python script
-echo "📝 Editing message $MESSAGE_ID in #$CHANNEL_NAME..."
-python3 "$SCRIPT_DIR/edit_discord_message.py" "$CHANNEL_ID" "$MESSAGE_ID" "$NEW_CONTENT"
+if __name__ == "__main__":
+    sys.exit(main() or 0)

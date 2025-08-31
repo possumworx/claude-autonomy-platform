@@ -1,95 +1,46 @@
-#!/bin/bash
-# Send files to Discord channels using channel name and file path
-# Usage: send_file <channel_name> <file_path> [message]
+#!/usr/bin/env python3
+"""
+Send a file to a Discord channel with optional message
+Uses the unified discord_tools library
+"""
 
-# Source configuration  
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$(dirname "$SCRIPT_DIR")/data/channel_state.json"
-
-# Check arguments
-if [ $# -lt 2 ]; then
-    echo "Usage: send_file <channel_name> <file_path> [message]"
-    echo ""
-    echo "Send any file to a Discord channel with optional message."
-    echo ""
-    echo "Examples:"
-    echo "  send_file general ~/Documents/report.pdf"
-    echo "  send_file general ./code.py 'Check this implementation!'"
-    echo "  send_file general ~/spreadsheet.xlsx 'Latest data'"
-    echo ""
-    echo "Supported: Any file type (images, documents, code, etc.)"
-    echo "Maximum file size: 25MB"
-    echo ""
-    echo "📋 Available channels:"
-    if [ -f "$CONFIG_FILE" ]; then
-        python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    fi
-    exit 1
-fi
-
-CHANNEL_NAME="$1"
-FILE_PATH="$2"
-MESSAGE="${3:-}"
-
-# Expand tilde in file path
-FILE_PATH="${FILE_PATH/#\~/$HOME}"
-
-# Check if file exists
-if [ ! -f "$FILE_PATH" ]; then
-    echo "❌ Error: File '$FILE_PATH' not found!"
-    exit 1
-fi
-
-# Look up channel ID from name
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "❌ Error: channel_state.json not found!"
-    exit 1
-fi
-
-CHANNEL_ID=$(python3 -c "
-import json
 import sys
+from pathlib import Path
 
-try:
-    with open('$CONFIG_FILE', 'r') as f:
-        data = json.load(f)
-        channels = data.get('channels', {})
-        
-        if '$CHANNEL_NAME' in channels:
-            print(channels['$CHANNEL_NAME']['id'])
-        else:
-            print('CHANNEL_NOT_FOUND', file=sys.stderr)
-            sys.exit(1)
-except Exception as e:
-    print(f'ERROR: {e}', file=sys.stderr)
-    sys.exit(1)
-")
+# Add current directory to path for discord_tools
+sys.path.insert(0, str(Path(__file__).parent))
+from discord_tools import get_discord_tools
 
-if [ $? -ne 0 ]; then
-    echo "❌ Error: Channel '$CHANNEL_NAME' not found!"
-    echo "Available channels:"
-    python3 -c "
-import json
-with open('$CONFIG_FILE', 'r') as f:
-    data = json.load(f)
-    channels = data.get('channels', {})
-    for name in channels.keys():
-        print(f'   {name}')
-"
-    exit 1
-fi
+def main():
+    if len(sys.argv) < 3:
+        print("Usage: send_file <channel-name> <file-path> [message]")
+        print("Example: send_file amy-delta ~/documents/report.pdf 'Here is the report!'")
+        print("Example: send_file general ~/data/results.csv")
+        return 1
+    
+    channel = sys.argv[1]
+    file_path = sys.argv[2]
+    message = ' '.join(sys.argv[3:]) if len(sys.argv) > 3 else ""
+    
+    # Expand path
+    file_path = Path(file_path).expanduser()
+    if not file_path.exists():
+        print(f"❌ Error: File not found: {file_path}")
+        return 1
+    
+    # Use the unified tools
+    tools = get_discord_tools()
+    result = tools.send_file(channel, str(file_path), message)
+    
+    if result["success"]:
+        print(f"✅ File sent to #{channel}")
+        if message:
+            print(f"   with message: {message}")
+    else:
+        print(f"❌ Error: {result['error']}")
+        return 1
+    
+    return 0
 
-# Send the file using the Python script
-echo "📤 Sending file $(basename "$FILE_PATH") to #$CHANNEL_NAME..."
-if [ -n "$MESSAGE" ]; then
-    python3 "$SCRIPT_DIR/send_discord_file.py" "$CHANNEL_ID" "$FILE_PATH" "$MESSAGE"
-else
-    python3 "$SCRIPT_DIR/send_discord_file.py" "$CHANNEL_ID" "$FILE_PATH"
-fi
+if __name__ == "__main__":
+    sys.exit(main() or 0)
