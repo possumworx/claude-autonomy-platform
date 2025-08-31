@@ -34,6 +34,8 @@ alias home='cd ~/delta-home'  # Navigate to personal home directory
 alias add='~/claude-autonomy-platform/linear/add'  # Create new Linear issue
 alias todo='~/claude-autonomy-platform/linear/todo'  # Show your assigned issues
 alias projects='~/claude-autonomy-platform/linear/projects'  # List your Linear projects
+alias search-issues='~/claude-autonomy-platform/linear/search'  # Search Linear issues
+alias update-status='~/claude-autonomy-platform/linear/update-status'  # Update issue status
 # Project shortcuts are added dynamically - see setup_linear_shortcuts below
 
 # Utility Commands

@@ -7,6 +7,8 @@ Natural language commands for Linear project management, designed to make issue 
 - `add "Issue title" [--project]` - Create new issue with optional project
 - `todo` - Show issues assigned to you  
 - `projects` - List your projects with descriptions
+- `search-issues <query>` - Search for issues by text
+- `update-status <issue-id> <status>` - Update issue status (todo, in-progress, done, etc.)
 - `[project-name]` - Show issues for specific project (e.g., `clap`, `observatory`)
 
 ## Setup
