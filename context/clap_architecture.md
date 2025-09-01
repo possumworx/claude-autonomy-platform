@@ -75,7 +75,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 <!-- TREE_START -->
 ```
-/home/sparkle-sonnet/claude-autonomy-platform
+~/claude-autonomy-platform
 ├── ansible
 │   ├── configs
 │   │   └── services
@@ -326,6 +326,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── my-linear-issues
 │   ├── parse_natural_commands.sh
 │   ├── ponder
+│   ├── quick_pdf_parser.py
 │   ├── rotate_logs.sh
 │   ├── safe_cleanup.sh
 │   ├── secret-scanner
@@ -375,7 +376,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package-lock.json
 └── test_branch_protection.txt
 
-47 directories, 252 files
+47 directories, 253 files
 ```
 <!-- TREE_END -->
 
