@@ -75,7 +75,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 <!-- TREE_START -->
 ```
-~/claude-autonomy-platform
+/home/sparkle-sonnet/claude-autonomy-platform
 ├── ansible
 │   ├── configs
 │   │   └── services
@@ -135,6 +135,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── send_key.sh
 │   └── type_text.sh
 ├── discord
+│   ├── discord_downloads
+│   │   └── 2025-09-01_11_13_16-Ticket_data_-_Google_Sheets_Mozilla_Firefox.jpg
 │   ├── add_discord_reaction.py
 │   ├── add_reaction
 │   ├── channel_monitor_simple.py
@@ -375,7 +377,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package-lock.json
 └── test_branch_protection.txt
 
-47 directories, 252 files
+48 directories, 253 files
 ```
 <!-- TREE_END -->
 
