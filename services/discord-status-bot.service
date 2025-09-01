@@ -1,0 +1,18 @@
+[Unit]
+Description=Discord Status Bot for Claude
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/%i/claude-autonomy-platform
+Environment=PATH=/home/%i/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONPATH=/home/%i/claude-autonomy-platform
+EnvironmentFile=-/home/%i/claude-autonomy-platform/config/claude_infrastructure_config.txt
+ExecStart=/usr/bin/python3 /home/%i/claude-autonomy-platform/discord/claude_status_bot.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
