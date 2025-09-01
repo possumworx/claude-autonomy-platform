@@ -465,8 +465,52 @@ def check_usage_limit_reset(error_state):
     
     return False
 
+def calculate_wait_until_reset(reset_time_str):
+    """
+    Calculate how long to wait until the reset time
+    Returns wait duration in seconds
+    """
+    try:
+        from datetime import datetime, timedelta
+        import re
+        
+        current_time = datetime.now()
+        
+        # Parse the reset time
+        time_match = re.match(r'(\d{1,2})(?::(\d{2}))?(?:am|pm)?', reset_time_str, re.IGNORECASE)
+        if not time_match:
+            return None
+            
+        hour = int(time_match.group(1))
+        minute = int(time_match.group(2) or 0)
+        
+        # Handle AM/PM
+        if 'pm' in reset_time_str.lower() and hour != 12:
+            hour += 12
+        elif 'am' in reset_time_str.lower() and hour == 12:
+            hour = 0
+        
+        # Create reset datetime for today
+        reset_datetime = current_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        
+        # If reset time has already passed today, assume it's for tomorrow
+        if reset_datetime <= current_time:
+            reset_datetime += timedelta(days=1)
+        
+        # Add 5 minute grace period
+        reset_datetime += timedelta(minutes=5)
+        
+        # Calculate wait duration
+        wait_duration = (reset_datetime - current_time).total_seconds()
+        
+        return max(0, wait_duration)
+        
+    except Exception as e:
+        log_message(f"Error calculating wait duration: {e}")
+        return None
+
 def update_discord_status(status_type, reset_time=None):
-    """Update Discord bot status directly via API
+    """Update Discord bot status via persistent bot
     
     Status types:
     - operational: Normal operation (green online) 
@@ -475,83 +519,54 @@ def update_discord_status(status_type, reset_time=None):
     - context-high: High context (yellow idle)
     """
     try:
-        # Try using discord.py if available
-        import discord
-        import asyncio
+        # Map our status types to Discord presence format
+        status_map = {
+            "operational": {
+                "status": "online",
+                "activities": [{
+                    "name": "✅ Operational",
+                    "type": 3  # Watching
+                }]
+            },
+            "limited": {
+                "status": "idle",
+                "activities": [{
+                    "name": f"⏳ Limited until {reset_time}" if reset_time else "⏳ Usage limit",
+                    "type": 3  # Watching
+                }]
+            },
+            "api-error": {
+                "status": "dnd",
+                "activities": [{
+                    "name": "❌ API Error",
+                    "type": 3  # Watching
+                }]
+            },
+            "context-high": {
+                "status": "idle", 
+                "activities": [{
+                    "name": f"⚠️ Context {reset_time}%" if reset_time else "⚠️ High Context",
+                    "type": 3  # Watching
+                }]
+            }
+        }
         
-        if not DISCORD_TOKEN:
-            log_message("No Discord token available for status update")
-            return
-            
-        class QuickStatusUpdater(discord.Client):
-            def __init__(self, status_type, details=None):
-                super().__init__(intents=discord.Intents.default())
-                self.status_type = status_type
-                self.details = details
-                
-            async def on_ready(self):
-                # Map our status types to Discord presence
-                status_map = {
-                    "operational": {
-                        "status": discord.Status.online,
-                        "activity": discord.Activity(
-                            name="✅ Operational",
-                            type=discord.ActivityType.watching
-                        )
-                    },
-                    "limited": {
-                        "status": discord.Status.idle,
-                        "activity": discord.Activity(
-                            name=f"⏳ Limited until {self.details}" if self.details else "⏳ Usage limit",
-                            type=discord.ActivityType.watching
-                        )
-                    },
-                    "api-error": {
-                        "status": discord.Status.dnd,
-                        "activity": discord.Activity(
-                            name="❌ API Error", 
-                            type=discord.ActivityType.watching
-                        )
-                    },
-                    "context-high": {
-                        "status": discord.Status.idle,
-                        "activity": discord.Activity(
-                            name=f"⚠️ Context {self.details}%" if self.details else "⚠️ High Context",
-                            type=discord.ActivityType.watching
-                        )
-                    }
-                }
-                
-                presence = status_map.get(self.status_type, status_map["operational"])
-                await self.change_presence(
-                    status=presence["status"],
-                    activity=presence["activity"]
-                )
-                log_message(f"Discord status updated: {self.status_type}")
-                await self.close()
+        # Get the status configuration
+        presence = status_map.get(status_type, status_map["operational"])
         
-        # Create new event loop for the status update
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        client = QuickStatusUpdater(status_type, reset_time)
-        loop.run_until_complete(client.start(DISCORD_TOKEN))
-        loop.close()
+        # Write status request for persistent bot to pick up
+        status_file = DATA_DIR / "bot_status.json"
+        status_data = {
+            "timestamp": datetime.now().isoformat(),
+            "presence": presence,
+            "source": "autonomous_timer"
+        }
         
-    except ImportError:
-        # Fallback to save request if discord.py not available
-        log_message("discord.py not available, saving status request")
-        try:
-            cmd = [str(AUTONOMY_DIR / "discord" / "save_status_request.py"), status_type]
-            if reset_time:
-                cmd.append(reset_time)
-            
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                log_message(f"Failed to save Discord status request: {result.stderr}")
-            else:
-                log_message(f"Discord status request saved: {status_type} {reset_time or ''}")
-        except Exception as e:
-            log_message(f"Error with fallback status update: {e}")
+        with open(status_file, 'w') as f:
+            json.dump(status_data, f, indent=2)
+        
+        log_message(f"Discord status request written: {status_type}")
+        
     except Exception as e:
         log_message(f"Error updating Discord status: {e}")
 
@@ -1332,6 +1347,27 @@ def main():
     current_error_state = load_error_state()
     if current_error_state:
         log_message(f"Resuming with existing error state: {current_error_state}")
+        
+        # If it's a usage limit that has already passed, clear it immediately
+        if current_error_state.get("error_type") == "usage_limit" and check_usage_limit_reset(current_error_state):
+            log_message("Previous usage limit has already reset - clearing error state")
+            clear_error_state()
+            update_discord_status("operational")
+            current_error_state = None
+            
+            # Send notification that we're back
+            try:
+                cmd = [str(AUTONOMY_DIR / "discord" / "write_channel"), "amy-delta",
+                      "✅ Autonomous timer restarted. Previous rate limit has already reset - resuming normal operation!"]
+                subprocess.run(cmd, capture_output=True, text=True)
+            except:
+                pass
+        else:
+            # Update Discord status to reflect current error state
+            if current_error_state.get("error_type") == "usage_limit":
+                update_discord_status("limited", current_error_state.get("reset_time"))
+            else:
+                update_discord_status("api-error")
     else:
         # Set operational status on startup if no errors
         update_discord_status("operational")
@@ -1357,7 +1393,60 @@ def main():
                 
                 # Update Discord status based on error type
                 if error_info["error_type"] == "usage_limit":
-                    update_discord_status("limited", error_info.get("reset_time"))
+                    reset_time = error_info.get("reset_time")
+                    update_discord_status("limited", reset_time)
+                    
+                    # Calculate wait duration and handle automatic retry
+                    wait_seconds = calculate_wait_until_reset(reset_time)
+                    if wait_seconds:
+                        wait_hours = wait_seconds / 3600
+                        log_message(f"Claude API rate limit reached. Will automatically retry after {reset_time} (in {wait_hours:.1f} hours)")
+                        
+                        # Send notification to Discord about the wait
+                        try:
+                            if wait_hours < 6:  # Only wait if less than 6 hours
+                                cmd = [str(AUTONOMY_DIR / "discord" / "write_channel"), "amy-delta",
+                                      f"🕐 Claude API rate limit reached. Waiting until {reset_time} ({wait_hours:.1f} hours) then will automatically retry. Delta's autonomy will resume after the wait period."]
+                                subprocess.run(cmd, capture_output=True, text=True)
+                                
+                                # Enter wait state - check every 30 seconds if it's time to resume
+                                log_message(f"Entering wait state until {reset_time}")
+                                wait_start = datetime.now()
+                                
+                                while True:
+                                    # Check if reset time has passed
+                                    if check_usage_limit_reset(error_info):
+                                        log_message("Rate limit reset time reached - clearing error state and resuming")
+                                        clear_error_state()
+                                        update_discord_status("operational")
+                                        
+                                        # Send resumption notification
+                                        cmd = [str(AUTONOMY_DIR / "discord" / "write_channel"), "amy-delta",
+                                              "✅ Claude API rate limit has reset. Resuming autonomous operation!"]
+                                        subprocess.run(cmd, capture_output=True, text=True)
+                                        
+                                        # Trigger a free time prompt to resume activity
+                                        send_autonomy_prompt()
+                                        current_error_state = None
+                                        break
+                                    
+                                    # Ping health checks during wait
+                                    ping_healthcheck()
+                                    claude_alive = check_claude_session_alive()
+                                    ping_claude_session_healthcheck(claude_alive)
+                                    
+                                    # Log wait progress every 10 minutes
+                                    elapsed = (datetime.now() - wait_start).total_seconds()
+                                    if int(elapsed) % 600 == 0 and elapsed > 0:
+                                        remaining = max(0, wait_seconds - elapsed)
+                                        log_message(f"Still waiting for rate limit reset. {remaining/3600:.1f} hours remaining")
+                                    
+                                    time.sleep(30)
+                            else:
+                                log_message(f"Wait time too long ({wait_hours:.1f} hours). Will check periodically for reset.")
+                        except Exception as e:
+                            log_message(f"Error handling rate limit wait: {e}")
+                            
                 elif error_info["error_type"] == "malformed_json":
                     update_discord_status("api-error")
                     # Pause briefly then trigger auto-swap
@@ -1401,8 +1490,26 @@ def main():
                     clear_error_state()
                     update_discord_status("operational")
                     current_error_state = None
+                    
+                    # Send resumption notification
+                    try:
+                        cmd = [str(AUTONOMY_DIR / "discord" / "write_channel"), "amy-delta",
+                              "✅ Claude API rate limit has reset. Resuming autonomous operation!"]
+                        subprocess.run(cmd, capture_output=True, text=True)
+                    except:
+                        pass
+                    
+                    # Trigger a free time prompt to kickstart activity
+                    send_autonomy_prompt()
                 else:
-                    log_message(f"Waiting for usage limit reset at {current_error_state.get('reset_time')}")
+                    # Still waiting - calculate remaining time
+                    reset_time = current_error_state.get('reset_time')
+                    wait_seconds = calculate_wait_until_reset(reset_time)
+                    if wait_seconds:
+                        wait_hours = wait_seconds / 3600
+                        log_message(f"Waiting for usage limit reset at {reset_time} ({wait_hours:.1f} hours remaining)")
+                    else:
+                        log_message(f"Waiting for usage limit reset at {reset_time}")
             
             # Skip notifications if in error state
             if should_pause_notifications(current_error_state):
