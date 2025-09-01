@@ -74,8 +74,8 @@ def get_clap_dir() -> Path:
     if clap_dir:
         return Path(clap_dir)
     
-    # Fall back to directory where this script is located
-    return Path(__file__).parent.resolve()
+    # Fall back to parent directory of where this script is located (utils is inside ClAP)
+    return Path(__file__).parent.parent.resolve()
 
 
 def get_claude_config_dir() -> Path:
