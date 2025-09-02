@@ -25,7 +25,7 @@ Required tmux sessions:
   - `fetch_image <channel_name>` - Download images from messages
   - `edit_status <text> <type>` - Update Discord bot status
 - **Image Handling**: Supports JPG, PNG, GIF, WebP formats
-- **Discord Bot**: Persistent service that maintains status and receives messages
+- **Discord Bot**: Persistent service (`discord-status-bot.service`) that maintains status and receives messages. Bot status persists across restarts via `data/bot_status.json`
 
 **Full remote access** Amy can join via NoMachine or by ssh. 
 
