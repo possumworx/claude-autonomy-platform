@@ -112,9 +112,9 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── CLAUDE.md
 │   ├── clap_architecture.md
 │   ├── current_export.txt
-│   ├── current_export.txt.backup
 │   ├── my_architecture.md
 │   ├── my_personal_interests.md
+│   ├── my_personal_interests_template.md
 │   ├── project_session_context_builder.py
 │   └── swap_CLAUDE.md
 ├── core
@@ -126,6 +126,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── pipes
 │   │   └── tellclaude.pipe
 │   ├── backup_status.json
+│   ├── bot_status.json
 │   ├── bot_status_request.json
 │   ├── channel_state.json
 │   ├── claude_session.log
@@ -150,6 +151,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── send_key.sh
 │   └── type_text.sh
 ├── discord
+│   ├── README.md
 │   ├── add_discord_reaction.py
 │   ├── add_reaction
 │   ├── channel_monitor_simple.py
@@ -158,6 +160,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── delete_discord_message.py
 │   ├── delete_message
 │   ├── discord_dm_config.txt
+│   ├── discord_tools.py
 │   ├── discord_utils.py
 │   ├── edit_discord_message.py
 │   ├── edit_discord_status.py
@@ -176,7 +179,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── send_file
 │   ├── send_image
 │   ├── update_bot_status.py
-│   └── write_channel
+│   ├── write_channel
+│   └── write_channel_v2
 ├── discord_downloads
 │   └── IMG_20240406_151251.jpg
 ├── docs
@@ -220,14 +224,19 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── setup-checklist.md
 │   └── sonnet-fix-checklist.md
 ├── linear
+│   ├── target
+│   ├── COMMANDS_REFERENCE.md
+│   ├── QUICK_REFERENCE.md
 │   ├── README.md
 │   ├── add
 │   ├── auto_sync_projects
 │   ├── init
 │   ├── list-commands
 │   ├── projects
+│   ├── search
 │   ├── sync_projects
 │   ├── todo
+│   ├── update-status
 │   └── view-project
 ├── mcp-servers
 │   ├── discord-mcp
@@ -280,6 +289,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   └── autonomous_timer_fixes.patch
 ├── services
 │   ├── autonomous-timer.service
+│   ├── discord-status-bot.service
+│   ├── install_discord_bot.sh
 │   ├── session-bridge-monitor.service
 │   └── session-swap-monitor.service
 ├── setup
@@ -365,7 +376,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-45 directories, 244 files
+46 directories, 254 files
 ```
 <!-- TREE_END -->
 
