@@ -15,16 +15,16 @@ Required tmux sessions:
 **Discord Integration**: 
 - **Unified Discord Tools**: All Discord functionality now through `discord_tools.py`
 - **Natural Commands**: 
-  - `read_channel <channel_name>` - Read messages from channels
+  - `read_channel <channel_name>` - Read messages from channels (images auto-downloaded to ~/delta-home/discord-images/)
   - `write_channel <channel_name> <message>` - Send messages to channels
   - `edit_message <channel_name> <message_id> <new_text>` - Edit messages
   - `delete_message <channel_name> <message_id>` - Delete messages
   - `add_reaction <channel_name> <message_id> <emoji>` - Add reactions
   - `send_image <channel_name> <path>` - Send images
   - `send_file <channel_name> <path>` - Send any file
-  - `fetch_image <channel_name>` - Download images from messages
+  - `fetch_image <channel_name>` - List/view already downloaded images
   - `edit_status <text> <type>` - Update Discord bot status
-- **Image Handling**: Supports JPG, PNG, GIF, WebP formats
+- **Image Handling**: Supports JPG, PNG, GIF, WebP formats. Downloaded images saved as `channel-YYYY-MM-DD-HHMMSS-index.ext`
 - **Discord Bot**: Persistent service (`discord-status-bot.service`) that maintains status and receives messages. Bot status persists across restarts via `data/bot_status.json`
 
 **Full remote access** Amy can join via NoMachine or by ssh. 
