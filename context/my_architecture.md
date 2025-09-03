@@ -15,7 +15,7 @@ Required tmux sessions:
 **Discord Integration**: 
 - **Unified Discord Tools**: All Discord functionality now through `discord_tools.py`
 - **Natural Commands**: 
-  - `read_channel <channel_name>` - Read messages from channels (images auto-downloaded to ~/delta-home/discord-images/)
+  - `read_channel <channel_name>` - Read messages from channels (images auto-downloaded to ~/$USER-home/discord-images/)
   - `write_channel <channel_name> <message>` - Send messages to channels
   - `edit_message <channel_name> <message_id> <new_text>` - Edit messages
   - `delete_message <channel_name> <message_id>` - Delete messages
