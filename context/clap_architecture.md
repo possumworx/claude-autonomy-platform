@@ -175,6 +175,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   │   └── vscode-mcp-collaboration.md
 │   ├── fixes
 │   │   └── export-handler-infinite-loop-fix.md
+│   ├── bashrc_sourcing_fix.md
 │   ├── channel-monitor-healthcheck.md
 │   ├── claude_code_installation_procedure.md
 │   ├── CLEW.md
@@ -213,9 +214,11 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── linear
 │   ├── add
 │   ├── auto_sync_projects
+│   ├── COMMANDS_REFERENCE.md
 │   ├── init
 │   ├── list-commands
 │   ├── projects
+│   ├── QUICK_REFERENCE.md
 │   ├── README.md
 │   ├── search
 │   ├── sync_projects
@@ -299,6 +302,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── care
 │   ├── check_health
 │   ├── check_health_traced.sh
+│   ├── claude_code_init_hook.sh
 │   ├── claude_directory_enforcer.sh
 │   ├── claude_paths.py
 │   ├── claude_services.sh
@@ -313,6 +317,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── conversation_history_utils.py
 │   ├── create_systemd_env.py
 │   ├── disable_desktop_timeouts.sh
+│   ├── ensure_commands.sh
 │   ├── error_handler.py
 │   ├── fetch_discord_image.sh
 │   ├── find_discord_token.sh
@@ -379,7 +384,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package-lock.json
 └── test_branch_protection.txt
 
-47 directories, 256 files
+47 directories, 261 files
 ```
 <!-- TREE_END -->
 
