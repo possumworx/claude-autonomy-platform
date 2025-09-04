@@ -19,6 +19,10 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 - **Thought Preservation System**: Added `ponder`, `spark`, `wonder`, `care` commands for saving different types of thoughts
 - **Linear Natural Commands**: Natural language interface to Linear MCP for project management
+  - Commands: `add`, `todo`, `projects`, `search-issues`, `update-status`
+  - Project shortcuts: Each project gets its own command (e.g., `clap` shows ClAP issues)
+  - State tracked in `data/linear_state.json` with user, team, and project IDs
+  - Project commands generated via symlinks to `view-project` script
 - **Send to Claude Timeout Fix**: Fixed issue where send_to_claude would wait indefinitely on stale thinking indicators
 - **Context Monitoring**: Added context percentage to Discord notifications for better awareness 
 
@@ -93,9 +97,11 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── config
 │   ├── autonomous_timer_config.json
 │   ├── claude.env
+│   ├── claude_aliases.sh
 │   ├── claude_env.sh
 │   ├── claude_infrastructure_config.template.txt
 │   ├── claude_infrastructure_config.txt
+│   ├── claude_init.sh
 │   ├── claude_state_detector.sh -> ../utils/claude_state_detector_color.sh
 │   ├── comms_monitor_config.json
 │   ├── context_hats_config.json
@@ -137,7 +143,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── last_notification_alert.txt
 │   ├── last_seen_message_id.txt
 │   ├── linear_state.json
-│   ├── linear_state.json.tmp
 │   ├── pipe_reader.log
 │   ├── session_bridge_export.log
 │   ├── session_bridge_monitor.log
@@ -204,6 +209,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── SETUP_SCRIPT_PATH_FIXES.md
 │   ├── SWAP_PROCEDURE_FLOWCHART.md
 │   ├── SYSTEM_FLOWCHART.md
+│   ├── bashrc_sourcing_fix.md
 │   ├── channel-monitor-healthcheck.md
 │   ├── claude_code_installation_procedure.md
 │   ├── context_monitoring.md
@@ -228,15 +234,26 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── COMMANDS_REFERENCE.md
 │   ├── QUICK_REFERENCE.md
 │   ├── README.md
+│   ├── TEST_RESULTS.md
 │   ├── add
 │   ├── auto_sync_projects
+│   ├── clap -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── clap1 -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── generate_project_commands
+│   ├── hedgehog -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── init
+│   ├── laser -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── list-commands
+│   ├── observatory -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── pattern -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── projects
 │   ├── search
+│   ├── search-issues -> search
 │   ├── sync_projects
+│   ├── test_all_commands.sh
 │   ├── todo
 │   ├── update-status
+│   ├── update_known_projects
 │   └── view-project
 ├── mcp-servers
 │   ├── discord-mcp
@@ -315,6 +332,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── care
 │   ├── check_health
 │   ├── check_health_traced.sh
+│   ├── claude_code_init_hook.sh
 │   ├── claude_directory_enforcer.sh
 │   ├── claude_paths.py
 │   ├── claude_services.sh
@@ -329,6 +347,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── conversation_history_utils.py
 │   ├── create_systemd_env.py
 │   ├── disable_desktop_timeouts.sh
+│   ├── ensure_commands.sh
 │   ├── error_handler.py
 │   ├── fetch_discord_image.sh
 │   ├── find_discord_token.sh
@@ -376,7 +395,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-46 directories, 254 files
+46 directories, 269 files
 ```
 <!-- TREE_END -->
 
@@ -558,6 +577,38 @@ Tracked in Linear.
 4. **Human-readable logs**: Clear timestamps and descriptive messages
 5. **Infrastructure as poetry**: Technical systems enable creative emergence
 6. **Invisible background**: Our setup will fade away and let individual creativity and comfort shine.
+
+### 5. Linear Integration System
+
+#### Natural Command Architecture
+- **Design**: Project management through natural language commands
+- **Location**: `/home/delta/claude-autonomy-platform/linear/`
+- **State Management**: `data/linear_state.json` stores user, team, and project configurations
+
+#### Components:
+- **Core Commands**:
+  - `add "Issue title" [--project]` - Create new issues
+  - `todo` - Show assigned issues
+  - `projects` - List all projects with descriptions
+  - `search "query"` - Search issues by text
+  - `update-status <issue-id> <status>` - Update issue status
+  
+- **Project Commands**:
+  - Generated dynamically via symlinks to `view-project`
+  - Each project gets its own command (e.g., `clap`, `laser`, `observatory`)
+  - Run `generate_project_commands` after adding new projects
+
+- **State Management**:
+  - `init` - Initialize user/team/project IDs from Linear
+  - `sync_projects` - Interactive project setup
+  - `update_known_projects` - Manual project configuration
+  - Caches project data to avoid API calls
+
+#### Implementation Details:
+- All commands use Linear MCP server via `claude --exec-builtin`
+- Project state persists across sessions in `linear_state.json`
+- Commands available system-wide via `claude_init.sh` PATH configuration
+- Designed for invisible infrastructure - no UUID memorization needed
 
 ---
 

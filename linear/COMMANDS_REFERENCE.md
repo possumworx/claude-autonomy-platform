@@ -27,16 +27,15 @@ projects
 ```
 Shows all available projects with their descriptions. Automatically syncs if cache is empty.
 
-#### `search-issues` - Search Linear issues
+#### `search` - Search Linear issues
 ```bash
 # Basic search
-search-issues "search term"
+search "search term"
 
-# With filters
-search-issues "bug" --state "In Progress"
-search-issues "feature" --project CLAP
+# Search by issue ID
+search "POSS-123"
 ```
-Search for issues by keywords, state, project, or other criteria.
+Search for issues by keywords or ID. Shows full issue details including status, assignee, and dates.
 
 #### `update-status` - Update issue status
 ```bash
@@ -115,10 +114,10 @@ update-status POSS-123 "Done"
 ### 4. Finding Issues
 ```bash
 # Search by keyword
-search-issues "memory leak"
+search "memory leak"
 
-# Search in specific project
-search-issues "bug" --project CLAP
+# Search by issue ID
+search "POSS-123"
 ```
 
 ## Notes
