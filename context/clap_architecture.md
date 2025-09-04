@@ -79,12 +79,12 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 <!-- TREE_START -->
 ```
-/home/delta/claude-autonomy-platform
+~/claude-autonomy-platform
 ├── ansible
 │   ├── configs
 │   │   ├── bashrc
 │   │   ├── bin
-│   │   ├── latest -> /home/delta/claude-autonomy-platform/ansible/configs/state_1755417384
+│   │   ├── latest -> ~/claude-autonomy-platform/ansible/configs/state_1755417384
 │   │   ├── services
 │   │   └── state_1755417384
 │   ├── defaults
@@ -209,6 +209,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── SETUP_SCRIPT_PATH_FIXES.md
 │   ├── SWAP_PROCEDURE_FLOWCHART.md
 │   ├── SYSTEM_FLOWCHART.md
+│   ├── bashrc-sourcing-solution.md
 │   ├── bashrc_sourcing_fix.md
 │   ├── channel-monitor-healthcheck.md
 │   ├── claude_code_installation_procedure.md
@@ -228,7 +229,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── pre-deployment-checklist.md
 │   ├── session-bridge-export-design.md
 │   ├── setup-checklist.md
-│   └── sonnet-fix-checklist.md
+│   ├── sonnet-fix-checklist.md
+│   └── swap-logging-implementation.md
 ├── linear
 │   ├── target
 │   ├── COMMANDS_REFERENCE.md
@@ -237,15 +239,15 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── TEST_RESULTS.md
 │   ├── add
 │   ├── auto_sync_projects
-│   ├── clap -> /home/delta/claude-autonomy-platform/linear/view-project
-│   ├── clap1 -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── clap -> ~/claude-autonomy-platform/linear/view-project
+│   ├── clap1 -> ~/claude-autonomy-platform/linear/view-project
 │   ├── generate_project_commands
-│   ├── hedgehog -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── hedgehog -> ~/claude-autonomy-platform/linear/view-project
 │   ├── init
-│   ├── laser -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── laser -> ~/claude-autonomy-platform/linear/view-project
 │   ├── list-commands
-│   ├── observatory -> /home/delta/claude-autonomy-platform/linear/view-project
-│   ├── pattern -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── observatory -> ~/claude-autonomy-platform/linear/view-project
+│   ├── pattern -> ~/claude-autonomy-platform/linear/view-project
 │   ├── projects
 │   ├── search
 │   ├── search-issues -> search
@@ -329,9 +331,11 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── target
 ├── utils
 │   ├── analyze_sessions.py
+│   ├── bash_init.sh
 │   ├── care
 │   ├── check_health
 │   ├── check_health_traced.sh
+│   ├── claude-wrapper
 │   ├── claude_code_init_hook.sh
 │   ├── claude_directory_enforcer.sh
 │   ├── claude_paths.py
@@ -360,6 +364,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── linear
 │   ├── linear-helpers
 │   ├── linear-issues
+│   ├── log_utils.sh
 │   ├── monitor_session_size.py
 │   ├── my-linear-issues
 │   ├── parse_natural_commands.sh
@@ -372,6 +377,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── send_to_terminal.sh
 │   ├── session_audit.py
 │   ├── session_swap.sh
+│   ├── session_swap_logger.sh
 │   ├── setup_natural_command_symlinks.sh
 │   ├── spark
 │   ├── surface_thoughts.py
@@ -395,7 +401,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-46 directories, 269 files
+46 directories, 275 files
 ```
 <!-- TREE_END -->
 
@@ -582,7 +588,7 @@ Tracked in Linear.
 
 #### Natural Command Architecture
 - **Design**: Project management through natural language commands
-- **Location**: `/home/delta/claude-autonomy-platform/linear/`
+- **Location**: `~/claude-autonomy-platform/linear/`
 - **State Management**: `data/linear_state.json` stores user, team, and project configurations
 
 #### Components:
