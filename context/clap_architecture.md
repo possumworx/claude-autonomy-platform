@@ -75,7 +75,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 <!-- TREE_START -->
 ```
-~/claude-autonomy-platform
+/home/sparkle-sonnet/claude-autonomy-platform
 ├── ansible
 │   ├── configs
 │   │   └── services
@@ -88,10 +88,12 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   └── README.md
 ├── config
 │   ├── autonomous_timer_config.json
+│   ├── claude_aliases.sh
 │   ├── claude.env
 │   ├── claude_env.sh
 │   ├── claude_infrastructure_config.template.txt
 │   ├── claude_infrastructure_config.txt
+│   ├── claude_init.sh
 │   ├── claude_state_detector.sh -> ../utils/claude_state_detector_color.sh
 │   ├── comms_monitor_config.json
 │   ├── context_hats_config.json
@@ -119,6 +121,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   └── session_swap_monitor.py
 ├── data
 │   ├── autonomous_timer.log
+│   ├── bot_status.json
 │   ├── channel_state.json
 │   ├── context_escalation_state.json
 │   ├── last_autonomy_prompt.txt
@@ -376,7 +379,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package-lock.json
 └── test_branch_protection.txt
 
-47 directories, 253 files
+47 directories, 256 files
 ```
 <!-- TREE_END -->
 
