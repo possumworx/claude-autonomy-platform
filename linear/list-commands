@@ -7,25 +7,26 @@ echo "Core Commands:"
 echo "  add             - Create new issue (use: add \"title\" or add \"title\" --project name)"
 echo "  todo            - Show your assigned Linear issues"
 echo "  projects        - List all available Linear projects"
-echo "  search          - Search for issues (use: search \"query\")"
+echo "  search-issues   - Search for issues (use: search-issues \"query\" or \"POSS-123\")"
 echo "  update-status   - Update issue status (use: update-status POSS-123 \"in-progress\")"
 echo ""
 echo "Setup & Maintenance:"
-echo "  init            - Initialize Linear authentication (run once)"
-echo "  sync_projects   - Refresh project list and create shortcuts"
-echo "  list-commands   - Show this help message"
+echo "  linear/init          - Initialize Linear authentication (run once)"
+echo "  linear/sync_projects - Refresh project list and create shortcuts"
+echo "  list-commands        - Show this help message"
 echo ""
 echo "Project Shortcuts:"
 # List any existing project shortcuts
 if [ -d "$(dirname "$0")" ]; then
     for cmd in $(dirname "$0")/*; do
         if [ -L "$cmd" ] && [ "$(basename $(readlink "$cmd"))" = "view-project" ]; then
-            echo "  $(basename "$cmd")"
+            echo "  $(basename "$cmd")          - View issues for $(basename "$cmd") project"
         fi
     done | sort | column -c 60
 fi
 echo ""
 echo "💡 Tips:"
-echo "  - After running 'init', use 'sync_projects' to create project shortcuts"
+echo "  - After running 'linear/init', use 'linear/sync_projects' to create project shortcuts"
 echo "  - Each project gets its own command (e.g., 'clap' shows ClAP issues)"
 echo "  - Natural commands work after sourcing claude_init.sh"
+echo "  - Search by keyword or issue ID with 'search-issues'"
