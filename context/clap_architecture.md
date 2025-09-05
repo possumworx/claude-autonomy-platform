@@ -127,6 +127,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── last_autonomy_prompt.txt
 │   ├── last_notification_alert.txt
 │   ├── last_seen_message_id.txt
+│   ├── linear_state.json
+│   ├── linear_state.json.tmp
 │   ├── session_ended_20250818_192544.log
 │   ├── session_ended_20250819_102312.log
 │   ├── session_swap.lock
@@ -384,7 +386,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package-lock.json
 └── test_branch_protection.txt
 
-47 directories, 261 files
+47 directories, 263 files
 ```
 <!-- TREE_END -->
 
