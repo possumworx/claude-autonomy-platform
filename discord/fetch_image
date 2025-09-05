@@ -31,12 +31,12 @@ def main():
     if len(sys.argv) < 3:
         print(f"🖼️  Recent images in #{channel}:\n")
         
-        # Look for images from this channel
+        # Look for images from this channel (excluding thumbnails)
         channel_images = []
         for date_dir in sorted(image_dir.iterdir(), reverse=True):
             if date_dir.is_dir():
                 for img in sorted(date_dir.iterdir(), reverse=True):
-                    if img.name.startswith(f"{channel}-"):
+                    if img.name.startswith(f"{channel}-") and "_thumb" not in img.name:
                         channel_images.append(img)
         
         if not channel_images:
@@ -54,21 +54,29 @@ def main():
                 print(f"{i}. {img.name}")
                 print(f"   Date: {date} Time: {time[:2]}:{time[2:4]}:{time[4:6]}")
                 print(f"   Path: {img}")
+                
+                # Check if thumbnail exists
+                thumb_name = img.stem + "_thumb" + img.suffix
+                thumb_path = img.parent / thumb_name
+                if thumb_path.exists():
+                    print(f"   📐 Thumbnail available (context-friendly!)")
             else:
                 print(f"{i}. {img.name}")
         
         print(f"\nTo view an image, use: fetch_image {channel} <number>")
+        print(f"To view thumbnail, use: fetch_image {channel} <number> thumb")
         return 0
     
     # View specific image
     image_num = int(sys.argv[2])
+    view_thumb = len(sys.argv) > 3 and sys.argv[3] == "thumb"
     
-    # Find the image
+    # Find the image (excluding thumbnails)
     channel_images = []
     for date_dir in sorted(image_dir.iterdir(), reverse=True):
         if date_dir.is_dir():
             for img in sorted(date_dir.iterdir(), reverse=True):
-                if img.name.startswith(f"{channel}-"):
+                if img.name.startswith(f"{channel}-") and "_thumb" not in img.name:
                     channel_images.append(img)
     
     if image_num < 1 or image_num > len(channel_images):
@@ -76,7 +84,23 @@ def main():
         return 1
     
     image_path = channel_images[image_num - 1]
-    print(f"📸 Opening image: {image_path.name}")
+    
+    # Check if we should use thumbnail
+    if view_thumb:
+        thumb_name = image_path.stem + "_thumb" + image_path.suffix
+        thumb_path = image_path.parent / thumb_name
+        if thumb_path.exists():
+            image_path = thumb_path
+            print(f"📸 Viewing thumbnail (context-friendly): {image_path.name}")
+        else:
+            print(f"⚠️  No thumbnail available, showing full image: {image_path.name}")
+    else:
+        print(f"📸 Viewing full image: {image_path.name}")
+        # Check if thumbnail exists and remind user
+        thumb_name = image_path.stem + "_thumb" + image_path.suffix
+        thumb_path = image_path.parent / thumb_name
+        if thumb_path.exists():
+            print(f"💡 Tip: Use 'fetch_image {channel} {image_num} thumb' for context-friendly viewing")
     
     # Try to open the image with system viewer
     try:
