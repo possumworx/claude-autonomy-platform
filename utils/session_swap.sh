@@ -141,6 +141,12 @@ fi
 
 # Kill and recreate tmux session for stability
 echo "[SESSION_SWAP] Recreating tmux session for stability..."
+
+# Clean up any discord-mcp zombie processes (POSS-286)
+echo "[SESSION_SWAP] Cleaning up discord-mcp processes..."
+pkill -f "discord-mcp.*\.jar" 2>/dev/null || true
+sleep 1
+
 tmux kill-session -t autonomous-claude 2>/dev/null || true
 sleep 2
 tmux new-session -d -s autonomous-claude

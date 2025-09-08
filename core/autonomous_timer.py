@@ -1336,6 +1336,44 @@ def check_for_session_reset():
     except Exception as e:
         log_message(f"Error checking for session reset: {e}")
 
+def check_persistent_login_session():
+    """Check if persistent-login tmux session exists and recreate if needed"""
+    try:
+        # Check if the session exists
+        result = subprocess.run(
+            ["tmux", "has-session", "-t", "persistent-login"],
+            capture_output=True
+        )
+        
+        if result.returncode != 0:
+            # Session doesn't exist - create it
+            log_message("persistent-login tmux session not found - recreating")
+            
+            # Create new session
+            create_result = subprocess.run(
+                ["tmux", "new-session", "-d", "-s", "persistent-login", "-c", str(Path.home())],
+                capture_output=True,
+                text=True
+            )
+            
+            if create_result.returncode == 0:
+                # Source claude_env.sh in the new session
+                source_result = subprocess.run(
+                    ["tmux", "send-keys", "-t", "persistent-login", 
+                     f"source {AUTONOMY_DIR}/config/claude_env.sh", "Enter"],
+                    capture_output=True
+                )
+                
+                if source_result.returncode == 0:
+                    log_message("Successfully recreated persistent-login session and sourced claude_env.sh")
+                else:
+                    log_message(f"Failed to source claude_env.sh: {source_result.stderr}")
+            else:
+                log_message(f"Failed to create persistent-login session: {create_result.stderr}")
+    
+    except Exception as e:
+        log_message(f"Error checking persistent-login session: {e}")
+
 def main():
     """Main timer loop"""
     log_message("=== Autonomous Timer Started ===")
@@ -1644,6 +1682,9 @@ def main():
             
             if not claude_alive:
                 log_message("WARNING: Claude Code session appears to be down!")
+            
+            # Check if persistent-login tmux session exists (POSS-315)
+            check_persistent_login_session()
             
             # Channel monitor functionality is now integrated here
             
