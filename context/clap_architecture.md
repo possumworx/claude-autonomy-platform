@@ -384,9 +384,10 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── new_session.txt
 ├── package.json
 ├── package-lock.json
-└── test_branch_protection.txt
+├── test_branch_protection.txt
+└── Z-Offset
 
-47 directories, 263 files
+47 directories, 264 files
 ```
 <!-- TREE_END -->
 
