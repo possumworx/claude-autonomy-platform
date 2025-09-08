@@ -243,6 +243,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── target
 │   ├── COMMANDS_REFERENCE.md
 │   ├── ENHANCED_README.md
+│   ├── IMPLEMENTATION_STATUS.md
 │   ├── IMPLEMENTATION_SUMMARY.md
 │   ├── LINEAR_CLI_DESIGN.md
 │   ├── QUICK_REFERENCE.md
@@ -422,7 +423,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-48 directories, 294 files
+48 directories, 295 files
 ```
 <!-- TREE_END -->
 
