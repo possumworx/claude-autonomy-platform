@@ -1,0 +1,53 @@
+#!/bin/bash
+# Quick command to mark an issue as complete
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/linear_common.sh"
+
+# Check prerequisites
+check_linear_init || exit 1
+check_claude_session || exit 1
+
+if [ $# -lt 1 ]; then
+    echo "Usage: complete ISSUE-ID [comment]"
+    echo ""
+    echo "Marks issue as 'Done' with optional completion comment"
+    echo ""
+    echo "Examples:"
+    echo "  complete POSS-123"
+    echo "  complete 123 \"Fixed in commit abc123\""
+    exit 1
+fi
+
+ISSUE_ID=$(parse_issue_id "$1")
+shift
+COMMENT="$*"
+
+echo -e "${ICON_INFO} Completing: ${CYAN}${ISSUE_ID}${RESET}"
+
+# Create prompt for Claude
+PROMPT="Please mark issue $ISSUE_ID as complete:
+
+1. First search for the issue using linear_search_issues with query \"$ISSUE_ID\"
+2. Use linear_bulk_update_issues to set status to 'Done'
+
+Show me confirmation of the update."
+
+# Execute via Claude MCP
+echo -e "${YELLOW}Completing issue...${RESET}"
+RESULT=$(execute_linear_mcp "$PROMPT")
+
+# Check result
+if echo "$RESULT" | grep -q -E "(Updated|Successfully|moved to Done|completed)"; then
+    echo -e "\n${ICON_SUCCESS} ${GREEN}Completed ${ISSUE_ID}!${RESET}"
+    echo -e "  ${ICON_STATUS_DONE} Status: Done"
+    
+    # Add completion comment if provided
+    if [ -n "$COMMENT" ] && command -v "${SCRIPT_DIR}/comment" &> /dev/null; then
+        "${SCRIPT_DIR}/comment" "$ISSUE_ID" "✅ Completed: $COMMENT" &> /dev/null
+    fi
+else
+    echo -e "\n${ICON_ERROR} ${RED}Failed to complete issue${RESET}"
+    echo "$RESULT" | head -10
+    exit 1
+fi

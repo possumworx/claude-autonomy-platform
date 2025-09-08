@@ -79,12 +79,12 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 <!-- TREE_START -->
 ```
-/home/delta/claude-autonomy-platform
+~/claude-autonomy-platform
 ├── ansible
 │   ├── configs
 │   │   ├── bashrc
 │   │   ├── bin
-│   │   ├── latest -> /home/delta/claude-autonomy-platform/ansible/configs/state_1755417384
+│   │   ├── latest -> ~/claude-autonomy-platform/ansible/configs/state_1755417384
 │   │   ├── services
 │   │   └── state_1755417384
 │   ├── defaults
@@ -115,8 +115,14 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── vscode-mcp-example.json
 │   └── x11_env.sh
 ├── context
+│   ├── context_hats
+│   │   ├── autonomy_context.md
+│   │   ├── business_context.md
+│   │   ├── creative_context.md
+│   │   └── hedgehogs_context.md
 │   ├── CLAUDE.md
 │   ├── clap_architecture.md
+│   ├── context_hats_config.json
 │   ├── current_export.txt
 │   ├── my_architecture.md
 │   ├── my_personal_interests.md
@@ -232,30 +238,45 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── sonnet-fix-checklist.md
 │   └── swap-logging-implementation.md
 ├── linear
+│   ├── lib
+│   │   └── linear_common.sh
 │   ├── target
 │   ├── COMMANDS_REFERENCE.md
+│   ├── ENHANCED_README.md
+│   ├── IMPLEMENTATION_SUMMARY.md
+│   ├── LINEAR_CLI_DESIGN.md
 │   ├── QUICK_REFERENCE.md
 │   ├── README.md
 │   ├── TEST_RESULTS.md
 │   ├── add
+│   ├── add-enhanced
 │   ├── auto_sync_projects
-│   ├── clap -> /home/delta/claude-autonomy-platform/linear/view-project
-│   ├── clap1 -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── bulk-update
+│   ├── clap -> ~/claude-autonomy-platform/linear/view-project
+│   ├── clap1 -> ~/claude-autonomy-platform/linear/view-project
+│   ├── comment
+│   ├── complete
 │   ├── generate_project_commands
-│   ├── hedgehog -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── hedgehog -> ~/claude-autonomy-platform/linear/view-project
+│   ├── help
+│   ├── inbox
 │   ├── init
-│   ├── laser -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── laser -> ~/claude-autonomy-platform/linear/view-project
 │   ├── list-commands
-│   ├── observatory -> /home/delta/claude-autonomy-platform/linear/view-project
-│   ├── pattern -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── observatory -> ~/claude-autonomy-platform/linear/view-project
+│   ├── pattern -> ~/claude-autonomy-platform/linear/view-project
 │   ├── projects
+│   ├── recent
 │   ├── search
 │   ├── search-issues -> search
+│   ├── start
 │   ├── sync_projects
 │   ├── test_all_commands.sh
 │   ├── todo
+│   ├── todo-enhanced
 │   ├── update-status
 │   ├── update_known_projects
+│   ├── view
 │   └── view-project
 ├── mcp-servers
 │   ├── discord-mcp
@@ -401,7 +422,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-46 directories, 275 files
+48 directories, 294 files
 ```
 <!-- TREE_END -->
 

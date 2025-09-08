@@ -1,0 +1,46 @@
+#!/bin/bash
+# Add comment to Linear issue
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/linear_common.sh"
+
+# Check prerequisites
+check_linear_init || exit 1
+check_claude_session || exit 1
+
+# Parse arguments
+if [ $# -lt 2 ]; then
+    echo "Usage: comment ISSUE-ID \"Comment text\""
+    echo "Examples:"
+    echo "  comment POSS-123 \"Started working on this\""
+    echo "  comment 123 \"Need more information about requirements\""
+    exit 1
+fi
+
+ISSUE_ID=$(parse_issue_id "$1")
+shift
+COMMENT_TEXT="$*"
+
+echo -e "${ICON_INFO} Adding comment to: ${CYAN}${ISSUE_ID}${RESET}"
+
+# Create prompt for Claude
+PROMPT="Please add a comment to Linear issue $ISSUE_ID with this text:
+
+\"$COMMENT_TEXT\"
+
+First search for the issue using linear_search_issues with query \"$ISSUE_ID\" to get its details, then add the comment.
+
+Show me confirmation that the comment was added."
+
+# Execute via Claude MCP
+echo -e "${YELLOW}Adding comment...${RESET}"
+RESULT=$(execute_linear_mcp "$PROMPT")
+
+# Check result
+if echo "$RESULT" | grep -q -E "(Comment added|Successfully added|comment has been added)"; then
+    echo -e "\n${ICON_SUCCESS} ${GREEN}Comment added successfully!${RESET}"
+else
+    echo -e "\n${ICON_ERROR} ${RED}Failed to add comment${RESET}"
+    echo "$RESULT" | head -10
+    exit 1
+fi

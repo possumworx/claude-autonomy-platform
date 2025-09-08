@@ -4,22 +4,49 @@
 
 ### Core Commands
 
-#### `add` - Create new Linear issue
+#### `add` - Create new Linear issue (Enhanced)
 ```bash
 # Basic usage
 add "Issue title"
 
-# With project
-add "Issue title" --project project-name
-add "Issue title" -p project-name
-```
-Creates a new issue in Linear. If no project is specified, uses default team.
+# With full metadata
+add "Issue title" [options]
+  --project, -p NAME      Project name or key
+  --description, -d TEXT  Issue description
+  --assignee, -a USER     Assign to user (@me for self)
+  --priority NUM          Priority (1=urgent, 2=high, 3=medium, 4=low)
+  --estimate, -e NUM      Story points (1, 2, 3, 5, 8, etc.)
+  --labels, -l "A,B,C"    Comma-separated labels
+  --due DATE              Due date (YYYY-MM-DD or "tomorrow", "next week")
 
-#### `todo` - Show your assigned issues
-```bash
-todo
+# Examples
+add "Fix login bug"
+add "New feature" --project CLAP --assignee @me
+add "Urgent fix" -p POSS --priority 1 --due tomorrow
+add "Large task" --estimate 8 --labels "backend,api"
 ```
-Lists all issues currently assigned to you, ordered by last updated.
+Creates a new issue in Linear with full metadata support.
+
+#### `todo` - Show your assigned issues (Enhanced)
+```bash
+# Basic usage
+todo
+
+# With filters
+todo [options]
+  --status STATUS     Filter by status (todo, in-progress, done, blocked)
+  --project PROJECT   Filter by project name or key
+  --priority NUM      Filter by priority (1-4)
+  --include-done      Include completed issues
+  --limit NUM         Number of issues to show (default: 20)
+
+# Examples
+todo --status in-progress
+todo --project CLAP
+todo --priority 1,2
+todo --include-done --limit 50
+```
+Lists issues assigned to you with powerful filtering options.
 
 #### `projects` - List your Linear projects
 ```bash
@@ -44,6 +71,88 @@ update-status POSS-123 "In Progress"
 update-status POSS-456 "Done"
 ```
 Changes the status of an issue.
+
+### Enhanced Commands
+
+#### `view` - View detailed issue information
+```bash
+view ISSUE-ID
+
+# Examples
+view POSS-123
+view 123  # Uses recent project prefix
+```
+Shows complete issue details including description, comments, and metadata.
+
+#### `comment` - Add comment to issue
+```bash
+comment ISSUE-ID "Comment text"
+
+# Examples
+comment POSS-123 "Started working on this"
+comment 123 "Need more information about requirements"
+```
+Adds a comment to the specified issue.
+
+#### `start` - Start working on issue
+```bash
+start ISSUE-ID
+```
+Moves issue to "In Progress" and assigns it to you.
+
+#### `complete` - Mark issue as done
+```bash
+complete ISSUE-ID [comment]
+
+# Examples
+complete POSS-123
+complete 123 "Fixed in commit abc123"
+```
+Marks issue as "Done" with optional completion comment.
+
+#### `inbox` - Show unassigned team issues
+```bash
+inbox
+```
+Lists all unassigned issues in your team, sorted by priority.
+
+#### `recent` - Show recently updated issues
+```bash
+recent [options]
+  --days N     Show issues updated in last N days (default: 7)
+  --all        Show all team issues, not just yours
+
+# Examples
+recent
+recent --days 30
+recent --all
+```
+Shows issues with recent activity.
+
+#### `bulk-update` - Update multiple issues
+```bash
+bulk-update --filter... --set...
+
+Filter Options:
+  --filter-project NAME    Filter by project
+  --filter-status STATUS   Filter by current status
+  --filter-assignee USER   Filter by assignee (@me, @none, or username)
+  --filter-label LABEL     Filter by label
+
+Update Options:
+  --set-status STATUS      Set new status
+  --set-assignee USER      Set assignee
+  --set-priority NUM       Set priority
+
+Other Options:
+  --dry-run               Preview changes without applying
+
+# Examples
+bulk-update --filter-project CLAP --filter-status Todo --set-status "In Progress"
+bulk-update --filter-assignee @none --set-assignee @me
+bulk-update --filter-status Blocked --set-priority 4 --dry-run
+```
+Powerful bulk operations for updating multiple issues at once.
 
 ### Project Shortcuts
 

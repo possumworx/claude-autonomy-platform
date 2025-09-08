@@ -1,0 +1,54 @@
+#!/bin/bash
+# View detailed Linear issue information
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/linear_common.sh"
+
+# Check prerequisites
+check_linear_init || exit 1
+check_claude_session || exit 1
+
+# Parse arguments
+if [ $# -lt 1 ]; then
+    echo "Usage: view ISSUE-ID"
+    echo "Examples:"
+    echo "  view POSS-123"
+    echo "  view 123  (will use recent project prefix)"
+    exit 1
+fi
+
+ISSUE_ID=$(parse_issue_id "$1")
+
+echo -e "${ICON_INFO} Fetching issue: ${CYAN}${ISSUE_ID}${RESET}\n"
+
+# Create prompt for Claude
+PROMPT="Please use the Linear MCP tool to search for issue ID: $ISSUE_ID
+
+Use linear_search_issues with query: \"$ISSUE_ID\"
+
+Format the result showing:
+- Issue ID and Title
+- Status, Priority, and State
+- Assignee and Creator
+- Project and Team
+- Created and Updated dates
+- Due date (if set)
+- Estimate (if set)
+- Labels (if any)
+- Full description
+- Recent comments (if any)
+- Linked issues (if any)
+
+Use formatting with headers and proper spacing."
+
+# Execute via Claude MCP
+RESULT=$(execute_linear_mcp "$PROMPT")
+
+# Display formatted result
+if echo "$RESULT" | grep -q -E "(${ISSUE_ID}|Issue found|Successfully retrieved)"; then
+    echo "$RESULT" | sed 's/^#/\n#/g'
+else
+    echo -e "${ICON_ERROR} ${RED}Issue not found or error occurred${RESET}"
+    echo "$RESULT" | head -5
+    exit 1
+fi

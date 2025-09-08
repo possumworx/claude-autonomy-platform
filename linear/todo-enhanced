@@ -1,0 +1,153 @@
+#!/bin/bash
+# Enhanced todo command with filtering options
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/linear_common.sh"
+
+# Check prerequisites
+check_linear_init || exit 1
+check_claude_session || exit 1
+
+# Initialize filters
+STATUS_FILTER=""
+PROJECT_FILTER=""
+PRIORITY_FILTER=""
+SHOW_DONE=false
+LIMIT=20
+
+# Show usage
+show_usage() {
+    cat << EOF
+Usage: todo [options]
+
+Options:
+    --status STATUS     Filter by status (todo, in-progress, done, blocked)
+    --project PROJECT   Filter by project name or key
+    --priority NUM      Filter by priority (1-4)
+    --include-done      Include completed issues
+    --limit NUM         Number of issues to show (default: 20)
+    --help, -h          Show this help
+
+Examples:
+    todo                          # Show all active assigned issues
+    todo --status in-progress     # Show only in-progress issues
+    todo --project CLAP          # Show only CLAP project issues
+    todo --priority 1,2          # Show high priority issues
+    todo --include-done --limit 50  # Show including completed
+EOF
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help|-h)
+            show_usage
+            exit 0
+            ;;
+        --status)
+            shift
+            STATUS_FILTER="$1"
+            shift
+            ;;
+        --project)
+            shift
+            PROJECT_FILTER="$1"
+            shift
+            ;;
+        --priority)
+            shift
+            PRIORITY_FILTER="$1"
+            shift
+            ;;
+        --include-done)
+            SHOW_DONE=true
+            shift
+            ;;
+        --limit)
+            shift
+            LIMIT="$1"
+            shift
+            ;;
+        *)
+            echo -e "${ICON_ERROR} Unknown option: $1"
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Get user info
+USER_ID=$(get_user_id)
+USER_NAME=$(get_user_name)
+
+# Build status filter
+if [ -z "$STATUS_FILTER" ]; then
+    if [ "$SHOW_DONE" = true ]; then
+        STATUS_STATES="Todo,In Progress,Done,Blocked"
+    else
+        STATUS_STATES="Todo,In Progress,Blocked"
+    fi
+else
+    STATUS_STATES="$STATUS_FILTER"
+fi
+
+# Build the prompt
+print_header "${ICON_TASK} Issues assigned to $USER_NAME" 60
+
+PROMPT="Please use Linear MCP linear_search_issues with these parameters:
+- assigneeIds: [\"$USER_ID\"]
+- first: $LIMIT
+- states: [\"${STATUS_STATES//,/\",\"}\"]"
+
+# Add project filter if specified
+if [ -n "$PROJECT_FILTER" ]; then
+    PROJECT_ID=$(get_project_id "$PROJECT_FILTER")
+    if [ -n "$PROJECT_ID" ]; then
+        PROMPT="$PROMPT
+- projectIds: [\"$PROJECT_ID\"]"
+    fi
+fi
+
+# Add priority filter if specified
+if [ -n "$PRIORITY_FILTER" ]; then
+    PROMPT="$PROMPT
+- priority: $PRIORITY_FILTER"
+fi
+
+PROMPT="$PROMPT
+
+Format the results as a clean list showing:
+- Issue ID and title
+- Status with icon (⭕ Todo, 🔄 In Progress, ✅ Done, 🚫 Blocked)
+- Priority with icon (🔴 Urgent/High, 🟡 Medium, 🟢 Low)
+- Project name
+- Due date if set
+- Brief description preview (first 50 chars)
+
+Group by status and sort by priority within each group."
+
+# Execute query
+echo -e "${YELLOW}Fetching issues...${RESET}\n"
+RESULT=$(execute_linear_mcp "$PROMPT")
+
+# Display results
+if echo "$RESULT" | grep -q -E "(issues found|No issues|POSS-|CLAP-|[A-Z]+-[0-9]+)"; then
+    echo "$RESULT"
+    
+    # Show summary
+    echo ""
+    echo -e "${BLUE}Summary:${RESET}"
+    TODO_COUNT=$(echo "$RESULT" | grep -c "⭕")
+    PROGRESS_COUNT=$(echo "$RESULT" | grep -c "🔄")
+    BLOCKED_COUNT=$(echo "$RESULT" | grep -c "🚫")
+    DONE_COUNT=$(echo "$RESULT" | grep -c "✅")
+    
+    [ $TODO_COUNT -gt 0 ] && echo -e "  ${ICON_STATUS_TODO} Todo: $TODO_COUNT"
+    [ $PROGRESS_COUNT -gt 0 ] && echo -e "  ${ICON_STATUS_PROGRESS} In Progress: $PROGRESS_COUNT"
+    [ $BLOCKED_COUNT -gt 0 ] && echo -e "  ${ICON_STATUS_BLOCKED} Blocked: $BLOCKED_COUNT"
+    [ $DONE_COUNT -gt 0 ] && echo -e "  ${ICON_STATUS_DONE} Done: $DONE_COUNT"
+else
+    echo -e "${ICON_ERROR} Failed to fetch issues"
+    echo "$RESULT" | head -5
+    exit 1
+fi
