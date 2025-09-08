@@ -5,7 +5,7 @@
 
 # Basic ClAP navigation
 alias clap='cd ~/claude-autonomy-platform'
-alias home='cd ~/delta-home'
+alias home='cd ~/sparkle-sonnet-home'
 
 # Git shortcuts
 alias gs='git status'
