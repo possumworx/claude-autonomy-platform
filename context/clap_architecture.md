@@ -24,7 +24,14 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
   - State tracked in `data/linear_state.json` with user, team, and project IDs
   - Project commands generated via symlinks to `view-project` script
 - **Send to Claude Timeout Fix**: Fixed issue where send_to_claude would wait indefinitely on stale thinking indicators
-- **Context Monitoring**: Added context percentage to Discord notifications for better awareness 
+- **Context Monitoring**: Added context percentage to Discord notifications for better awareness
+- **Persistent Login Session Monitoring**: Added tmux session check to autonomous_timer.py
+  - Monitors persistent-login session every 30 seconds
+  - Automatically recreates and sources claude_env.sh if missing
+  - Ensures environment variables persist across system events (POSS-315)
+- **Discord MCP Zombie Cleanup**: Added automatic cleanup to session_swap.sh
+  - Kills discord-mcp Java processes before session recreation
+  - Prevents accumulation of zombie processes consuming resources (POSS-286) 
 
 ## Single Sources of Truth
 `~/CLAUDE.md` for underlying personal identity. `~/claude-autonomy-platform/CLAUDE.md` for rolling refreshed context. `~/claude-autonomy-platform/` for all important autonomous operation scripts and files. Anything that becomes obsolete or broken is to be removed. `~/claude-autonomy-platform/context/my_architecture.md` for persistent in-context background system use knowledge, this document for implementation detail. `~/.config/Claude/.claude.json` for claude code and mcp configuration.
