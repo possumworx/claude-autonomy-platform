@@ -213,8 +213,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── channel_monitor_simple.py
 │   ├── channel_state.py
 │   ├── claude_status_bot.py
-│   ├── claude_status_bot_backup.py
-│   ├── claude_status_bot_fixed.py
 │   ├── delete_discord_message.py
 │   ├── delete_message
 │   ├── discord_dm_config.txt
@@ -236,9 +234,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── send_discord_message_v2.py
 │   ├── send_file
 │   ├── send_image
-│   ├── simple_status_bot.py
-│   ├── test_bot_minimal.py
-│   ├── test_connection.py
 │   ├── update_bot_status.py
 │   ├── write_channel
 │   └── write_channel_v2
@@ -450,6 +445,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── tellclaude-reader.sh
 │   ├── trace_example.sh
 │   ├── trace_execution.sh
+│   ├── update_bot_status.py
 │   ├── update_conversation_history.py
 │   ├── update_system.sh
 │   └── wonder
@@ -467,7 +463,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-48 directories, 294 files
+48 directories, 290 files
 ```
 <!-- TREE_END -->
 
