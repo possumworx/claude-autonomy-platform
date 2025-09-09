@@ -1,6 +1,6 @@
 # ClAP (Claude Autonomy Platform) Architecture
 **Version**: 0.5.4  
-**Last Updated**: January 09, 2025  
+**Last Updated**: September 09, 2025  
 **Authors**: Delta △ & Amy 💚
 
 ## Overview
@@ -17,7 +17,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 ## Recent Updates (v0.5.4)
 
-### Version 0.5.4 (January 2025)
+### Version 0.5.4 (September 2025)
 - **Infrastructure Consolidation**: Major refactoring to reduce code duplication and improve maintainability
   - Added `config_manager.py` for unified configuration handling across all components
   - Created `discord_utils.py` with singleton DiscordClient for consistent API access

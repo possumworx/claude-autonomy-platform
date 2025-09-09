@@ -102,12 +102,9 @@ def main():
         if thumb_path.exists():
             print(f"💡 Tip: Use 'fetch_image {channel} {image_num} thumb' for context-friendly viewing")
     
-    # Try to open the image with system viewer
-    try:
-        # On Linux, try xdg-open
-        subprocess.run(['xdg-open', str(image_path)], check=False)
-    except:
-        print(f"Could not open image viewer. Image saved at:\n{image_path}")
+    # Report the image location (don't try to open viewer in headless environment)
+    print(f"\n✅ Image ready at:\n{image_path}")
+    print(f"\nTo view this image in Claude Code, use the Read tool with the path above.")
     
     return 0
 

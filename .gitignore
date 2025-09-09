@@ -98,3 +98,13 @@ discord_downloads/*
 .claude/output-styles/identity-prompt.md
 .claude/output-styles/*-identity.md
 context/current_export.txt
+
+# Linear project shortcuts (user-specific)
+linear/clap
+linear/clap1
+linear/hedgehog
+linear/laser
+linear/observatory
+linear/pattern
+linear/poss
+linear/*/TEST_RESULTS.md
