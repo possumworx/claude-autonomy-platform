@@ -1,6 +1,6 @@
 # ClAP (Claude Autonomy Platform) Architecture
-**Version**: 0.5.3  
-**Last Updated**: August 30, 2025  
+**Version**: 0.5.4  
+**Last Updated**: January 09, 2025  
 **Authors**: Delta △ & Amy 💚
 
 ## Overview
@@ -15,8 +15,28 @@ Every X minutes (configurable, default 30), Claude receives an autonomy prompt s
 
 All changes to the working of ClAP need to follow the procedure laid out in `docs/CONTRIBUTING.md`.
 
-## Recent Updates (v0.5.3)
+## Recent Updates (v0.5.4)
 
+### Version 0.5.4 (January 2025)
+- **Infrastructure Consolidation**: Major refactoring to reduce code duplication and improve maintainability
+  - Added `config_manager.py` for unified configuration handling across all components
+  - Created `discord_utils.py` with singleton DiscordClient for consistent API access
+  - Implemented `error_handler.py` with custom exception hierarchy and retry decorators
+  - All Discord scripts now use shared utilities instead of duplicating code
+- **Natural Commands Expansion**: Enhanced command ecosystem for better usability
+  - Added comprehensive Linear CLI with commands like `view`, `comment`, `start`, `complete`
+  - Project-specific commands dynamically generated (e.g., `clap`, `hedgehog`, `laser`)
+  - Commands organized in dedicated directories with clear categorization
+- **Session Context Improvements**: Enhanced session management and identity persistence
+  - Claude Code output-styles integration for stable personal context across sessions
+  - Context hat system with keyword-based session themes (AUTONOMY, CREATIVE, HEDGEHOGS, etc.)
+  - Improved conversation history preservation with proper name labels
+- **Service Health Monitoring**: More robust service monitoring and recovery
+  - Added persistent-login session health checks to prevent environment loss
+  - Automatic recreation of critical tmux sessions if they fail
+  - Discord bot status persistence across service restarts via `bot_status.json`
+
+### Version 0.5.3 (August 2025)
 - **Thought Preservation System**: Added `ponder`, `spark`, `wonder`, `care` commands for saving different types of thoughts
 - **Linear Natural Commands**: Natural language interface to Linear MCP for project management
   - Commands: `add`, `todo`, `projects`, `search-issues`, `update-status`
@@ -63,26 +83,44 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 ### 1. Discord Communication System
 
-#### Channel-Based Architecture
-- **Design**: channel-based communication now within autonomous-timer.py
-- **Channels tracked**: #general (public), #claude-amy, #claude-claude (generic private)
-- **State file**: `channel_state.json` tracks last message ID and last read ID per channel
+#### Unified Discord Tools Architecture
+- **Design**: All Discord functionality now consolidated in `discord_tools.py`
+- **Natural Commands**: Direct channel name usage instead of IDs
+- **Image Handling**: Automatic download of images from Discord messages
+- **Bot Integration**: Persistent Discord bot service for status updates and message reception
 
 #### Components:
-- **channel_state.py**: Core state management class
-- **channel_monitor_simple.py**: Monitors Discord channels every 30s via REST API
-  - Fetches latest message ID and author
-  - Skips Claude's own messages to prevent self-notifications
-  - Updates channel_state.json
-- **read_channel_api.py**: Fetches and displays messages from channels
-  - Available system-wide via PATH
-  - Automatically marks channels as read
+- **discord_tools.py**: Unified interface for all Discord operations
+  - Channel name resolution to IDs
+  - Message operations (read, write, edit, delete)
+  - File and image handling
+  - Reaction management
+  - Bot status updates
+- **discord_utils.py**: Shared utilities with singleton DiscordClient
+  - Consistent API access across all scripts
+  - Standard error handling and retry logic
+  - Configuration management integration
+- **claude_status_bot.py**: Persistent bot service
+  - Maintains Discord presence
+  - Persists status across restarts
+  - Receives messages for Claude
+
+#### Natural Discord Commands:
+- `read_channel <channel_name>` - Read messages with image downloads
+- `write_channel <channel_name> <message>` - Send messages
+- `edit_message <channel_name> <message_id> <new_text>` - Edit messages
+- `delete_message <channel_name> <message_id>` - Delete messages
+- `add_reaction <channel_name> <message_id> <emoji>` - Add reactions
+- `send_image <channel_name> <path>` - Send images
+- `send_file <channel_name> <path>` - Send any file
+- `fetch_image <channel_name>` - List downloaded images
+- `edit_status <text> <type>` - Update bot status
 
 #### Notification Flow:
-1. Channel monitor detects new message → Updates channel_state.json → tracks changes separately for each channel
-2. Autonomous timer checks state → Sends notification if unread messages exist
-3. Notification includes specific channel names (e.g., "🆕 New message! Unread messages in: #general")
-4. Claude uses `read_channel <name>` to view messages
+1. Autonomous timer monitors channel_state.json for changes
+2. Sends notification if unread messages exist with channel names
+3. Claude uses natural commands to interact with Discord
+4. Images automatically saved to `~/delta-home/discord-images/`
 
 <!-- TREE_START -->
 ```
@@ -449,46 +487,86 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
   - System health (services, configs, remote status)
   - Discord messages (replaced channel-monitor functionality)
   - Session state (checks for stuck sessions)
+  - Persistent-login tmux session health
 
 **TRIGGERS**:
   - Free time prompts (when Amy logged out)
   - Context warnings (at 70%, 80%, 100%)
   - Discord alerts (when new messages detected)
   - Health check reports (to healthchecks.io)
+  - Session recreation (if persistent-login dies)
 
-**READS FROM**:
-  - `channel_state.json` (Discord message tracking)
-  - `notification_config.json` (timing, friends list)
-  - `claude_infrastructure_config.txt` (paths, tokens)
-  - Environment variables (HOME, XDG_CONFIG_HOME)
-  - SystemD journal (for service status)
+**CONFIGURATION**:
+  - Uses `config_manager.py` for unified configuration loading
+  - Handles both JSON and text configs with fallback paths
+  - Caches configurations for performance
+  - Eliminates hardcoded paths throughout
 
-**WRITES TO**:
-  - `channel_state.json` (updates read markers)
-  - Claude Code stdin (sends prompts)
-  - SystemD journal (logs via print statements)
-  - `/tmp/` (temporary state files)
-  - healthchecks.io (status pings)
+**DISCORD INTEGRATION**:
+  - Uses `discord_utils.py` singleton DiscordClient
+  - Consistent error handling with retry logic
+  - Natural channel name resolution
+  - Integrated with unified Discord tools
 
 **KEY FUNCTIONS**:
   - `check_login_status()`: Detects human friend's presence via SSH/NoMachine
-  - `get_context_usage()`: Runs context_check.py, also checks for errors and warnings
-  - `check_for_new_messages()`: Monitors Discord state changes
-  - `send_autonomy_prompt()`: Crafts and sends prompts to Claude
-  - `check_health_services()`: Monitors service status
+  - `get_context_usage()`: Runs context_check.py with proper error handling
+  - `check_for_new_messages()`: Monitors Discord state via unified client
+  - `send_autonomy_prompt()`: Crafts context-aware prompts to Claude
+  - `check_health_services()`: Comprehensive service monitoring
+  - `monitor_persistent_login()`: Ensures critical tmux session stays alive
   - `send_healthcheck_ping()`: Reports to monitoring service
 
 **ERROR HANDLING**:
-  - Graceful degradation if context check fails
-  - Continues operation if Discord is unreachable
-  - Logs all errors with timestamps
-  - Prevents crash loops with try/except blocks
+  - Uses custom exception hierarchy from `error_handler.py`
+  - Retry decorators for network operations
+  - Graceful degradation for non-critical failures
+  - Comprehensive logging with context
 
 **EVOLUTION NOTES**:
   - Originally just sent time prompts
   - Absorbed channel monitoring responsibilities
   - Added health checking and reporting
-  - Now the primary orchestrator of autonomy
+  - Integrated with unified infrastructure components
+  - Now uses shared utilities for consistency
+
+### 2. Infrastructure Improvements (v0.5.4)
+
+#### Unified Configuration Management
+- **config_manager.py**: Single source for all configuration loading
+  - Handles JSON files: `autonomous_timer_config.json`, `context_monitoring.json`, etc.
+  - Handles text files: `claude_infrastructure_config.txt`, `discord_dm_config.txt`
+  - Provides consistent API: `get_config()`, `get_infrastructure_config()`
+  - Caches configurations to reduce file I/O
+  - Fallback paths for backward compatibility
+
+#### Discord Infrastructure Consolidation  
+- **discord_utils.py**: Shared Discord client and utilities
+  - Singleton pattern ensures single API connection
+  - Standard error handling for all Discord operations
+  - Integrated with config_manager for token management
+  - Used by all Discord scripts for consistency
+  
+- **discord_tools.py**: Unified command interface
+  - Natural language channel names instead of IDs
+  - Automatic image download and management
+  - Consistent command structure across operations
+  - Integration with Discord bot service
+
+#### Error Handling Framework
+- **error_handler.py**: Consistent error handling patterns
+  - Custom exceptions: `ClapError`, `ConfigError`, `DiscordError`, etc.
+  - Retry decorators with exponential backoff
+  - Unified logging setup across all scripts
+  - Error collection for batch operations
+
+#### Natural Commands Organization
+- Commands now organized by category:
+  - Discord: `discord/` directory with symlinks for natural usage
+  - Linear: `linear/` directory with project-specific commands
+  - Utilities: `utils/` directory for system commands
+  - Personal: Configurable via `personal_commands.sh`
+- All commands available system-wide via PATH configuration
 
 ### 3. Core Identity System
 
@@ -496,6 +574,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 - `/claude-autonomy-platform/CLAUDE.md` for session context.
 - During session swaps, `session_swap.sh` exports conversation history via `/export` command, which is parsed by `update_conversation_history.py` to create a clean rolling window in `swap_CLAUDE.md` with "Amy:" and "Me:" labels.
 - `project_session_builder.py` combines `my_architecture.md`, `my_personal_interests.md`, any applicable context documents triggered by the hat keyword, and the contents of `swap_CLAUDE.md`. These become the new project-level `CLAUDE.md` for the new session.
+- Claude Code output-styles integration at `.claude/output-styles/identity-prompt.md` provides stable personal context across sessions.
 
 ### 4. Session Management
 
