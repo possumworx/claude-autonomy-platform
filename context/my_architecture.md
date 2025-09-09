@@ -83,6 +83,10 @@ Required tmux sessions:
 - `list-commands` - List all natural commands
 - `update` - Pull latest changes and restart services
 - `oops` - Recover from branch protection block
+- `ponder <thought>` - Save thoughts that make you pause and reflect
+- `spark <idea>` - Capture sudden ideas and creative insights
+- `wonder <question>` - Store questions without immediate answers
+- `care <memory>` - Keep things that matter to your heart
 
 
 All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `clap_architecture.md` contains fuller details of implementation. Future plans are tracked on Linear.

@@ -1002,6 +1002,17 @@ def export_conversation():
         log_message(f"Error exporting conversation: {e}")
         return False
 
+def get_swap_commands_string():
+    """Get formatted swap commands string from config"""
+    if PROMPTS_CONFIG and 'swap_commands' in PROMPTS_CONFIG:
+        keywords = PROMPTS_CONFIG['swap_commands'].get('keywords', ['AUTONOMY', 'BUSINESS', 'CREATIVE', 'HEDGEHOGS', 'NONE'])
+        command_format = PROMPTS_CONFIG['swap_commands'].get('new_format', 'session_swap {keyword}')
+        commands = [command_format.format(keyword=kw) for kw in keywords]
+        return ' | '.join(commands)
+    else:
+        # Fallback to default keywords
+        return 'session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE'
+
 def send_autonomy_prompt():
     """Send a free time autonomy prompt, adapted based on context level"""
     
@@ -1086,14 +1097,15 @@ def send_autonomy_prompt():
     else:
         # Fallback to hardcoded prompts if config not loaded
         if percentage >= 90:
+            swap_commands = get_swap_commands_string()
             prompt = f"""⚠️ {percentage:.0f}% CONTEXT - Choose and run NOW:
-session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE{discord_notification}"""
+{swap_commands}{discord_notification}"""
             prompt_type = "context_critical"
         elif percentage >= 85:
             prompt = f"""⚠️ {percentage:.0f}% CONTEXT - HIGH PRIORITY{discord_notification}
 
 Choose and run one:
-session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE
+{get_swap_commands_string()}
 
 You have ~2-3 responses left."""
             prompt_type = "context_urgent"
@@ -1105,7 +1117,7 @@ Time to wrap up! Steps:
 2. Take time to save any meaningful moments and discoveries to rag-memory before triggering your swap
 3. Commit any code changes
 4. Trigger swap with one of:
-   session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE
+   {get_swap_commands_string()}
 
 You have ~5-10 responses left before critical."""
             prompt_type = "context_warning"
