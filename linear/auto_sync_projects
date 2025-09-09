@@ -9,14 +9,18 @@ echo "🔄 Auto-syncing Linear projects..."
 # Get team ID
 TEAM_ID=$(jq -r '.team.id' "$STATE_FILE")
 
-# Search for all projects
-PROJECTS_JSON=$(claude exec mcp__linear__linear_search_projects "{}" 2>&1)
+# Fetch teams to get projects - MCP doesn't have direct project list
+TEAMS_JSON=$(claude --exec-builtin mcp__linear__linear_get_teams 2>&1 <<< '{}')
 
-# Check if we got valid JSON
-if ! echo "$PROJECTS_JSON" | jq empty 2>/dev/null; then
-    echo "❌ Failed to fetch projects"
+# Check if we got valid response
+if ! echo "$TEAMS_JSON" | jq empty 2>/dev/null; then
+    echo "❌ Failed to fetch teams data"
     exit 1
 fi
+
+# For now, we'll manually add the known projects since the API doesn't expose them directly
+# This is a temporary solution until we have a better way to list all projects
+echo "⚠️  Note: Linear API doesn't expose all projects directly. Using known projects list."
 
 # Clear existing projects
 jq '.projects = {}' "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"

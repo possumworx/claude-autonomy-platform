@@ -1,52 +1,51 @@
 #!/bin/bash
-# Natural command to search Linear issues
-# Usage: search <query>
+# Search Linear issues using MCP tool
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-STATE_FILE="$SCRIPT_DIR/../data/linear_state.json"
-
-# Check if state file exists and is initialized
-if [ ! -f "$STATE_FILE" ] || [ "$(jq -r '.user.id' "$STATE_FILE" 2>/dev/null)" == "" ]; then
-    echo "❌ Linear not initialized. Run 'linear/init' first!"
+if [ $# -lt 1 ]; then
+    echo "Usage: search-issues <search-term>"
+    echo "Examples:"
+    echo "  search-issues \"consciousness\""
+    echo "  search-issues \"POSS-123\""
     exit 1
 fi
 
-# Parse arguments
-if [ $# -eq 0 ]; then
-    echo "Usage: search <query>"
-    echo "Example: search \"discord integration\""
-    exit 1
-fi
-
+# Get the search query (all arguments combined)
 QUERY="$*"
 
-echo "🔍 Searching for: $QUERY"
-echo ""
-
-# Build the JSON payload
-PAYLOAD=$(jq -n \
-    --arg query "$QUERY" \
-    '{
-        query: $query,
-        first: 10
-    }')
-
-# Search issues using Claude with MCP
-PROMPT="Please search Linear issues using mcp__linear__linear_search_issues with these parameters: $PAYLOAD
-
-Please format the output as a readable list showing:
-- Issue ID and title
-- Status
-- Assignee (if any)
-- Project (if any)"
-
-RESULT=$(echo "$PROMPT" | claude --print --dangerously-skip-permissions 2>&1)
-
-# Check if we got results
-if echo "$RESULT" | grep -q -E "(POSS-[0-9]+|No issues found|found [0-9]+ issue)"; then
-    echo "$RESULT" | grep -v "^Using" | grep -v "^Please search"
-else
-    echo "❌ Search failed"
-    echo "$RESULT"
+# Check if we're in the Claude Code environment
+if [ -z "$CLAUDE_CODE_SESSION" ]; then
+    echo "❌ Error: Not in Claude Code session"
+    echo "Please run 'Claude' first to start a Claude Code session"
     exit 1
 fi
+
+echo "🔍 Searching Linear for: $QUERY"
+echo ""
+
+# Create a temporary file to capture Claude's response
+TEMP_FILE=$(mktemp)
+
+# Ask Claude to search Linear issues using MCP tool
+cat > "$TEMP_FILE" << EOF
+Please use the Linear MCP tool to search for issues matching: "$QUERY"
+
+Use the linear_search_issues function with these parameters:
+- query: "$QUERY"
+- first: 20
+
+Format the results clearly showing:
+- Issue ID and title
+- Status and priority
+- Assignee
+- Project
+- Created/updated dates
+- Description preview (first 100 chars)
+
+If searching for an issue ID (like POSS-123), show full details for that specific issue.
+EOF
+
+# Execute via Claude Code
+claude -p < "$TEMP_FILE"
+
+# Clean up
+rm -f "$TEMP_FILE"

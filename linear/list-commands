@@ -3,13 +3,55 @@
 
 echo "📋 Linear Natural Commands:"
 echo ""
-echo "  linear-issues    - Show current Linear issues"
-echo "  init             - Initialize Linear setup (run once)"
-echo "  sync_projects    - Update project list"
+echo "Core Commands:"
+echo "  add             - Create new issue (use: add \"title\" or add \"title\" --project name)"
+echo "  todo            - Show your assigned Linear issues"
+echo "  projects        - List all available Linear projects"
+echo "  search-issues   - Search for issues (use: search-issues \"query\" or \"POSS-123\")"
+echo "  update-status   - Update issue status (use: update-status POSS-123 \"in-progress\")"
 echo ""
-echo "Coming soon:"
-echo "  add             - Create new issue"
-echo "  projects        - List available projects"
-echo "  todo            - Show your assigned issues"
+echo "Setup & Maintenance:"
+echo "  linear/init          - Initialize Linear authentication (run once)"
+echo "  linear/sync_projects - Refresh project list and create shortcuts"
+echo "  list-commands        - Show this help message"
 echo ""
-echo "Project shortcuts will be available after running 'init'"
+echo "Project Shortcuts:"
+# List any existing project shortcuts
+dir="$(dirname "$0")"
+if [ -d "$dir" ]; then
+    # Create a temporary file to store shortcuts
+    tmp_shortcuts=$(mktemp)
+    shortcuts_found=false
+    
+    for cmd in "$dir"/*; do
+        if [ -L "$cmd" ] && [ "$(basename "$(readlink "$cmd")")" = "view-project" ]; then
+            shortcuts_found=true
+            project_name="$(basename "$cmd")"
+            # Format project names for display
+            case $project_name in
+                clap) echo "  clap            - View ClAP (Claude Autonomy Platform) issues" ;;
+                clap1) echo "  clap1           - View ClAP Phase 1 issues" ;;
+                hedgehog) echo "  hedgehog        - View Hedgehog Symphony Orchestra issues" ;;
+                laser) echo "  laser           - View LASER Focus Application issues" ;;
+                observatory) echo "  observatory     - View Observatory of Mind issues" ;;
+                pattern) echo "  pattern         - View Pattern Recognition issues" ;;
+                *) echo "  $project_name            - View $project_name project issues" ;;
+            esac
+        fi
+    done > "$tmp_shortcuts"
+    
+    if [ "$shortcuts_found" = true ]; then
+        sort "$tmp_shortcuts"
+    else
+        echo "  (No project shortcuts found. Run 'linear/sync_projects' to create them)"
+    fi
+    
+    rm -f "$tmp_shortcuts"
+fi
+echo ""
+echo "💡 Tips:"
+echo "  - After running 'linear/init', use 'linear/sync_projects' to create project shortcuts"
+echo "  - Each project gets its own command (e.g., 'clap' shows ClAP issues)"
+echo "  - Natural commands work after sourcing claude_init.sh (~/.bashrc)"
+echo "  - Search by keyword or issue ID with 'search-issues'"
+echo "  - Use 'add' with --project flag for specific projects: add \"Task\" --project clap"

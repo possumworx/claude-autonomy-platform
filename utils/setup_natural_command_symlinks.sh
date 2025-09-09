@@ -15,8 +15,8 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAP_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Source path utilities
-source "$SCRIPT_DIR/claude_paths.sh"
+# Source path utilities (commenting out - not needed for this script)
+# source "$SCRIPT_DIR/claude_paths.sh"
 
 # Paths
 NATURAL_COMMANDS="$CLAP_DIR/config/natural_commands.sh"

@@ -20,11 +20,13 @@ from infrastructure_config_reader import get_config_value
 
 class ClaudeStatusBot(discord.Client):
     def __init__(self):
+        print("  📍 Initializing bot class...")
         intents = discord.Intents.default()
         intents.message_content = True
         intents.guilds = True
         intents.presences = True
         super().__init__(intents=intents)
+        print("  📍 Bot class initialized")
         
         self.status_file = Path(__file__).parent.parent / "data" / "bot_status.json"
         self.last_status_check = None
@@ -129,10 +131,13 @@ async def run_bot():
     
     print(f"🔧 Starting {get_config_value('CLAUDE_NAME', 'Claude')} Status Bot...")
     print(f"📁 Status file: {Path(__file__).parent.parent / 'data' / 'bot_status.json'}")
+    sys.stdout.flush()
     
     bot = ClaudeStatusBot()
     
     try:
+        print("🔌 Attempting to connect to Discord...")
+        sys.stdout.flush()
         await bot.start(token)
     except discord.LoginFailure as e:
         print(f"❌ Discord login failed: {e}")
@@ -144,6 +149,8 @@ async def run_bot():
         sys.exit(1)
 
 if __name__ == "__main__":
+    print(f"🚀 Starting bot at {datetime.now()}")
+    sys.stdout.flush()
     try:
         asyncio.run(run_bot())
     except KeyboardInterrupt:

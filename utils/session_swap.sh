@@ -9,24 +9,38 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAP_DIR="$HOME/claude-autonomy-platform"
 source "$CLAP_DIR/config/claude_env.sh"
 
+# Load logging utilities
+source "$CLAP_DIR/utils/log_utils.sh"
+source "$CLAP_DIR/utils/session_swap_logger.sh"
+
+# Track swap start time
+SWAP_START_TIME=$(date +%s)
+
 KEYWORD=${1:-"NONE"}
 echo "[SESSION_SWAP] Context keyword: $KEYWORD"
+log_info "SESSION_SWAP" "Starting session swap with keyword: $KEYWORD"
+log_swap_event "SWAP_START" "$KEYWORD" "initiated" "Session swap initiated by monitor"
 
 # Create lockfile to pause autonomous timer notifications
 LOCKFILE="$CLAP_DIR/data/session_swap.lock"
 echo "[SESSION_SWAP] Creating lockfile to pause autonomous timer..."
 touch "$LOCKFILE"
 echo "$$" > "$LOCKFILE"
+log_info "SESSION_SWAP" "Created lockfile with PID $$"
 
 # Load Claude model from config using the standard read_config function
 CLAUDE_MODEL=$(read_config "MODEL")
 if [[ -z "$CLAUDE_MODEL" ]]; then
     echo "[SESSION_SWAP] ERROR: Unable to read MODEL from config - cannot ensure correct identity!"
     echo "[SESSION_SWAP] Aborting session swap to prevent identity confusion."
+    log_error "SESSION_SWAP" "Failed to read MODEL from config - aborting"
+    log_swap_event "SWAP_FAILED" "$KEYWORD" "failed" "Unable to read MODEL from config"
+    track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "unknown"
     rm -f "$LOCKFILE"
     exit 1
 fi
 echo "[SESSION_SWAP] Using model: $CLAUDE_MODEL"
+log_info "SESSION_SWAP" "Using model: $CLAUDE_MODEL"
 
 # Load the unified send_to_claude function
 source "$CLAP_DIR/utils/send_to_claude.sh"
@@ -73,17 +87,28 @@ if [[ -f "$full_path" ]]; then
     
     if [[ $time_diff -le 30 ]]; then
         file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
+        file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
         echo "[SESSION_SWAP] Export successful! File size: $file_size bytes (modified ${time_diff}s ago)"
+        log_info "SESSION_SWAP" "Export successful - file size: $file_size bytes, modified ${time_diff}s ago"
+        log_swap_event "EXPORT_SUCCESS" "$KEYWORD" "success" "Export size: $file_size bytes"
         python3 "$CLAP_DIR/utils/update_conversation_history.py" "$full_path"
         echo "[SESSION_SWAP] Export preserved at $export_path for reference"
+        log_info "SESSION_SWAP" "Conversation history updated from export"
+        EXPORT_SIZE=$file_size
     else
         echo "[SESSION_SWAP] ERROR: Export file exists but wasn't recently modified (${time_diff}s ago)"
         echo "[SESSION_SWAP] This suggests the export didn't actually update the file (expecting <30s)"
+        log_error "SESSION_SWAP" "Export file not recently modified - ${time_diff}s ago (expecting <30s)"
+        log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Export file not recently modified"
+        track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "$CLAUDE_MODEL"
         rm -f "$LOCKFILE"
         exit 1
     fi
 else
     echo "[SESSION_SWAP] ERROR: Export failed - file not created!"
+    log_error "SESSION_SWAP" "Export failed - file not created at $full_path"
+    log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Export file not created"
+    track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "$CLAUDE_MODEL"
     rm -f "$LOCKFILE"
     exit 1
 fi
@@ -116,6 +141,12 @@ fi
 
 # Kill and recreate tmux session for stability
 echo "[SESSION_SWAP] Recreating tmux session for stability..."
+
+# Clean up any discord-mcp zombie processes (POSS-286)
+echo "[SESSION_SWAP] Cleaning up discord-mcp processes..."
+pkill -f "discord-mcp.*\.jar" 2>/dev/null || true
+sleep 1
+
 tmux kill-session -t autonomous-claude 2>/dev/null || true
 sleep 2
 tmux new-session -d -s autonomous-claude
@@ -168,6 +199,12 @@ echo "[SESSION_SWAP] Removing lockfile to resume autonomous timer..."
 rm -f "$LOCKFILE"
 
 echo "[SESSION_SWAP] Session swap complete!"
+
+# Track successful completion
+SWAP_END_TIME=$(date +%s)
+track_swap_metrics "$SWAP_START_TIME" "$SWAP_END_TIME" "$KEYWORD" "success" "${EXPORT_SIZE:-0}" "$CLAUDE_MODEL"
+log_swap_event "SWAP_COMPLETE" "$KEYWORD" "success" "Session swap completed successfully"
+log_info "SESSION_SWAP" "Session swap completed successfully"
 
 # Ping healthchecks.io for successful swap
 SESSION_SWAP_PING=$(read_config "SESSION_SWAP_PING")
