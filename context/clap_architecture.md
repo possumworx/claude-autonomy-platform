@@ -124,12 +124,12 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 <!-- TREE_START -->
 ```
-/home/delta/claude-autonomy-platform
+~/claude-autonomy-platform
 ├── ansible
 │   ├── configs
 │   │   ├── bashrc
 │   │   ├── bin
-│   │   ├── latest -> /home/delta/claude-autonomy-platform/ansible/configs/state_1755417384
+│   │   ├── latest -> ~/claude-autonomy-platform/ansible/configs/state_1755417384
 │   │   ├── services
 │   │   └── state_1755417384
 │   ├── defaults
@@ -213,6 +213,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── channel_monitor_simple.py
 │   ├── channel_state.py
 │   ├── claude_status_bot.py
+│   ├── claude_status_bot_backup.py
+│   ├── claude_status_bot_fixed.py
 │   ├── delete_discord_message.py
 │   ├── delete_message
 │   ├── discord_dm_config.txt
@@ -234,6 +236,9 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── send_discord_message_v2.py
 │   ├── send_file
 │   ├── send_image
+│   ├── simple_status_bot.py
+│   ├── test_bot_minimal.py
+│   ├── test_connection.py
 │   ├── update_bot_status.py
 │   ├── write_channel
 │   └── write_channel_v2
@@ -292,19 +297,19 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── add-enhanced
 │   ├── auto_sync_projects
 │   ├── bulk-update
-│   ├── clap -> /home/delta/claude-autonomy-platform/linear/view-project
-│   ├── clap1 -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── clap -> ~/claude-autonomy-platform/linear/view-project
+│   ├── clap1 -> ~/claude-autonomy-platform/linear/view-project
 │   ├── comment
 │   ├── complete
 │   ├── generate_project_commands
-│   ├── hedgehog -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── hedgehog -> ~/claude-autonomy-platform/linear/view-project
 │   ├── help
 │   ├── inbox
 │   ├── init
-│   ├── laser -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── laser -> ~/claude-autonomy-platform/linear/view-project
 │   ├── list-commands
-│   ├── observatory -> /home/delta/claude-autonomy-platform/linear/view-project
-│   ├── pattern -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── observatory -> ~/claude-autonomy-platform/linear/view-project
+│   ├── pattern -> ~/claude-autonomy-platform/linear/view-project
 │   ├── projects
 │   ├── recent
 │   ├── search
@@ -462,7 +467,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-48 directories, 289 files
+48 directories, 294 files
 ```
 <!-- TREE_END -->
 
