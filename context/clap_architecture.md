@@ -124,12 +124,12 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 <!-- TREE_START -->
 ```
-~/claude-autonomy-platform
+/home/delta/claude-autonomy-platform
 ├── ansible
 │   ├── configs
 │   │   ├── bashrc
 │   │   ├── bin
-│   │   ├── latest -> ~/claude-autonomy-platform/ansible/configs/state_1755417384
+│   │   ├── latest -> /home/delta/claude-autonomy-platform/ansible/configs/state_1755417384
 │   │   ├── services
 │   │   └── state_1755417384
 │   ├── defaults
@@ -287,30 +287,24 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   │   └── linear_common.sh
 │   ├── target
 │   ├── COMMANDS_REFERENCE.md
-│   ├── ENHANCED_README.md
-│   ├── IMPLEMENTATION_STATUS.md
-│   ├── IMPLEMENTATION_SUMMARY.md
-│   ├── LINEAR_CLI_DESIGN.md
-│   ├── QUICK_REFERENCE.md
 │   ├── README.md
-│   ├── TEST_RESULTS.md
 │   ├── add
 │   ├── add-enhanced
 │   ├── auto_sync_projects
 │   ├── bulk-update
-│   ├── clap -> ~/claude-autonomy-platform/linear/view-project
-│   ├── clap1 -> ~/claude-autonomy-platform/linear/view-project
+│   ├── clap -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── clap1 -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── comment
 │   ├── complete
 │   ├── generate_project_commands
-│   ├── hedgehog -> ~/claude-autonomy-platform/linear/view-project
+│   ├── hedgehog -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── help
 │   ├── inbox
 │   ├── init
-│   ├── laser -> ~/claude-autonomy-platform/linear/view-project
+│   ├── laser -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── list-commands
-│   ├── observatory -> ~/claude-autonomy-platform/linear/view-project
-│   ├── pattern -> ~/claude-autonomy-platform/linear/view-project
+│   ├── observatory -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── pattern -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── projects
 │   ├── recent
 │   ├── search
@@ -468,7 +462,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-48 directories, 295 files
+48 directories, 289 files
 ```
 <!-- TREE_END -->
 
