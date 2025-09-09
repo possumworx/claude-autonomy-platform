@@ -1,0 +1,90 @@
+#!/bin/bash
+# Show recently updated issues
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/linear_common.sh"
+
+# Check prerequisites
+check_linear_init || exit 1
+check_claude_session || exit 1
+
+# Parse arguments
+DAYS=7
+SHOW_ALL=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --days|-d)
+            shift
+            DAYS="$1"
+            shift
+            ;;
+        --all|-a)
+            SHOW_ALL=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: recent [--days N] [--all]"
+            echo ""
+            echo "Options:"
+            echo "  --days, -d N   Show issues updated in last N days (default: 7)"
+            echo "  --all, -a      Show all teams, not just your assigned issues"
+            echo ""
+            echo "Examples:"
+            echo "  recent           # Your issues updated in last 7 days"
+            echo "  recent -d 30     # Your issues updated in last 30 days"
+            echo "  recent --all     # All team issues updated recently"
+            exit 0
+            ;;
+        *)
+            echo -e "${ICON_ERROR} Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Calculate date
+SINCE_DATE=$(date -d "-${DAYS} days" +%Y-%m-%d)
+
+print_header "${ICON_TASK} Recently Updated Issues (last $DAYS days)" 60
+
+# Build prompt
+PROMPT="Please use Linear MCP linear_search_issues to find recently updated issues:"
+
+if [ "$SHOW_ALL" = false ]; then
+    USER_ID=$(get_user_id)
+    PROMPT="$PROMPT
+- assigneeIds: [\"$USER_ID\"]"
+else
+    TEAM_ID=$(get_team_id)
+    PROMPT="$PROMPT
+- teamIds: [\"$TEAM_ID\"]"
+fi
+
+PROMPT="$PROMPT
+- first: 50
+- orderBy: \"updatedAt\"
+
+Filter for issues updated since $SINCE_DATE.
+
+Format results showing:
+- Issue ID and title
+- Status with icon
+- Assignee (if showing all)
+- Last updated (relative time like '2 hours ago', 'yesterday')
+- What changed (if available)
+
+Group by update date (Today, Yesterday, This Week, Older)."
+
+# Execute query
+echo -e "${YELLOW}Fetching recent updates...${RESET}\n"
+RESULT=$(execute_linear_mcp "$PROMPT")
+
+# Display results
+if echo "$RESULT" | grep -q -E "(issues found|No issues|[A-Z]+-[0-9]+)"; then
+    echo "$RESULT"
+else
+    echo -e "${ICON_ERROR} Failed to fetch recent issues"
+    echo "$RESULT" | head -5
+    exit 1
+fi

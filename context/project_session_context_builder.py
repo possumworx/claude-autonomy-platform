@@ -86,7 +86,7 @@ def build_claude_md():
     architecture_file = autonomy_dir / "my_architecture.md"
     swap_file = autonomy_dir / "swap_CLAUDE.md"
     claude_md_file = home_dir / "CLAUDE.md"
-    new_session_file = autonomy_dir / "new_session.txt"
+    new_session_file = autonomy_dir.parent / "new_session.txt"
     
     try:
         # Read architecture content
@@ -187,6 +187,8 @@ def build_claude_md():
         print(f"- Conversation from: {swap_file}")
         if context_hat_content:
             print(f"- Context hat: {keyword}")
+        else:
+            print(f"- No context hat content added (keyword was: {keyword if new_session_file.exists() else 'No keyword file'})")
         
     except FileNotFoundError as e:
         print(f"Error: Required file not found - {e}")

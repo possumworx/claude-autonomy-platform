@@ -14,6 +14,7 @@ import mimetypes
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple
+from PIL import Image
 
 # Add the utils directory to Python path
 utils_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'utils')
@@ -227,7 +228,7 @@ class DiscordTools:
     
     def _download_image(self, url: str, filename: str, channel_name: str, 
                        timestamp: str, index: int) -> Optional[Path]:
-        """Download an image and save with organized naming"""
+        """Download an image and save with organized naming, plus create thumbnail"""
         try:
             # Parse timestamp to create readable format
             dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
@@ -250,6 +251,32 @@ class DiscordTools:
                 with open(save_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
+                
+                # Create thumbnail for context-efficient viewing
+                try:
+                    # Open the image
+                    img = Image.open(save_path)
+                    
+                    # Create thumbnail with max dimension of 800px
+                    thumbnail = img.copy()
+                    thumbnail.thumbnail((800, 800), Image.Resampling.LANCZOS)
+                    
+                    # Save thumbnail with _thumb suffix
+                    thumb_filename = f"{channel_name}-{date_str}-{time_str}-{index:03d}_thumb{ext}"
+                    thumb_path = date_dir / thumb_filename
+                    
+                    # Convert RGBA to RGB if necessary (for JPEG)
+                    if thumbnail.mode == 'RGBA' and ext.lower() in ['.jpg', '.jpeg']:
+                        rgb_img = Image.new('RGB', thumbnail.size, (255, 255, 255))
+                        rgb_img.paste(thumbnail, mask=thumbnail.split()[3] if len(thumbnail.split()) == 4 else None)
+                        thumbnail = rgb_img
+                    
+                    thumbnail.save(thumb_path, quality=85, optimize=True)
+                    print(f"✅ Created thumbnail: {thumb_path.name}")
+                    
+                except Exception as e:
+                    print(f"⚠️  Could not create thumbnail: {e}")
+                
                 return save_path
             else:
                 print(f"Failed to download image: {response.status_code}")

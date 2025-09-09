@@ -1,0 +1,10 @@
+#!/bin/bash
+# Claude Code wrapper to ensure .bashrc is sourced
+
+# Source .bashrc to get all our environment variables and aliases
+if [ -f "$HOME/.bashrc" ]; then
+    source "$HOME/.bashrc"
+fi
+
+# Launch the real Claude Code with all arguments passed through
+exec "$HOME/.npm-global/bin/claude" "$@"

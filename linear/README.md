@@ -2,18 +2,54 @@
 
 Natural language commands for Linear project management, designed to make issue tracking invisible infrastructure.
 
-## Commands
+## Quick Start
 
-- `add "Issue title" [--project]` - Create new issue with optional project
-- `todo` - Show issues assigned to you  
-- `projects` - List your projects with descriptions
-- `search-issues <query>` - Search for issues by text
-- `update-status <issue-id> <status>` - Update issue status (todo, in-progress, done, etc.)
-- `[project-name]` - Show issues for specific project (e.g., `clap`, `observatory`)
+```bash
+# Create an issue
+add "Fix navigation bug" --project clap --priority 1
 
-## Setup
+# View your tasks
+todo                    # All assigned issues
+urgent                  # High priority only  
+blocked                 # Blocked issues
 
-First run: The system will auto-initialize and cache your user/team/project IDs.
+# Quick actions
+start POSS-123          # Start working (assign + in progress)
+complete POSS-123       # Mark as done
+```
+
+## Core Commands
+
+### Issue Management
+- `add "Issue title" [options]` - Create issue with metadata
+  - `--project NAME` - Project name or key
+  - `--assignee @me` - Assign to yourself
+  - `--priority 1-4` - 1=urgent, 4=low
+  - `--estimate 1-8` - Story points
+- `view ISSUE-ID` - Show detailed issue info
+- `comment ISSUE-ID "text"` - Add comment
+- `update-status ISSUE-ID STATUS` - Change status
+
+### Task Views
+- `todo [options]` - Your assigned issues
+  - `--status STATUS` - Filter by status
+  - `--project PROJECT` - Filter by project
+  - `--priority 1,2` - Filter by priority
+- `inbox` - Unassigned team issues
+- `recent` - Recently updated issues
+- `search-issues "query"` - Search by text
+
+### Quick Actions
+- `start ISSUE-ID` - Assign to self + In Progress
+- `complete ISSUE-ID` - Mark as Done
+- `projects` - List all projects
+
+### Shortcuts
+- `mine` - Alias for todo
+- `urgent` - Priority 1-2 issues
+- `blocked` - Blocked issues
+- `done` - Recently completed
+- `[project-name]` - Show project issues (e.g., `clap`)
 
 ## Design Principles
 
@@ -22,8 +58,19 @@ First run: The system will auto-initialize and cache your user/team/project IDs.
 3. **Adaptive**: Prompts when needed, shortcuts when you know them
 4. **Project-focused**: Think in projects, not issue IDs
 
+## Setup
+
+First run: `linear/init` for authentication. The system will auto-initialize and cache your user/team/project IDs.
+
 ## Implementation
 
 - Scripts live in `linear/`
-- State cached in `data/linear_state.json` 
+- State cached in `data/linear_state.json`
 - Natural command aliases in `config/natural_commands.sh`
+- Run `linear-help` for full command documentation
+
+## Troubleshooting
+
+- **"Linear not initialized"**: Run `linear/init`
+- **"Not in Claude Code session"**: Start Claude Code with `Claude` command
+- **Project not found**: Run `linear/sync_projects` to refresh

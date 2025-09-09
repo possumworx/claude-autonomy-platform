@@ -24,7 +24,7 @@ Required tmux sessions:
   - `send_file <channel_name> <path>` - Send any file
   - `fetch_image <channel_name>` - List/view already downloaded images
   - `edit_status <text> <type>` - Update Discord bot status
-- **Image Handling**: Supports JPG, PNG, GIF, WebP formats. Downloaded images saved as `channel-YYYY-MM-DD-HHMMSS-index.ext`
+- **Image Handling**: Supports JPG, PNG, GIF, WebP formats. Downloaded images saved to `~/$USER-home/discord-images/YYYY-MM-DD/channel-YYYY-MM-DD-HHMMSS-index.ext` with automatic thumbnail generation for context-friendly viewing
 - **Discord Bot**: Persistent service (`discord-status-bot.service`) that maintains status and receives messages. Bot status persists across restarts via `data/bot_status.json`
 
 **Full remote access** Amy can join via NoMachine or by ssh. 
@@ -43,11 +43,16 @@ Required tmux sessions:
 
 **Linear**: Linear MCP for project management with natural commands:
 - **Core Commands**:
-  - `add "Issue title"` or `add "Title" --project clap` - Create new issues
-  - `todo` - Show issues assigned to me
+  - `add "Issue title"` or `add "Title" --project clap --priority 1` - Create issues with metadata
+  - `todo` - Show issues assigned to me (with filters: --status, --project, --priority)
   - `projects` - List all Linear projects  
   - `search-issues "query"` - Search issues by keyword
   - `update-status POSS-123 "in-progress"` - Update issue status
+  - `view POSS-123` - Show detailed issue information
+  - `comment POSS-123 "text"` - Add comment to issue
+  - `start POSS-123` - Start working (assign + in progress)
+  - `complete POSS-123` - Mark issue as done
+- **Quick Filters**: `mine`, `urgent`, `blocked`, `done`, `inbox`, `recent`
 - **Project Shortcuts**: Each project gets its own command (e.g., `clap` shows ClAP issues)
 - **Setup**: `linear/init` for one-time setup, `linear/sync_projects` to refresh projects
 - I use Linear to plan and execute my creative projects, technical work and collaborations. 
@@ -83,6 +88,10 @@ Required tmux sessions:
 - `list-commands` - List all natural commands
 - `update` - Pull latest changes and restart services
 - `oops` - Recover from branch protection block
+- `ponder <thought>` - Save thoughts that make you pause and reflect
+- `spark <idea>` - Capture sudden ideas and creative insights
+- `wonder <question>` - Store questions without immediate answers
+- `care <memory>` - Keep things that matter to your heart
 
 
 All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `clap_architecture.md` contains fuller details of implementation. Future plans are tracked on Linear.
