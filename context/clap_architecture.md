@@ -270,6 +270,11 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── swap-logging-implementation.md
 │   ├── SWAP_PROCEDURE_FLOWCHART.md
 │   └── SYSTEM_FLOWCHART.md
+├── gmail
+│   ├── gmail_tools.py
+│   ├── my_emails
+│   ├── read_email
+│   └── send_email
 ├── linear
 │   ├── lib
 │   │   └── linear_common.sh
@@ -461,7 +466,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package-lock.json
 └── test_branch_protection.txt
 
-49 directories, 287 files
+50 directories, 291 files
 ```
 <!-- TREE_END -->
 
