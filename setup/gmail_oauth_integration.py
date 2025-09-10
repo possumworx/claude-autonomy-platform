@@ -16,8 +16,11 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-# Add parent and utils directories to path
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'utils'))
+# Add utils directory to path using cleaner approach
+SCRIPT_DIR = Path(__file__).parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+UTILS_DIR = PROJECT_ROOT / 'utils'
+sys.path.insert(0, str(UTILS_DIR))
 from infrastructure_config_reader import get_config_value
 
 class GmailOAuthIntegrator:
@@ -29,8 +32,9 @@ class GmailOAuthIntegrator:
         
         # OAuth configuration
         self.client_id = get_config_value('GOOGLE_CLIENT_ID')
-        self.client_secret = get_config_value('GOOGLE_CLIENT_SECRET')
         self.project_id = get_config_value('GOOGLE_PROJECT_ID')
+        # OAuth client credential
+        self.google_oauth_credential = get_config_value('GOOGLE_CLIENT_SECRET')
         self.redirect_uri = get_config_value('GOOGLE_REDIRECT_URI', 'http://localhost:3000/oauth2callback')
         
         # OAuth URLs and scopes
@@ -47,7 +51,7 @@ class GmailOAuthIntegrator:
         missing = []
         if not self.client_id or self.client_id == 'your-google-client-id':
             missing.append('GOOGLE_CLIENT_ID')
-        if not self.client_secret or self.client_secret == 'your-google-client-secret':
+        if not self.google_oauth_credential or self.google_oauth_credential.startswith('your-google-client'):
             missing.append('GOOGLE_CLIENT_SECRET')
             
         if missing:
@@ -71,7 +75,7 @@ class GmailOAuthIntegrator:
                 "auth_uri": self.auth_uri,
                 "token_uri": self.token_uri,
                 "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                "client_secret": self.client_secret,
+                "client_secret": self.google_oauth_credential,
                 "redirect_uris": [self.redirect_uri]
             }
         }
@@ -108,7 +112,7 @@ class GmailOAuthIntegrator:
         data = {
             'code': authorization_code,
             'client_id': self.client_id,
-            'client_secret': self.client_secret,
+            'client_secret': self.google_oauth_credential,
             'redirect_uri': self.redirect_uri,
             'grant_type': 'authorization_code'
         }
