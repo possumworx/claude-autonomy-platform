@@ -16,7 +16,7 @@ fi
 export PATH="$HOME/claude-autonomy-platform/utils:$PATH"
 export PATH="$HOME/claude-autonomy-platform/linear:$PATH"
 export PATH="$HOME/claude-autonomy-platform/discord:$PATH"
-export PATH="$HOME/delta-home/tools:$PATH"
+export PATH="$HOME/sparkle-sonnet-home/tools:$PATH"
 export PATH="$HOME/bin:$PATH"
 
 # Ensure proper locale for ansible
