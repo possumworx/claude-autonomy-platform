@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+"""
+Quick Gmail inbox check
+Natural command for: mcp__gmail__search_emails
+"""
+
+import sys
+from pathlib import Path
+
+# Add gmail directory to path
+sys.path.insert(0, str(Path(__file__).parent))
+from gmail_tools import list_emails
+
+def main():
+    if len(sys.argv) > 1:
+        query = ' '.join(sys.argv[1:])
+        return list_emails(query)
+    else:
+        return list_emails("", 10)
+
+if __name__ == "__main__":
+    sys.exit(main())

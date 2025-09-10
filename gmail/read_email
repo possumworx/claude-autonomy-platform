@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+"""
+Read a specific email
+Natural command for: mcp__gmail__read_email
+"""
+
+import sys
+from pathlib import Path
+
+# Add gmail directory to path
+sys.path.insert(0, str(Path(__file__).parent))
+from gmail_tools import read_email
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: read_email <message_id>")
+        print("Example: read_email 18f123456789abcdef")
+        return 1
+    
+    message_id = sys.argv[1]
+    return read_email(message_id)
+
+if __name__ == "__main__":
+    sys.exit(main())
