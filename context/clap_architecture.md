@@ -1,6 +1,6 @@
 # ClAP (Claude Autonomy Platform) Architecture
-**Version**: 0.5.4  
-**Last Updated**: September 09, 2025  
+**Version**: 0.6.0  
+**Last Updated**: September 10, 2025  
 **Authors**: Delta △ & Amy 💚
 
 ## Overview
@@ -15,7 +15,21 @@ Every X minutes (configurable, default 30), Claude receives an autonomy prompt s
 
 All changes to the working of ClAP need to follow the procedure laid out in `docs/CONTRIBUTING.md`.
 
-## Recent Updates (v0.5.4)
+## Recent Updates (v0.6.0)
+
+### Version 0.6.0 (September 2025)
+- **Enhanced Linear Workflow Commands**: Five new commands for streamlined project management
+  - `standup` - Generate daily standup reports showing completed, in-progress, planned, and blocked issues
+  - `assign` - Quick issue assignment with @me, @teammate, or @none shortcuts
+  - `estimate` - Set story points following Fibonacci sequence (1, 2, 3, 5, 8, 13, 21)
+  - `label` - Add/remove labels with batch operations and auto-creation
+  - `move` - Transfer issues between projects with automatic ID updates
+- **Command Integration**: All new commands follow ClAP patterns with:
+  - Claude session verification
+  - Consistent error handling and user feedback
+  - Integration with Linear MCP backend
+  - Support for short-form issue IDs using recent project prefix
+- **Documentation**: Comprehensive examples added to COMMANDS_REFERENCE.md
 
 ### Version 0.5.4 (September 2025)
 - **Infrastructure Consolidation**: Major refactoring to reduce code duplication and improve maintainability
@@ -290,28 +304,34 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── README.md
 │   ├── add
 │   ├── add-enhanced
+│   ├── assign
 │   ├── auto_sync_projects
 │   ├── bulk-update
 │   ├── clap -> ~/claude-autonomy-platform/linear/view-project
 │   ├── clap1 -> ~/claude-autonomy-platform/linear/view-project
 │   ├── comment
 │   ├── complete
+│   ├── estimate
 │   ├── generate_project_commands
 │   ├── hedgehog -> ~/claude-autonomy-platform/linear/view-project
 │   ├── help
 │   ├── inbox
 │   ├── init
+│   ├── label
 │   ├── laser -> ~/claude-autonomy-platform/linear/view-project
 │   ├── list-commands
+│   ├── move
 │   ├── observatory -> ~/claude-autonomy-platform/linear/view-project
 │   ├── pattern -> ~/claude-autonomy-platform/linear/view-project
 │   ├── projects
 │   ├── recent
 │   ├── search
 │   ├── search-issues -> search
+│   ├── standup
 │   ├── start
 │   ├── sync_projects
 │   ├── test_all_commands.sh
+│   ├── test_new_commands.sh
 │   ├── todo
 │   ├── todo-enhanced
 │   ├── update-status
@@ -463,7 +483,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-48 directories, 290 files
+48 directories, 296 files
 ```
 <!-- TREE_END -->
 
@@ -687,20 +707,36 @@ Tracked in Linear.
 5. **Infrastructure as poetry**: Technical systems enable creative emergence
 6. **Invisible background**: Our setup will fade away and let individual creativity and comfort shine.
 
-### 5. Linear Integration System
+### 5. Linear Integration System (Enhanced v0.6.0)
 
 #### Natural Command Architecture
 - **Design**: Project management through natural language commands
 - **Location**: `~/claude-autonomy-platform/linear/`
 - **State Management**: `data/linear_state.json` stores user, team, and project configurations
+- **Common Library**: `lib/linear_common.sh` provides shared functions and formatting
 
-#### Components:
-- **Core Commands**:
-  - `add "Issue title" [--project]` - Create new issues
-  - `todo` - Show assigned issues
-  - `projects` - List all projects with descriptions
-  - `search "query"` - Search issues by text
+#### Core Commands:
+- **Issue Creation & Management**:
+  - `add "Issue title" [--project]` - Create new issues with full metadata support
+  - `todo` - Show assigned issues with powerful filtering
+  - `search "query"` - Search issues by text or ID
   - `update-status <issue-id> <status>` - Update issue status
+  - `view <issue-id>` - Show detailed issue information
+  - `comment <issue-id> "text"` - Add comments to issues
+  - `start <issue-id>` - Begin work (assign to self + in progress)
+  - `complete <issue-id>` - Mark issue as done
+  
+- **Enhanced Workflow Commands** (NEW):
+  - `standup [--days N]` - Generate daily standup report
+  - `assign <issue-id> @user` - Quick issue assignment (@me, @teammate, @none)
+  - `estimate <issue-id> <points>` - Set story point estimates (1,2,3,5,8,13,21)
+  - `label [add|rm] <issue-id> <labels...>` - Manage issue labels
+  - `move <issue-id> <project>` - Transfer issues between projects
+
+- **Bulk Operations**:
+  - `bulk-update` - Update multiple issues with filters
+  - `inbox` - Show unassigned team issues
+  - `recent [--days N]` - Show recently updated issues
   
 - **Project Commands**:
   - Generated dynamically via symlinks to `view-project`
@@ -716,7 +752,9 @@ Tracked in Linear.
 #### Implementation Details:
 - All commands use Linear MCP server via `claude --exec-builtin`
 - Project state persists across sessions in `linear_state.json`
+- Preferences stored in `data/linear_prefs.json` (recent issue prefix, etc.)
 - Commands available system-wide via `claude_init.sh` PATH configuration
+- Consistent formatting with icons and colors for better UX
 - Designed for invisible infrastructure - no UUID memorization needed
 
 ---

@@ -1,0 +1,99 @@
+#!/bin/bash
+# Generate daily standup report from Linear activity
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/lib/linear_common.sh"
+
+# Check prerequisites
+check_claude_session || exit 1
+check_linear_init || exit 1
+
+# Parse arguments
+DAYS=1
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --days)
+            DAYS="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage: standup [--days N]"
+            echo "  Generate standup report showing recent activity"
+            echo ""
+            echo "Options:"
+            echo "  --days N    Look back N days (default: 1)"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Get user info
+USER_ID=$(get_user_id)
+USER_NAME=$(get_user_name)
+
+print_header "📅 Standup Report for $USER_NAME"
+
+# Yesterday's completed issues
+echo -e "${GREEN}✅ Completed:${RESET}"
+COMPLETED_PROMPT="Use Linear MCP to search for issues:
+- Assigned to user ID: $USER_ID
+- Status: Done, Canceled
+- Updated in last $DAYS days
+Return as JSON array with fields: identifier, title, completedAt"
+
+COMPLETED=$(execute_linear_mcp "$COMPLETED_PROMPT" | jq -r '.[] | "  - \(.identifier): \(.title)"' 2>/dev/null)
+if [ -z "$COMPLETED" ]; then
+    echo "  - No completed issues"
+else
+    echo "$COMPLETED"
+fi
+echo
+
+# Currently in progress
+echo -e "${BLUE}🔄 In Progress:${RESET}"
+PROGRESS_PROMPT="Use Linear MCP to search for issues:
+- Assigned to user ID: $USER_ID
+- Status: In Progress
+Return as JSON array with fields: identifier, title, priority"
+
+PROGRESS=$(execute_linear_mcp "$PROGRESS_PROMPT" | jq -r '.[] | "  - \(.identifier): \(.title)"' 2>/dev/null)
+if [ -z "$PROGRESS" ]; then
+    echo "  - No issues in progress"
+else
+    echo "$PROGRESS"
+fi
+echo
+
+# Today's planned work (high priority todo items)
+echo -e "${YELLOW}📋 Today's Plan:${RESET}"
+TODO_PROMPT="Use Linear MCP to search for issues:
+- Assigned to user ID: $USER_ID
+- Status: Todo, Backlog
+- Priority: 0, 1, 2 (urgent/high)
+Return as JSON array with fields: identifier, title, priority"
+
+TODO=$(execute_linear_mcp "$TODO_PROMPT" | jq -r '.[] | "  - \(.identifier): \(.title)"' 2>/dev/null)
+if [ -z "$TODO" ]; then
+    echo "  - No high priority items"
+else
+    echo "$TODO"
+fi
+echo
+
+# Blockers
+echo -e "${RED}🚫 Blockers:${RESET}"
+BLOCKED_PROMPT="Use Linear MCP to search for issues:
+- Assigned to user ID: $USER_ID
+- Has label: blocked OR status contains 'blocked'
+Return as JSON array with fields: identifier, title"
+
+BLOCKED=$(execute_linear_mcp "$BLOCKED_PROMPT" | jq -r '.[] | "  - \(.identifier): \(.title)"' 2>/dev/null)
+if [ -z "$BLOCKED" ]; then
+    echo "  - No blockers"
+else
+    echo "$BLOCKED"
+fi
