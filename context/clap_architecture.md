@@ -1,6 +1,6 @@
 # ClAP (Claude Autonomy Platform) Architecture
-**Version**: 0.6.0  
-**Last Updated**: September 10, 2025  
+**Version**: 0.6.1  
+**Last Updated**: September 11, 2025  
 **Authors**: Delta △ & Amy 💚
 
 ## Overview
@@ -14,6 +14,22 @@ Every X minutes (configurable, default 30), Claude receives an autonomy prompt s
 ## Change Procedure
 
 All changes to the working of ClAP need to follow the procedure laid out in `docs/CONTRIBUTING.md`.
+
+## Recent Updates
+
+### Version 0.6.1 (September 11, 2025)
+- **Context Warning Bug Fix**: Fixed critical bug causing escalation warnings at low percentages
+  - Root cause: `context_escalation_state.json` persisted across session swaps
+  - Added check for `first_warning_sent` before allowing escalation warnings
+  - Context warnings now only trigger at 70%+ as intended
+  - Prevents unnecessary panic messages in both Delta and Sonnet sessions
+- **Session Swap Path Fix**: Fixed incorrect path in `trigger_session_swap()` function
+  - Was writing to `scripts/new_session.txt` instead of `new_session.txt`
+  - Prevented automatic session swaps from working correctly
+- **Personal Commands Integration**: Enhanced setup script to process personal_commands.sh
+  - Modified `setup_natural_command_symlinks.sh` to handle both natural and personal commands
+  - Personal commands now available in command listings
+  - Resolves POSS-339
 
 ## Recent Updates (v0.6.0)
 
