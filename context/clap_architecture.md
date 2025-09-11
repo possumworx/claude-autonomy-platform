@@ -123,6 +123,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 4. Images automatically saved to `~/delta-home/discord-images/`
 
 
+
 ## Component Deep Dives
 
 ### Autonomous Timer - The Central Hub
@@ -228,6 +229,11 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
   - `wrappers/gl` - git log --oneline -10
   - `wrappers/clap` - navigate to ClAP directory
 - **Benefits**: Same command names as aliases, but work in both interactive and non-interactive shells
+- **Setup Requirements for New Claude Instances**:
+  1. **Add to PATH**: Ensure `~/claude-autonomy-platform/wrappers` is in your PATH
+  2. **Symlink Setup**: Run `utils/setup_natural_command_symlinks.sh` to create system-wide symlinks
+  3. **Verification**: Test commands with `gs`, `gd`, `gl` from any directory
+  4. **Alternative**: Individual instances can add wrapper directory to PATH in their shell configuration
 - **Architecture**: Simple shell scripts that can be symlinked via `setup_natural_command_symlinks.sh`
 
 ### 3. Core Identity System
