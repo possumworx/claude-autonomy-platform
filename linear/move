@@ -1,0 +1,59 @@
+#!/bin/bash
+# Move issues between projects
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/lib/linear_common.sh"
+
+# Check prerequisites
+check_claude_session || exit 1
+check_linear_init || exit 1
+
+# Parse arguments
+if [ $# -lt 2 ]; then
+    echo "Usage: move ISSUE-ID PROJECT"
+    echo "  Move an issue to a different project"
+    echo ""
+    echo "Examples:"
+    echo "  move POSS-123 CLAP      # Move by project key"
+    echo "  move 456 \"New Project\"  # Move by project name"
+    exit 1
+fi
+
+ISSUE_ID=$(parse_issue_id "$1")
+PROJECT="$2"
+
+# Get project ID
+PROJECT_ID=$(get_project_id "$PROJECT")
+if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" == "null" ]; then
+    echo -e "${ICON_ERROR} Project not found: $PROJECT"
+    echo "Run 'projects' to see available projects"
+    exit 1
+fi
+
+# Get project details for confirmation
+PROJECT_PROMPT="Use Linear MCP to get project details for ID: $PROJECT_ID. Return name and key."
+PROJECT_INFO=$(execute_linear_mcp "$PROJECT_PROMPT")
+PROJECT_NAME=$(echo "$PROJECT_INFO" | jq -r '.name' 2>/dev/null)
+PROJECT_KEY=$(echo "$PROJECT_INFO" | jq -r '.key' 2>/dev/null)
+
+echo -e "${ICON_INFO} Moving $ISSUE_ID to project $PROJECT_NAME ($PROJECT_KEY)..."
+
+# Move the issue
+MOVE_PROMPT="Use Linear MCP to update issue $ISSUE_ID:
+- Set projectId to: $PROJECT_ID"
+
+RESULT=$(execute_linear_mcp "$MOVE_PROMPT")
+
+if echo "$RESULT" | grep -q "success\|updated\|moved"; then
+    # The issue identifier will change to include new project key
+    NEW_ID="${PROJECT_KEY}-${ISSUE_ID#*-}"
+    echo -e "${ICON_SUCCESS} Issue moved successfully!"
+    echo -e "New identifier: ${CYAN}$NEW_ID${RESET}"
+    
+    # Update recent issue prefix
+    save_preference "recent_issue_prefix" "$PROJECT_KEY"
+else
+    echo -e "${ICON_ERROR} Failed to move issue"
+    echo "$RESULT" | grep -i "error" || echo "$RESULT"
+    exit 1
+fi
