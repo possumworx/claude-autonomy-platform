@@ -297,6 +297,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── sonnet-fix-checklist.md
 │   └── swap-logging-implementation.md
 ├── linear
+│   ├── examples
+│   │   └── new_commands_examples.md
 │   ├── lib
 │   │   └── linear_common.sh
 │   ├── target
@@ -306,11 +308,13 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── add-enhanced
 │   ├── assign
 │   ├── auto_sync_projects
+│   ├── blocked
 │   ├── bulk-update
 │   ├── clap -> ~/claude-autonomy-platform/linear/view-project
 │   ├── clap1 -> ~/claude-autonomy-platform/linear/view-project
 │   ├── comment
 │   ├── complete
+│   ├── done
 │   ├── estimate
 │   ├── generate_project_commands
 │   ├── hedgehog -> ~/claude-autonomy-platform/linear/view-project
@@ -319,7 +323,9 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── init
 │   ├── label
 │   ├── laser -> ~/claude-autonomy-platform/linear/view-project
+│   ├── linear-help
 │   ├── list-commands
+│   ├── mine
 │   ├── move
 │   ├── observatory -> ~/claude-autonomy-platform/linear/view-project
 │   ├── pattern -> ~/claude-autonomy-platform/linear/view-project
@@ -331,11 +337,13 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── start
 │   ├── sync_projects
 │   ├── test_all_commands.sh
+│   ├── test_edge_cases.sh
 │   ├── test_new_commands.sh
 │   ├── todo
 │   ├── todo-enhanced
 │   ├── update-status
 │   ├── update_known_projects
+│   ├── urgent
 │   ├── view
 │   └── view-project
 ├── mcp-servers
@@ -483,7 +491,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-48 directories, 296 files
+49 directories, 303 files
 ```
 <!-- TREE_END -->
 

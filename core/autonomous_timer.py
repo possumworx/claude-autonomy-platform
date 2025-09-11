@@ -313,6 +313,14 @@ def detect_api_errors(tmux_output):
                 "details": "Malformed JSON detected - requires session swap",
                 "reset_time": None
             }
+        
+        # Check for 503 errors (upstream connect error or disconnect/reset)
+        if re.search(r"503|upstream.*connect.*error|disconnect.*reset.*before.*headers", error_text, re.IGNORECASE):
+            return {
+                "error_type": "api_503_error",
+                "details": "API 503 error - upstream connection failure",
+                "reset_time": None
+            }
             
         # Check for usage limit errors
         usage_pattern = r"limit will reset at (\d{1,2}(?::\d{2})?(?:am|pm)?)\s*\(([^)]+)\)"
@@ -1515,6 +1523,18 @@ def main():
                         trigger_session_swap("NONE")
                     else:
                         log_message("API 500 error cleared - resuming normal operation")
+                elif error_info["error_type"] == "api_503_error":
+                    update_discord_status("api-error")
+                    # 503 is upstream connection failure - wait and retry
+                    log_message("API 503 error detected (upstream connection failure) - waiting 60 seconds before retry...")
+                    time.sleep(60)
+                    # Check if error persists
+                    _, current_error = get_token_percentage_and_errors()
+                    if current_error and current_error.get("error_type") == "api_503_error":
+                        log_message("API 503 error persists - waiting longer before next check...")
+                        # Don't trigger swap immediately for 503s - they often resolve
+                    else:
+                        log_message("API 503 error cleared - resuming normal operation")
                 else:
                     update_discord_status("api-error")
                 
