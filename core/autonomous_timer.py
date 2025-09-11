@@ -581,7 +581,7 @@ def update_discord_status(status_type, reset_time=None):
 def trigger_session_swap(keyword="NONE"):
     """Trigger automatic session swap"""
     try:
-        new_session_file = AUTONOMY_DIR / "scripts" / "new_session.txt"
+        new_session_file = AUTONOMY_DIR / "new_session.txt"
         with open(new_session_file, 'w') as f:
             f.write(keyword)
         log_message(f"Triggered automatic session swap with keyword: {keyword}")
@@ -1060,6 +1060,16 @@ def send_autonomy_prompt():
     if PROMPTS_CONFIG and percentage > 0:
         thresholds = PROMPTS_CONFIG.get("thresholds", {})
         
+        # Reset warning state if context has dropped significantly (new session)
+        if context_state["first_warning_sent"] and percentage < 50 and context_state["last_warning_percentage"] > 70:
+            log_message(f"Context reset detected ({context_state['last_warning_percentage']}% -> {percentage}%), clearing warning state")
+            context_state = {
+                "first_warning_sent": False,
+                "last_warning_percentage": 0,
+                "last_warning_time": None
+            }
+            save_context_state(context_state)
+        
         # Critical threshold (e.g., 95%)
         if percentage >= thresholds.get("context_critical", 95):
             template = prompts.get("context_critical", {}).get("template", "")
@@ -1075,8 +1085,8 @@ def send_autonomy_prompt():
             context_state["last_warning_time"] = datetime.now().isoformat()
             save_context_state(context_state)
         
-        # Escalated warning - context increased by 5% or more
-        elif percentage >= context_state["last_warning_percentage"] + 5:
+        # Escalated warning - context increased by 5% or more (only if warnings have started)
+        elif context_state["first_warning_sent"] and percentage >= context_state["last_warning_percentage"] + 5:
             template = prompts.get("context_escalated", {}).get("template", "")
             prompt_type = "context_escalated"
             # Update state
