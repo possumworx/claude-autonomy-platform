@@ -20,6 +20,7 @@ CLAP_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Paths
 NATURAL_COMMANDS="$CLAP_DIR/config/natural_commands.sh"
+PERSONAL_COMMANDS="$CLAP_DIR/config/personal_commands.sh"
 BIN_DIR="$HOME/bin"
 
 echo -e "${GREEN}Setting up natural command symlinks...${NC}"
@@ -30,11 +31,15 @@ if [ ! -d "$BIN_DIR" ]; then
     mkdir -p "$BIN_DIR"
 fi
 
-# Parse natural_commands.sh and create symlinks
-echo "Parsing $NATURAL_COMMANDS..."
-
-# Extract alias definitions and create symlinks
-while IFS= read -r line; do
+# Function to process a commands file
+process_commands_file() {
+    local commands_file="$1"
+    local file_type="$2"
+    
+    echo "Parsing $file_type commands from $commands_file..."
+    
+    # Extract alias definitions and create symlinks
+    while IFS= read -r line; do
     # Skip comments and empty lines
     [[ "$line" =~ ^[[:space:]]*# ]] && continue
     [[ -z "$line" ]] && continue
@@ -79,9 +84,22 @@ while IFS= read -r line; do
             echo -e "${YELLOW}Skipping non-ClAP command: $alias_name${NC}"
         fi
     fi
-done < "$NATURAL_COMMANDS"
+    done < "$commands_file"
+}
 
-echo -e "${GREEN}✓ Natural command symlinks setup complete!${NC}"
+# Process natural commands
+process_commands_file "$NATURAL_COMMANDS" "natural"
+
+# Process personal commands if the file exists
+if [ -f "$PERSONAL_COMMANDS" ]; then
+    echo ""
+    process_commands_file "$PERSONAL_COMMANDS" "personal"
+else
+    echo -e "${YELLOW}No personal commands file found at $PERSONAL_COMMANDS${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}✓ Command symlinks setup complete!${NC}"
 echo ""
 echo "The following commands are now available in PATH:"
 ls -la "$BIN_DIR" | grep -- '->' | grep 'claude-autonomy-platform' | awk '{print "  " $9}'
