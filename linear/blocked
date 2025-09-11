@@ -1,0 +1,25 @@
+#!/bin/bash
+# Show blocked issues
+# Usage: blocked
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/linear_common.sh"
+
+# Check initialization
+check_linear_init || exit 1
+
+echo -e "${ICON_STATUS_BLOCKED} Blocked Issues:"
+echo "================================"
+echo ""
+
+# Search for blocked issues
+PROMPT="Please use mcp__linear__linear_search_issues to find issues with state name containing 'Blocked', limit 20, ordered by updatedAt. Show all blocked issues regardless of assignee."
+RESULT=$(echo "$PROMPT" | claude --print --dangerously-skip-permissions 2>&1)
+
+# Parse and display results
+if echo "$RESULT" | grep -q -E "(POSS-|No issues|blocked)"; then
+    echo "$RESULT"
+else
+    echo -e "${ICON_ERROR} Failed to fetch blocked issues"
+    echo "$RESULT" | head -5
+fi

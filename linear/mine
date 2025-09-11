@@ -1,0 +1,8 @@
+#!/bin/bash
+# Alias for todo - shows issues assigned to you
+# Usage: mine
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Simply call the todo command
+"$SCRIPT_DIR/todo" "$@"

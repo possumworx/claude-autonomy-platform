@@ -1,0 +1,60 @@
+#!/bin/bash
+# Set story point estimates on issues
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/lib/linear_common.sh"
+
+# Check prerequisites
+check_claude_session || exit 1
+check_linear_init || exit 1
+
+# Parse arguments
+if [ $# -lt 2 ]; then
+    echo "Usage: estimate ISSUE-ID POINTS"
+    echo "  Set story point estimate for an issue"
+    echo ""
+    echo "Valid points: 1, 2, 3, 5, 8, 13, 21"
+    echo ""
+    echo "Examples:"
+    echo "  estimate POSS-123 3     # Medium task"
+    echo "  estimate 456 8          # Large task"
+    echo "  estimate POSS-789 0     # Remove estimate"
+    exit 1
+fi
+
+ISSUE_ID=$(parse_issue_id "$1")
+POINTS="$2"
+
+# Validate story points
+VALID_POINTS="0 1 2 3 5 8 13 21"
+if ! echo "$VALID_POINTS" | grep -q "\b$POINTS\b"; then
+    echo -e "${ICON_ERROR} Invalid story points: $POINTS"
+    echo "Valid values: $VALID_POINTS"
+    exit 1
+fi
+
+# Convert 0 to null for removing estimate
+if [ "$POINTS" == "0" ]; then
+    POINTS="null"
+fi
+
+# Update estimate
+echo -e "${ICON_INFO} Setting estimate for $ISSUE_ID to $POINTS points..."
+
+UPDATE_PROMPT="Use Linear MCP to update issue $ISSUE_ID:
+- Set estimate to: $POINTS"
+
+RESULT=$(execute_linear_mcp "$UPDATE_PROMPT")
+
+if echo "$RESULT" | grep -q "success\|updated\|estimate"; then
+    echo -e "${ICON_SUCCESS} Estimate updated successfully!"
+    
+    # Update recent issue prefix
+    if [[ "$ISSUE_ID" =~ ^([A-Z]+)-[0-9]+$ ]]; then
+        save_preference "recent_issue_prefix" "${BASH_REMATCH[1]}"
+    fi
+else
+    echo -e "${ICON_ERROR} Failed to update estimate"
+    echo "$RESULT" | grep -i "error" || echo "$RESULT"
+    exit 1
+fi
