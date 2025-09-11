@@ -177,6 +177,64 @@ linear/sync_projects
 ```
 Refreshes the cached project list and creates/updates project shortcuts.
 
+### Workflow Commands
+
+#### `standup` - Generate daily standup report
+```bash
+standup [options]
+  --days N     Look back N days (default: 1)
+
+# Examples
+standup                  # Today's standup
+standup --days 3        # Include last 3 days
+```
+Shows completed work, in-progress items, today's plan, and blockers.
+
+#### `assign` - Quick issue assignment
+```bash
+assign ISSUE-ID @USER
+
+# Examples
+assign POSS-123 @me      # Assign to yourself
+assign 123 @teammate     # Assign to teammate
+assign POSS-123 @none    # Unassign
+```
+Quickly assign or unassign issues to team members.
+
+#### `estimate` - Set story point estimate
+```bash
+estimate ISSUE-ID POINTS
+
+# Valid points: 1, 2, 3, 5, 8, 13, 21
+# Examples
+estimate POSS-123 3      # Medium complexity
+estimate 456 8           # Large task
+estimate POSS-789 0      # Remove estimate
+```
+Set or update story point estimates on issues.
+
+#### `label` - Manage issue labels
+```bash
+label [add|remove] ISSUE-ID LABEL [LABEL...]
+
+# Examples
+label POSS-123 bug urgent         # Add labels
+label add 456 frontend            # Explicit add
+label remove POSS-123 wontfix    # Remove label
+label rm 789 bug                  # Short form
+```
+Add or remove labels from issues. Creates new labels if needed.
+
+#### `move` - Move issue between projects
+```bash
+move ISSUE-ID PROJECT
+
+# Examples
+move POSS-123 CLAP       # Move by project key
+move 456 "New Project"   # Move by project name
+```
+Transfer issues between projects. Updates issue identifier.
+
 ### Utility Commands
 
 #### `list-commands` - Show all Linear commands

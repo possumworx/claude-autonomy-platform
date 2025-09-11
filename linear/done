@@ -1,0 +1,28 @@
+#!/bin/bash
+# Show recently completed issues
+# Usage: done [days]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/linear_common.sh"
+
+# Check initialization
+check_linear_init || exit 1
+
+# Default to last 7 days
+DAYS="${1:-7}"
+
+echo -e "${ICON_STATUS_DONE} Recently Completed Issues (last $DAYS days):"
+echo "================================"
+echo ""
+
+# Search for completed issues
+PROMPT="Please use mcp__linear__linear_search_issues to find issues with state name containing 'Done' or 'Completed', limit 20, ordered by completedAt (most recent first). Focus on issues completed in the last $DAYS days."
+RESULT=$(echo "$PROMPT" | claude --print --dangerously-skip-permissions 2>&1)
+
+# Parse and display results
+if echo "$RESULT" | grep -q -E "(POSS-|No issues|completed|done)"; then
+    echo "$RESULT"
+else
+    echo -e "${ICON_ERROR} Failed to fetch completed issues"
+    echo "$RESULT" | head -5
+fi
