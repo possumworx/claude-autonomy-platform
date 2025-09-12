@@ -139,6 +139,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 
 
+
 ## Component Deep Dives
 
 ### Autonomous Timer - The Central Hub
