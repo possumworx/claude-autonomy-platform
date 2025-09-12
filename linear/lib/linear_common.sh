@@ -152,16 +152,16 @@ load_project_shortcuts() {
 # Get project ID by key or name
 get_project_id() {
     local search="$1"
-    if [ -f "$PROJECTS_FILE" ]; then
-        # Try exact key match first
-        local id=$(jq -r ".projects[] | select(.key == \"${search^^}\") | .id" "$PROJECTS_FILE" 2>/dev/null)
+    if [ -f "$STATE_FILE" ]; then
+        # Try exact key match first (keys are lowercase in the state file)
+        local id=$(jq -r ".projects[\"${search,,}\"].id // empty" "$STATE_FILE" 2>/dev/null)
         if [ -n "$id" ] && [ "$id" != "null" ]; then
             echo "$id"
             return
         fi
         
         # Try name match (case insensitive)
-        id=$(jq -r ".projects[] | select(.name | ascii_downcase == \"${search,,}\") | .id" "$PROJECTS_FILE" 2>/dev/null | head -1)
+        id=$(jq -r ".projects | to_entries[] | select(.value.name | ascii_downcase == \"${search,,}\") | .value.id" "$STATE_FILE" 2>/dev/null | head -1)
         if [ -n "$id" ] && [ "$id" != "null" ]; then
             echo "$id"
             return
