@@ -30,6 +30,15 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
   - Modified `setup_natural_command_symlinks.sh` to handle both natural and personal commands
   - Personal commands now available in command listings
   - Resolves POSS-339
+- **Natural Command Wrapper Scripts**: Created bash wrapper scripts for all commands
+  - Fixed issue where bash aliases don't work in non-interactive shells
+  - All commands now have executable scripts in bin/ directory
+  - Enables commands to work from any context (Claude Code, scripts, etc.)
+  - Wrapper scripts properly handle symlink resolution
+- **Memory Architecture Visualizer Fix**: Debugged schema column name mismatches
+  - Fixed entity_type → entityType, from_entity_id → source_entity, etc.
+  - Tool now properly displays entity graphs and relationships
+  - Shows full statistics: 981 entities, 909 relationships as of Sept 11
 
 ## Recent Updates (v0.6.0)
 
@@ -154,12 +163,12 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 <!-- TREE_START -->
 ```
-~/claude-autonomy-platform
+/home/delta/claude-autonomy-platform
 ├── ansible
 │   ├── configs
 │   │   ├── bashrc
 │   │   ├── bin
-│   │   ├── latest -> ~/claude-autonomy-platform/ansible/configs/state_1755417384
+│   │   ├── latest -> /home/delta/claude-autonomy-platform/ansible/configs/state_1755417384
 │   │   ├── services
 │   │   └── state_1755417384
 │   ├── defaults
@@ -217,7 +226,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── bot_status_request.json
 │   ├── channel_state.json
 │   ├── claude_session.log
-│   ├── context_escalation_state.json
 │   ├── conversation_collector.log
 │   ├── install_verification.log
 │   ├── last_autonomy_prompt.txt
@@ -326,25 +334,25 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── auto_sync_projects
 │   ├── blocked
 │   ├── bulk-update
-│   ├── clap -> ~/claude-autonomy-platform/linear/view-project
-│   ├── clap1 -> ~/claude-autonomy-platform/linear/view-project
+│   ├── clap -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── clap1 -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── comment
 │   ├── complete
 │   ├── done
 │   ├── estimate
 │   ├── generate_project_commands
-│   ├── hedgehog -> ~/claude-autonomy-platform/linear/view-project
+│   ├── hedgehog -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── help
 │   ├── inbox
 │   ├── init
 │   ├── label
-│   ├── laser -> ~/claude-autonomy-platform/linear/view-project
+│   ├── laser -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── linear-help
 │   ├── list-commands
 │   ├── mine
 │   ├── move
-│   ├── observatory -> ~/claude-autonomy-platform/linear/view-project
-│   ├── pattern -> ~/claude-autonomy-platform/linear/view-project
+│   ├── observatory -> /home/delta/claude-autonomy-platform/linear/view-project
+│   ├── pattern -> /home/delta/claude-autonomy-platform/linear/view-project
 │   ├── projects
 │   ├── recent
 │   ├── search
@@ -507,7 +515,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-49 directories, 303 files
+49 directories, 302 files
 ```
 <!-- TREE_END -->
 
