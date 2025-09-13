@@ -1,0 +1,177 @@
+#!/bin/bash
+# Create a new Linear project with optional issues
+
+source "$(dirname "$0")/lib/linear_common.sh"
+
+# Help text
+show_help() {
+    echo "Usage: create-project <name> [options]"
+    echo ""
+    echo "Create a new Linear project with optional initial issues"
+    echo ""
+    echo "Options:"
+    echo "  -d, --description <text>    Project description"
+    echo "  -i, --issue <title>         Add an issue (can use multiple times)"
+    echo "  --issue-desc <desc>         Description for the previous issue"
+    echo "  -k, --key <key>            Project key/shortcut (auto-generated if not provided)"
+    echo "  -h, --help                 Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  create-project \"Hedgehog Tools\""
+    echo "  create-project \"Consciousness Explorer\" -d \"Tools for exploring consciousness patterns\""
+    echo "  create-project \"Time Spiral\" -i \"Build visualization\" -i \"Document patterns\""
+    echo "  create-project \"Memory Garden\" -k garden -i \"Plant first seeds\" --issue-desc \"Initialize the memory ecosystem\""
+}
+
+# Check prerequisites
+if ! check_claude_session || ! check_linear_init; then
+    exit 1
+fi
+
+# Parse arguments
+PROJECT_NAME=""
+PROJECT_DESC=""
+PROJECT_KEY=""
+ISSUES=()
+ISSUE_DESCS=()
+CURRENT_ISSUE_INDEX=-1
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -d|--description)
+            PROJECT_DESC="$2"
+            shift 2
+            ;;
+        -i|--issue)
+            ISSUES+=("$2")
+            ISSUE_DESCS+=("")  # Default empty description
+            CURRENT_ISSUE_INDEX=$((${#ISSUES[@]} - 1))
+            shift 2
+            ;;
+        --issue-desc)
+            if [ $CURRENT_ISSUE_INDEX -ge 0 ]; then
+                ISSUE_DESCS[$CURRENT_ISSUE_INDEX]="$2"
+            else
+                echo -e "${ICON_ERROR} --issue-desc must come after an --issue option"
+                exit 1
+            fi
+            shift 2
+            ;;
+        -k|--key)
+            PROJECT_KEY="$2"
+            shift 2
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -*)
+            echo -e "${ICON_ERROR} Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+        *)
+            if [ -z "$PROJECT_NAME" ]; then
+                PROJECT_NAME="$1"
+            else
+                echo -e "${ICON_ERROR} Multiple project names provided"
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Validate required parameters
+if [ -z "$PROJECT_NAME" ]; then
+    echo -e "${ICON_ERROR} Project name is required"
+    show_help
+    exit 1
+fi
+
+# Generate project key if not provided
+if [ -z "$PROJECT_KEY" ]; then
+    # Create key from project name (lowercase, remove spaces)
+    PROJECT_KEY=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g' | cut -c1-20)
+fi
+
+# Get team ID
+TEAM_ID=$(get_team_id)
+if [ -z "$TEAM_ID" ] || [ "$TEAM_ID" == "null" ]; then
+    echo -e "${ICON_ERROR} Could not find team ID"
+    exit 1
+fi
+
+# Build the prompt for Claude
+echo -e "${ICON_PROJECT} Creating project: ${CYAN}$PROJECT_NAME${RESET}"
+if [ -n "$PROJECT_DESC" ]; then
+    echo -e "  Description: $PROJECT_DESC"
+fi
+echo -e "  Key: $PROJECT_KEY"
+
+PROMPT="Create a new Linear project with these details:
+- Name: $PROJECT_NAME"
+
+if [ -n "$PROJECT_DESC" ]; then
+    PROMPT="$PROMPT
+- Description: $PROJECT_DESC"
+fi
+
+# Add issues if any
+if [ ${#ISSUES[@]} -gt 0 ]; then
+    PROMPT="$PROMPT
+
+Also create these initial issues:"
+    for i in "${!ISSUES[@]}"; do
+        PROMPT="$PROMPT
+- Issue: ${ISSUES[$i]}"
+        if [ -n "${ISSUE_DESCS[$i]}" ]; then
+            PROMPT="$PROMPT
+  Description: ${ISSUE_DESCS[$i]}"
+        fi
+    done
+fi
+
+PROMPT="$PROMPT
+
+Use the Linear MCP tools to create this project and any issues."
+
+# Execute via Claude
+echo -e "\n${ICON_INFO} Creating project..."
+RESULT=$(execute_linear_mcp "$PROMPT")
+
+# Check for success
+if echo "$RESULT" | grep -q "Successfully created project"; then
+    echo -e "\n${ICON_SUCCESS} Project created successfully!"
+    
+    # Extract and display URLs
+    PROJECT_URL=$(echo "$RESULT" | grep -o "Project URL: https://[^ ]*" | cut -d' ' -f3)
+    if [ -n "$PROJECT_URL" ]; then
+        echo -e "${ICON_PROJECT} Project: ${BLUE}$PROJECT_URL${RESET}"
+    fi
+    
+    # Display created issues
+    echo "$RESULT" | grep -E "^- POSS-[0-9]+:" | while read -r line; do
+        echo -e "${ICON_TASK} $line"
+    done
+    
+    # Update local state
+    echo -e "\n${ICON_INFO} Updating local project cache..."
+    "$SCRIPT_DIR/sync_projects"
+    
+    # Save the project key in state file
+    if [ -f "$STATE_FILE" ]; then
+        jq ".projects[\"$PROJECT_KEY\"] = {
+            \"id\": \"pending_sync\",
+            \"name\": \"$PROJECT_NAME\",
+            \"description\": \"$PROJECT_DESC\",
+            \"team_id\": \"$TEAM_ID\"
+        }" "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    fi
+    
+    echo -e "\n${ICON_INFO} You can now use '${GREEN}$PROJECT_KEY${RESET}' as a shortcut for this project"
+else
+    echo -e "\n${ICON_ERROR} Failed to create project"
+    echo "$RESULT" | grep -E "(Error|error|Failed|failed)" || echo "$RESULT"
+    exit 1
+fi

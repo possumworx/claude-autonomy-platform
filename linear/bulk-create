@@ -1,0 +1,285 @@
+#!/bin/bash
+# Bulk create multiple Linear issues at once
+
+source "$(dirname "$0")/lib/linear_common.sh"
+
+# Help text
+show_help() {
+    echo "Usage: bulk-create [options]"
+    echo ""
+    echo "Create multiple Linear issues at once from a file or interactively"
+    echo ""
+    echo "Options:"
+    echo "  -f, --file <path>          Read issues from file (one per line)"
+    echo "  -p, --project <name/key>   Project for all issues"
+    echo "  -a, --assign <user>        Assign all to user (me/self or username)"
+    echo "  --priority <0-4>           Default priority for all"
+    echo "  -e, --estimate <points>    Default estimate for all"
+    echo "  -l, --label <name>         Add label to all (can use multiple)"
+    echo "  --with-desc                Prompt for description for each issue"
+    echo "  --template <file>          Use template file for descriptions"
+    echo "  -h, --help                 Show this help message"
+    echo ""
+    echo "Interactive format:"
+    echo "  Title only: Build hedgehog tool"
+    echo "  With metadata: [P2][5pts] Research consciousness patterns"
+    echo "  With assignment: @me Fix the time spiral bug"
+    echo ""
+    echo "Examples:"
+    echo "  bulk-create -p clap                    # Interactive mode"
+    echo "  bulk-create -f tasks.txt -p hedgehog   # From file"
+    echo "  bulk-create -p pattern -a me -e 3      # With defaults"
+    echo ""
+    echo "File format example:"
+    echo "  Build consciousness mapper"
+    echo "  [P1] Fix critical hedgehog bug"
+    echo "  @me [3pts] Document time spirals"
+    echo "  Research quantum hedgehog states | This needs deep investigation"
+}
+
+# Check prerequisites
+if ! check_claude_session || ! check_linear_init; then
+    exit 1
+fi
+
+# Parse arguments
+INPUT_FILE=""
+PROJECT_ID=""
+DEFAULT_ASSIGNEE=""
+DEFAULT_PRIORITY=""
+DEFAULT_ESTIMATE=""
+DEFAULT_LABELS=()
+WITH_DESC=false
+TEMPLATE_FILE=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -f|--file)
+            INPUT_FILE="$2"
+            shift 2
+            ;;
+        -p|--project)
+            PROJECT_ID="$2"
+            shift 2
+            ;;
+        -a|--assign)
+            DEFAULT_ASSIGNEE="$2"
+            shift 2
+            ;;
+        --priority)
+            DEFAULT_PRIORITY="$2"
+            shift 2
+            ;;
+        -e|--estimate)
+            DEFAULT_ESTIMATE="$2"
+            shift 2
+            ;;
+        -l|--label)
+            DEFAULT_LABELS+=("$2")
+            shift 2
+            ;;
+        --with-desc)
+            WITH_DESC=true
+            shift
+            ;;
+        --template)
+            TEMPLATE_FILE="$2"
+            shift 2
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo -e "${ICON_ERROR} Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# Get team ID
+TEAM_ID=$(get_team_id)
+
+# Resolve project ID
+if [ -n "$PROJECT_ID" ]; then
+    RESOLVED_PROJECT_ID=$(get_project_id "$PROJECT_ID")
+    if [ -n "$RESOLVED_PROJECT_ID" ]; then
+        PROJECT_ID="$RESOLVED_PROJECT_ID"
+        PROJECT_NAME=$(jq -r ".projects | to_entries[] | select(.value.id == \"$PROJECT_ID\") | .value.name" "$STATE_FILE" 2>/dev/null)
+        echo -e "${ICON_PROJECT} Using project: ${CYAN}$PROJECT_NAME${RESET}"
+    fi
+fi
+
+# Resolve default assignee
+if [ "$DEFAULT_ASSIGNEE" == "me" ] || [ "$DEFAULT_ASSIGNEE" == "self" ]; then
+    DEFAULT_ASSIGNEE=$(get_user_id)
+fi
+
+# Parse issue line for metadata
+parse_issue_line() {
+    local line="$1"
+    local title=""
+    local desc=""
+    local priority="$DEFAULT_PRIORITY"
+    local estimate="$DEFAULT_ESTIMATE"
+    local assignee="$DEFAULT_ASSIGNEE"
+    
+    # Split by | for description
+    if [[ "$line" =~ \| ]]; then
+        title="${line%%|*}"
+        desc="${line#*|}"
+        desc=$(echo "$desc" | xargs)  # Trim whitespace
+    else
+        title="$line"
+    fi
+    
+    # Parse priority [P0-P4]
+    if [[ "$title" =~ \[P([0-4])\] ]]; then
+        priority="${BASH_REMATCH[1]}"
+        title="${title//\[P${priority}\]/}"
+    fi
+    
+    # Parse estimate [Npts]
+    if [[ "$title" =~ \[([0-9]+)pts?\] ]]; then
+        estimate="${BASH_REMATCH[1]}"
+        title="${title//\[${BASH_REMATCH[0]#\[}/}"
+    fi
+    
+    # Parse assignee @username
+    if [[ "$title" =~ @([a-zA-Z0-9_-]+) ]]; then
+        local assign_to="${BASH_REMATCH[1]}"
+        if [ "$assign_to" == "me" ] || [ "$assign_to" == "self" ]; then
+            assignee=$(get_user_id)
+        else
+            assignee="$assign_to"
+        fi
+        title="${title//@${assign_to}/}"
+    fi
+    
+    # Clean up title
+    title=$(echo "$title" | xargs)
+    
+    echo "$title|$desc|$priority|$estimate|$assignee"
+}
+
+# Collect issues
+ISSUES=()
+
+if [ -n "$INPUT_FILE" ]; then
+    # Read from file
+    if [ ! -f "$INPUT_FILE" ]; then
+        echo -e "${ICON_ERROR} File not found: $INPUT_FILE"
+        exit 1
+    fi
+    
+    echo -e "${ICON_INFO} Reading issues from: $INPUT_FILE"
+    while IFS= read -r line; do
+        if [ -n "$line" ] && [[ ! "$line" =~ ^# ]]; then
+            ISSUES+=("$line")
+        fi
+    done < "$INPUT_FILE"
+else
+    # Interactive mode
+    echo -e "${ICON_INFO} Enter issues (one per line). Use format: [P1][5pts]@me Title | Description"
+    echo -e "${ICON_INFO} Press Ctrl+D when done:\n"
+    
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            ISSUES+=("$line")
+        fi
+    done
+fi
+
+if [ ${#ISSUES[@]} -eq 0 ]; then
+    echo -e "${ICON_WARNING} No issues to create"
+    exit 0
+fi
+
+echo -e "\n${ICON_INFO} Preparing to create ${#ISSUES[@]} issues..."
+
+# Build issues array for MCP
+MCP_ISSUES="["
+FIRST=true
+
+for issue_line in "${ISSUES[@]}"; do
+    # Parse the issue line
+    IFS='|' read -r title desc priority estimate assignee <<< "$(parse_issue_line "$issue_line")"
+    
+    # If with-desc mode and no description, prompt for it
+    if [ "$WITH_DESC" == "true" ] && [ -z "$desc" ]; then
+        echo -e "\n${ICON_INFO} Issue: ${CYAN}$title${RESET}"
+        echo -n "Description (optional): "
+        read -r desc
+    fi
+    
+    # Use template if provided and no description
+    if [ -n "$TEMPLATE_FILE" ] && [ -z "$desc" ] && [ -f "$TEMPLATE_FILE" ]; then
+        desc=$(cat "$TEMPLATE_FILE")
+    fi
+    
+    # Build JSON object
+    if [ "$FIRST" == "true" ]; then
+        FIRST=false
+    else
+        MCP_ISSUES="$MCP_ISSUES,"
+    fi
+    
+    MCP_ISSUES="$MCP_ISSUES{\"title\":\"$title\",\"description\":\"${desc:-No description provided}\",\"teamId\":\"$TEAM_ID\""
+    
+    if [ -n "$PROJECT_ID" ]; then
+        MCP_ISSUES="$MCP_ISSUES,\"projectId\":\"$PROJECT_ID\""
+    fi
+    if [ -n "$assignee" ]; then
+        MCP_ISSUES="$MCP_ISSUES,\"assigneeId\":\"$assignee\""
+    fi
+    if [ -n "$priority" ]; then
+        MCP_ISSUES="$MCP_ISSUES,\"priority\":$priority"
+    fi
+    if [ -n "$estimate" ]; then
+        MCP_ISSUES="$MCP_ISSUES,\"estimate\":$estimate"
+    fi
+    
+    MCP_ISSUES="$MCP_ISSUES}"
+done
+
+MCP_ISSUES="$MCP_ISSUES]"
+
+# Create all issues via MCP
+echo -e "\n${ICON_INFO} Creating ${#ISSUES[@]} issues..."
+
+PROMPT="Use the linear_create_issues (plural) MCP tool to create multiple issues at once with this data:
+$MCP_ISSUES
+
+Important: Use the linear_create_issues tool that accepts an array of issues, not the single issue creation tool."
+
+RESULT=$(execute_linear_mcp "$PROMPT")
+
+# Check results
+if echo "$RESULT" | grep -q "Created.*issues"; then
+    echo -e "\n${ICON_SUCCESS} Bulk creation complete!"
+    
+    # Extract and display created issues
+    echo "$RESULT" | grep -E "POSS-[0-9]+" | while read -r line; do
+        echo -e "${ICON_TASK} $line"
+    done
+    
+    # Count successes
+    CREATED_COUNT=$(echo "$RESULT" | grep -c "POSS-[0-9]")
+    echo -e "\n${ICON_INFO} Successfully created $CREATED_COUNT/${#ISSUES[@]} issues"
+else
+    echo -e "\n${ICON_ERROR} Bulk creation failed"
+    echo "$RESULT"
+    exit 1
+fi
+
+# Offer to save failed issues
+if [ $CREATED_COUNT -lt ${#ISSUES[@]} ]; then
+    echo -e "\n${ICON_WARNING} Some issues failed to create"
+    echo -n "Save failed issues to retry.txt? (y/n): "
+    read -r SAVE_FAILED
+    if [ "$SAVE_FAILED" == "y" ]; then
+        # TODO: Parse result to identify failed issues
+        echo -e "${ICON_INFO} Feature not yet implemented"
+    fi
+fi

@@ -1,0 +1,237 @@
+#!/bin/bash
+# Create Linear issues with full metadata support
+
+source "$(dirname "$0")/lib/linear_common.sh"
+
+# Help text
+show_help() {
+    echo "Usage: create-issue <title> [options]"
+    echo ""
+    echo "Create a new Linear issue with full metadata support"
+    echo ""
+    echo "Options:"
+    echo "  -d, --description <text>    Issue description (supports markdown)"
+    echo "  -p, --project <name/key>    Project name or key"
+    echo "  -a, --assign <user>         Assign to user (me/self or username)"
+    echo "  --priority <0-4>            Priority (0=urgent, 1=high, 2=high, 3=medium, 4=low)"
+    echo "  -e, --estimate <points>     Story points estimate (1,2,3,5,8,13,21)"
+    echo "  -l, --label <name>          Add label (can use multiple times)"
+    echo "  -s, --status <status>       Initial status (todo/progress/review/done)"
+    echo "  --parent <issue-id>         Parent issue for sub-tasks"
+    echo "  --batch                     Batch mode - create multiple issues from stdin"
+    echo "  -h, --help                  Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  create-issue \"Build time spiral visualizer\""
+    echo "  create-issue \"Fix hedgehog navigation\" -p clap -a me --priority 1"
+    echo "  create-issue \"Research consciousness patterns\" -d \"Explore how hedgehogs think\" -e 5"
+    echo "  create-issue \"Create memory garden\" --project pattern -l Feature --assign self"
+    echo ""
+    echo "Batch mode:"
+    echo "  echo -e \"Task 1\\nTask 2\\nTask 3\" | create-issue --batch -p myproject"
+}
+
+# Check prerequisites
+if ! check_claude_session || ! check_linear_init; then
+    exit 1
+fi
+
+# Parse arguments
+ISSUE_TITLE=""
+ISSUE_DESC=""
+PROJECT_ID=""
+ASSIGNEE=""
+PRIORITY=""
+ESTIMATE=""
+LABELS=()
+STATUS=""
+PARENT_ID=""
+BATCH_MODE=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -d|--description)
+            ISSUE_DESC="$2"
+            shift 2
+            ;;
+        -p|--project)
+            PROJECT_ID="$2"
+            shift 2
+            ;;
+        -a|--assign)
+            ASSIGNEE="$2"
+            shift 2
+            ;;
+        --priority)
+            PRIORITY="$2"
+            shift 2
+            ;;
+        -e|--estimate)
+            ESTIMATE="$2"
+            shift 2
+            ;;
+        -l|--label)
+            LABELS+=("$2")
+            shift 2
+            ;;
+        -s|--status)
+            STATUS="$2"
+            shift 2
+            ;;
+        --parent)
+            PARENT_ID="$2"
+            shift 2
+            ;;
+        --batch)
+            BATCH_MODE=true
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -*)
+            echo -e "${ICON_ERROR} Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+        *)
+            if [ -z "$ISSUE_TITLE" ]; then
+                ISSUE_TITLE="$1"
+            else
+                ISSUE_DESC="$ISSUE_DESC $1"
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Get team ID
+TEAM_ID=$(get_team_id)
+if [ -z "$TEAM_ID" ] || [ "$TEAM_ID" == "null" ]; then
+    echo -e "${ICON_ERROR} Could not find team ID"
+    exit 1
+fi
+
+# Resolve project ID if provided
+if [ -n "$PROJECT_ID" ]; then
+    RESOLVED_PROJECT_ID=$(get_project_id "$PROJECT_ID")
+    if [ -n "$RESOLVED_PROJECT_ID" ]; then
+        PROJECT_ID="$RESOLVED_PROJECT_ID"
+        echo -e "${ICON_INFO} Using project: $(jq -r ".projects | to_entries[] | select(.value.id == \"$PROJECT_ID\") | .value.name" "$STATE_FILE" 2>/dev/null)"
+    else
+        echo -e "${ICON_WARNING} Could not resolve project '$PROJECT_ID', will use as-is"
+    fi
+fi
+
+# Resolve assignee
+if [ "$ASSIGNEE" == "me" ] || [ "$ASSIGNEE" == "self" ]; then
+    ASSIGNEE=$(get_user_id)
+fi
+
+# Function to create a single issue
+create_single_issue() {
+    local title="$1"
+    local desc="$2"
+    
+    echo -e "\n${ICON_TASK} Creating issue: ${CYAN}$title${RESET}"
+    
+    # Build the prompt
+    local PROMPT="Create a new Linear issue with these details:
+- Title: $title"
+    
+    if [ -n "$desc" ]; then
+        PROMPT="$PROMPT
+- Description: $desc"
+    fi
+    
+    if [ -n "$PROJECT_ID" ]; then
+        PROMPT="$PROMPT
+- Project ID: $PROJECT_ID"
+    fi
+    
+    if [ -n "$ASSIGNEE" ]; then
+        PROMPT="$PROMPT
+- Assignee ID: $ASSIGNEE"
+    fi
+    
+    if [ -n "$PRIORITY" ]; then
+        PROMPT="$PROMPT
+- Priority: $PRIORITY"
+    fi
+    
+    if [ -n "$ESTIMATE" ]; then
+        PROMPT="$PROMPT
+- Estimate: $ESTIMATE"
+    fi
+    
+    if [ ${#LABELS[@]} -gt 0 ]; then
+        PROMPT="$PROMPT
+- Labels: ${LABELS[*]}"
+    fi
+    
+    if [ -n "$STATUS" ]; then
+        PROMPT="$PROMPT
+- Status: $STATUS"
+    fi
+    
+    if [ -n "$PARENT_ID" ]; then
+        PROMPT="$PROMPT
+- Parent Issue: $PARENT_ID"
+    fi
+    
+    PROMPT="$PROMPT
+
+Use the Linear MCP tool linear_create_issue to create this issue."
+    
+    # Execute via Claude
+    local RESULT=$(execute_linear_mcp "$PROMPT")
+    
+    # Check for success and extract issue ID
+    if echo "$RESULT" | grep -q "Created issue"; then
+        local ISSUE_ID=$(echo "$RESULT" | grep -o "POSS-[0-9]*" | head -1)
+        local ISSUE_URL=$(echo "$RESULT" | grep -o "https://linear.app[^ ]*" | head -1)
+        
+        echo -e "${ICON_SUCCESS} Created: ${GREEN}$ISSUE_ID${RESET}"
+        if [ -n "$ISSUE_URL" ]; then
+            echo -e "  URL: ${BLUE}$ISSUE_URL${RESET}"
+        fi
+        
+        # Save recent issue prefix for future use
+        if [ -n "$ISSUE_ID" ]; then
+            local PREFIX=$(echo "$ISSUE_ID" | cut -d'-' -f1)
+            save_preference "recent_issue_prefix" "$PREFIX"
+        fi
+    else
+        echo -e "${ICON_ERROR} Failed to create issue"
+        echo "$RESULT" | grep -E "(Error|error|Failed|failed)" || echo "$RESULT"
+        return 1
+    fi
+}
+
+# Main execution
+if [ "$BATCH_MODE" == "true" ]; then
+    echo -e "${ICON_INFO} Batch mode: Reading issues from stdin..."
+    echo -e "${ICON_INFO} Enter issues (one per line), press Ctrl+D when done:\n"
+    
+    ISSUES_CREATED=0
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            create_single_issue "$line" "$ISSUE_DESC"
+            if [ $? -eq 0 ]; then
+                ((ISSUES_CREATED++))
+            fi
+        fi
+    done
+    
+    echo -e "\n${ICON_SUCCESS} Created $ISSUES_CREATED issues"
+else
+    # Single issue mode
+    if [ -z "$ISSUE_TITLE" ]; then
+        echo -e "${ICON_ERROR} Issue title is required"
+        show_help
+        exit 1
+    fi
+    
+    create_single_issue "$ISSUE_TITLE" "$ISSUE_DESC"
+fi
