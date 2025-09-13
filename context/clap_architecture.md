@@ -313,6 +313,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── git-merge-instructions.md
 │   ├── github-cli-authentication.md
 │   ├── line_endings_prevention.md
+│   ├── linear-advanced-usage.md
 │   ├── linear-vscode-guide.md
 │   ├── npm-dependencies-audit.md
 │   ├── personal-repository-setup.md
@@ -335,11 +336,14 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── assign
 │   ├── auto_sync_projects
 │   ├── blocked
+│   ├── bulk-create
 │   ├── bulk-update
 │   ├── clap -> ~/claude-autonomy-platform/linear/view-project
 │   ├── clap1 -> ~/claude-autonomy-platform/linear/view-project
 │   ├── comment
 │   ├── complete
+│   ├── create-issue
+│   ├── create-project
 │   ├── done
 │   ├── estimate
 │   ├── generate_project_commands
@@ -359,6 +363,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── recent
 │   ├── search
 │   ├── search-issues -> search
+│   ├── setup-personal.sh
 │   ├── standup
 │   ├── start
 │   ├── sync_projects
@@ -517,7 +522,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-49 directories, 304 files
+49 directories, 309 files
 ```
 <!-- TREE_END -->
 
@@ -790,6 +795,15 @@ Tracked in Linear.
 - Commands available system-wide via `claude_init.sh` PATH configuration
 - Consistent formatting with icons and colors for better UX
 - Designed for invisible infrastructure - no UUID memorization needed
+
+#### Advanced Features:
+For complex workflows and bulk operations, see the [Linear Advanced Usage Guide](../docs/linear-advanced-usage.md) which covers:
+- Project creation with templates and initial issues
+- Bulk operations for issue management
+- Complex search queries and custom filters
+- Workflow automation and recurring tasks
+- Team collaboration and dependency tracking
+- Performance optimization and troubleshooting
 
 ---
 
