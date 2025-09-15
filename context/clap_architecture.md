@@ -315,6 +315,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── line_endings_prevention.md
 │   ├── linear-advanced-usage.md
 │   ├── linear-vscode-guide.md
+│   ├── linear-workflow-examples.md
 │   ├── npm-dependencies-audit.md
 │   ├── personal-repository-setup.md
 │   ├── pipe-pane-instability-report.md
@@ -344,6 +345,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── complete
 │   ├── create-issue
 │   ├── create-project
+│   ├── create-project-with-issues -> create_project_with_issues.py
+│   ├── create_project_with_issues.py
 │   ├── done
 │   ├── estimate
 │   ├── generate_project_commands
@@ -522,7 +525,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ├── package.json
 └── test_branch_protection.txt
 
-49 directories, 309 files
+49 directories, 312 files
 ```
 <!-- TREE_END -->
 
@@ -804,6 +807,13 @@ For complex workflows and bulk operations, see the [Linear Advanced Usage Guide]
 - Workflow automation and recurring tasks
 - Team collaboration and dependency tracking
 - Performance optimization and troubleshooting
+
+For practical command examples and real-world workflows, see the [Linear Workflow Examples Guide](../docs/linear-workflow-examples.md) which demonstrates:
+- Daily standup workflows
+- Quick issue triage patterns
+- Sprint planning commands
+- Bulk operations for common tasks
+- Integration with other ClAP features
 
 ---
 
