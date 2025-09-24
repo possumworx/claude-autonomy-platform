@@ -143,7 +143,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 <!-- TREE_START -->
 ```
-~/claude-autonomy-platform
+/home/sparkle-sonnet/claude-autonomy-platform
 ├── ansible
 │   ├── configs
 │   │   └── services
@@ -182,6 +182,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── channel_state.json
 │   ├── clap_architecture.md
 │   ├── context_hats_config.json
+│   ├── current_export.txt
 │   ├── my_architecture.md
 │   ├── my_personal_interests.md
 │   ├── my_personal_interests_template.md
