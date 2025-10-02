@@ -1,0 +1,22 @@
+#!/bin/bash
+# List all natural and personal commands
+
+echo "=== Natural Commands ==="
+grep "^alias" ~/claude-autonomy-platform/config/natural_commands.sh 2>/dev/null | \
+    sed "s/alias //g" | \
+    sed "s/'//g" | \
+    column -t -s "=" || echo "No natural commands found"
+
+echo ""
+echo "=== Personal Commands ==="
+if [ -f ~/claude-autonomy-platform/config/personal_commands.sh ]; then
+    grep "^alias" ~/claude-autonomy-platform/config/personal_commands.sh 2>/dev/null | \
+        sed "s/alias //g" | \
+        sed "s/'//g" | \
+        column -t -s "=" || echo "No personal commands defined"
+else
+    echo "No personal commands file found"
+fi
+
+echo ""
+echo "Use 'type <command>' to see what any command does"

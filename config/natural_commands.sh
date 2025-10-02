@@ -56,7 +56,7 @@ alias linear-help='~/claude-autonomy-platform/linear/help'  # Show Linear CLI he
 # Project shortcuts are added dynamically - see setup_linear_shortcuts below
 
 # Utility Commands
-alias list-commands='grep "^alias" ~/claude-autonomy-platform/config/natural_commands.sh | sed "s/alias //g" | column -t -s "="'  # List all natural commands
+alias list-commands='~/claude-autonomy-platform/utils/list-commands'  # List all natural and personal commands
 
 # Session Management Helpers
 alias context='~/claude-autonomy-platform/utils/context'  # Show current context usage
