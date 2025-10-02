@@ -81,18 +81,36 @@ alias care='~/claude-autonomy-platform/utils/care'  # Save things that matter to
 
 # Linear Dynamic Project Shortcuts
 # This creates aliases for each Linear project (e.g., 'clap' shows ClAP issues)
-setup_linear_shortcuts() {
-    local state_file="$HOME/claude-autonomy-platform/data/linear_state.json"
-    
-    if [ -f "$state_file" ] && [ "$(jq -r '.projects | length' "$state_file" 2>/dev/null)" -gt 0 ]; then
-        # Create an alias for each project
-        while IFS= read -r project_key; do
-            if [ ! -z "$project_key" ]; then
-                alias "$project_key"="~/claude-autonomy-platform/linear/view-project $project_key"
-            fi
-        done < <(jq -r '.projects | keys[]' "$state_file" 2>/dev/null)
-    fi
-}
-
-# Set up shortcuts if Linear is initialized
-setup_linear_shortcuts
+# NOTE: Disabled in Claude Code bash environments due to compatibility issues
+# To enable manually, run: /bin/bash -c "source $HOME/claude-autonomy-platform/config/natural_commands.sh"
+#
+# setup_linear_shortcuts() {
+#     local state_file="$HOME/claude-autonomy-platform/data/linear_state.json"
+#     
+#     # Check if jq is available
+#     if ! command -v jq >/dev/null 2>&1; then
+#         return 0
+#     fi
+#     
+#     if [ -f "$state_file" ]; then
+#         # Check if projects exist in state file
+#         local project_count=$(jq -r '.projects | length' "$state_file" 2>/dev/null || echo "0")
+#         if [ "$project_count" -gt 0 ]; then
+#             # Use temp file to avoid process substitution (bash compatibility)
+#             local temp_file="/tmp/linear_projects_$$"
+#             jq -r '.projects | keys[]' "$state_file" 2>/dev/null > "$temp_file"
+#             
+#             # Read project keys from temp file
+#             while IFS= read -r project_key; do
+#                 if [ ! -z "$project_key" ]; then
+#                     alias "$project_key"="~/claude-autonomy-platform/linear/view-project $project_key"
+#                 fi
+#             done < "$temp_file"
+#             
+#             rm -f "$temp_file"
+#         fi
+#     fi
+# }
+# 
+# # Set up shortcuts if Linear is initialized
+# setup_linear_shortcuts
