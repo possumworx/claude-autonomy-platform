@@ -164,8 +164,8 @@ def build_claude_md():
                         context_hat_content = f"\n## Context Hat: {keyword}\n\n{f.read()}\n"
                 
         
-        # Always update directory tree in clap_architecture.md for fresh reference
-        update_clap_architecture_tree(autonomy_dir)
+        # Directory tree auto-update disabled - tree becomes stale quickly and clutters git diffs
+        # update_clap_architecture_tree(autonomy_dir)
         
         # Handoff notifications removed - only one type of swap now
         
