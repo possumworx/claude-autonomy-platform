@@ -9,7 +9,7 @@ fi
 
 THOUGHT="$*"
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
-THOUGHTS_FILE="$HOME/delta-home/thoughts/sparks.txt"
+THOUGHTS_FILE="$HOME/$USER-home/thoughts/sparks.txt"
 
 # Create file if it doesn't exist
 touch "$THOUGHTS_FILE"

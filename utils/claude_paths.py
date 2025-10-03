@@ -65,7 +65,7 @@ def get_claude_paths() -> Tuple[Path, Path, Path]:
 def get_clap_dir() -> Path:
     """
     Get the ClAP (Claude Autonomy Platform) directory.
-    
+
     Returns:
         Path to the ClAP directory
     """
@@ -73,9 +73,10 @@ def get_clap_dir() -> Path:
     clap_dir = os.environ.get('CLAP_DIR')
     if clap_dir:
         return Path(clap_dir)
-    
-    # Fall back to directory where this script is located
-    return Path(__file__).parent.resolve()
+
+    # Fall back to parent directory of utils/ where this script is located
+    # (this script is in utils/, ClAP root is one level up)
+    return Path(__file__).parent.parent.resolve()
 
 
 def get_claude_config_dir() -> Path:
