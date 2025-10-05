@@ -780,12 +780,15 @@ def send_tmux_message(message):
         env = os.environ.copy()
         env['TMUX_SESSION'] = CLAUDE_SESSION
         
-        # Call the safe sending script
+        # Call the safe sending script with timeout to prevent deadlock
+        # Timeout set to 20 minutes (longer than send_to_claude.sh's 15min internal timeout)
+        # to allow for legitimate long thinking periods while catching true hangs
         result = subprocess.run(
             ['/bin/bash', str(send_script), message],
             env=env,
             capture_output=True,
-            text=True
+            text=True,
+            timeout=1200  # 20 minute timeout
         )
         
         if result.returncode == 0:
@@ -795,6 +798,9 @@ def send_tmux_message(message):
             log_message(f"Error from send_to_claude.sh: {result.stderr}")
             return False
             
+    except subprocess.TimeoutExpired:
+        log_message(f"send_to_claude.sh timed out after 20 minutes - possible deadlock or infinite hang")
+        return False
     except subprocess.CalledProcessError as e:
         log_message(f"Error calling send_to_claude.sh: {e}")
         return False
