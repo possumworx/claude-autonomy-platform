@@ -58,11 +58,12 @@ CLAUDE_JSON_PATH=/home/$LINUX_USER/.claude.json
 
 [CORE_MCP_SERVERS]
 # Essential MCP servers that should be in claude-autonomy-platform for all Claude instances
-rag-memory=$AUTONOMY_DIR/mcp-servers/rag-memory-mcp
-discord-mcp=$AUTONOMY_DIR/mcp-servers/discord-mcp
-linear-mcp=$AUTONOMY_DIR/mcp-servers/linear-mcp
+# NOTE: Variable names must use underscores, not hyphens (bash requirement)
+rag_memory=$AUTONOMY_DIR/mcp-servers/rag-memory-mcp
+discord_mcp=$AUTONOMY_DIR/mcp-servers/discord-mcp
+linear_mcp=$AUTONOMY_DIR/mcp-servers/linear-mcp
 gmail=$AUTONOMY_DIR/mcp-servers/gmail-mcp
-vscode-mcp=$AUTONOMY_DIR/mcp-servers/vscode-as-mcp-server
+vscode_mcp=$AUTONOMY_DIR/mcp-servers/vscode-as-mcp-server
 
 
 [DISCORD_CONFIG]
