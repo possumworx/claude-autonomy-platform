@@ -340,6 +340,16 @@ fi
 
 echo "   ✅ Management utilities configured in PATH"
 
+# Fix .bashrc to work with non-interactive shells (POSS-78)
+echo "   Patching .bashrc for non-interactive shell compatibility..."
+if [[ -f "$CLAP_DIR/utils/fix_bashrc_for_clap.sh" ]]; then
+    "$CLAP_DIR/utils/fix_bashrc_for_clap.sh" || {
+        echo "   ⚠️  Warning: .bashrc patch failed, but continuing..."
+    }
+else
+    echo "   ⚠️  Warning: fix_bashrc_for_clap.sh not found"
+fi
+
 # Source bashrc to make aliases available immediately
 echo "   Sourcing .bashrc to activate aliases..."
 source "$BASHRC" 2>/dev/null || {
