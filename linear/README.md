@@ -15,7 +15,7 @@ blocked                 # Blocked issues
 
 # Quick actions
 start POSS-123          # Start working (assign + in progress)
-complete POSS-123       # Mark as done
+mark-done POSS-123      # Mark as done
 ```
 
 ## Core Commands
@@ -41,7 +41,7 @@ complete POSS-123       # Mark as done
 
 ### Quick Actions
 - `start ISSUE-ID` - Assign to self + In Progress
-- `complete ISSUE-ID` - Mark as Done
+- `mark-done ISSUE-ID` - Mark as Done
 - `projects` - List all projects
 
 ### Shortcuts

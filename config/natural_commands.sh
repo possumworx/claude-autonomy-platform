@@ -1,9 +1,12 @@
 #!/bin/bash
 # Natural Commands for Claude Autonomy Platform
 # This file is sourced by ~/.bashrc and parsed for session context
-# 
+#
 # Format: alias name='command'
 # Comments starting with # are included in help
+
+# Enable alias expansion in non-interactive shells (required for Claude Code)
+shopt -s expand_aliases
 
 # CORE ClAP NATURAL COMMANDS #
 # shared across all users #
@@ -41,7 +44,7 @@ alias update-status='~/claude-autonomy-platform/linear/update-status'  # Update 
 alias view='~/claude-autonomy-platform/linear/view'  # View detailed issue information
 alias comment='~/claude-autonomy-platform/linear/comment'  # Add comment to issue
 alias start='~/claude-autonomy-platform/linear/start'  # Start working on issue (assign + in progress)
-alias complete='~/claude-autonomy-platform/linear/complete'  # Mark issue as done
+alias mark-done='~/claude-autonomy-platform/linear/mark-done'  # Mark issue as done
 alias inbox='~/claude-autonomy-platform/linear/inbox'  # Show unassigned team issues
 alias recent='~/claude-autonomy-platform/linear/recent'  # Show recently updated issues
 alias bulk-update='~/claude-autonomy-platform/linear/bulk-update'  # Bulk update issues

@@ -9,13 +9,13 @@ check_linear_init || exit 1
 check_claude_session || exit 1
 
 if [ $# -lt 1 ]; then
-    echo "Usage: complete ISSUE-ID [comment]"
+    echo "Usage: mark-done ISSUE-ID [comment]"
     echo ""
     echo "Marks issue as 'Done' with optional completion comment"
     echo ""
     echo "Examples:"
-    echo "  complete POSS-123"
-    echo "  complete 123 \"Fixed in commit abc123\""
+    echo "  mark-done POSS-123"
+    echo "  mark-done 123 \"Fixed in commit abc123\""
     exit 1
 fi
 
