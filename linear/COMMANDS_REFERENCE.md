@@ -100,13 +100,13 @@ start ISSUE-ID
 ```
 Moves issue to "In Progress" and assigns it to you.
 
-#### `complete` - Mark issue as done
+#### `mark-done` - Mark issue as done
 ```bash
-complete ISSUE-ID [comment]
+mark-done ISSUE-ID [comment]
 
 # Examples
-complete POSS-123
-complete 123 "Fixed in commit abc123"
+mark-done POSS-123
+mark-done 123 "Fixed in commit abc123"
 ```
 Marks issue as "Done" with optional completion comment.
 
