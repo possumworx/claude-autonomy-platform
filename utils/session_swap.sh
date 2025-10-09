@@ -113,6 +113,19 @@ else
     exit 1
 fi
 
+echo "[SESSION_SWAP] Checking Opus quota before swap..."
+# Run quota check but don't block on critical status - just inform
+if ! "$CLAP_DIR/utils/check_opus_quota.sh" 2>&1; then
+    exit_code=$?
+    if [ $exit_code -eq 2 ]; then
+        echo "[SESSION_SWAP] WARNING: Opus quota is critical - consider deferring non-essential work"
+        log_warn "SESSION_SWAP" "Opus quota critical before swap"
+    elif [ $exit_code -eq 1 ]; then
+        echo "[SESSION_SWAP] Note: Opus quota is moderate - be mindful of usage"
+        log_info "SESSION_SWAP" "Opus quota moderate before swap"
+    fi
+fi
+
 echo "[SESSION_SWAP] Updating context with keyword: $KEYWORD"
 # Keyword is already in new_session.txt from trigger - context builder will use it
 python3 "$CLAP_DIR/context/project_session_context_builder.py"

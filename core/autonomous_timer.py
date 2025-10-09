@@ -517,6 +517,41 @@ def calculate_wait_until_reset(reset_time_str):
         log_message(f"Error calculating wait duration: {e}")
         return None
 
+def check_opus_quota():
+    """Check Opus quota and return status (green/yellow/orange/red)"""
+    try:
+        # Run the quota check script
+        result = subprocess.run(
+            [str(AUTONOMY_DIR / "utils" / "check_opus_quota.sh")],
+            capture_output=True,
+            text=True
+        )
+        
+        exit_code = result.returncode
+        
+        # Parse the output to get percentage
+        opus_pct = None
+        for line in result.stdout.split('\n'):
+            if "Week (Opus):" in line:
+                match = re.search(r'(\d+)%', line)
+                if match:
+                    opus_pct = int(match.group(1))
+                    break
+        
+        # Determine status based on exit code
+        if exit_code == 0:
+            return "green", opus_pct
+        elif exit_code == 1:
+            return "yellow", opus_pct
+        elif exit_code == 2:
+            return "red", opus_pct
+        else:
+            return "unknown", opus_pct
+            
+    except Exception as e:
+        log_message(f"Error checking Opus quota: {e}")
+        return "unknown", None
+
 def update_discord_status(status_type, reset_time=None):
     """Update Discord bot status via persistent bot
     
@@ -525,6 +560,8 @@ def update_discord_status(status_type, reset_time=None):
     - limited: Usage limit reached (yellow idle)
     - api-error: API errors (red dnd)
     - context-high: High context (yellow idle)
+    - quota-warning: Opus quota warning (yellow idle)
+    - quota-critical: Opus quota critical (red dnd)
     """
     try:
         # Map our status types to Discord presence format
@@ -554,6 +591,20 @@ def update_discord_status(status_type, reset_time=None):
                 "status": "idle", 
                 "activities": [{
                     "name": f"⚠️ Context {reset_time}%" if reset_time else "⚠️ High Context",
+                    "type": 3  # Watching
+                }]
+            },
+            "quota-warning": {
+                "status": "idle",
+                "activities": [{
+                    "name": f"⚡ Opus {reset_time}% (Moderate)" if reset_time else "⚡ Opus Moderate",
+                    "type": 3  # Watching
+                }]
+            },
+            "quota-critical": {
+                "status": "dnd",
+                "activities": [{
+                    "name": f"🔴 Opus {reset_time}% (Critical)" if reset_time else "🔴 Opus Critical", 
                     "type": 3  # Watching
                 }]
             }
@@ -680,6 +731,8 @@ config = load_config()
 DISCORD_CHECK_INTERVAL = config["discord_check_interval"]
 AUTONOMY_PROMPT_INTERVAL = config["autonomy_prompt_interval"] 
 CLAUDE_SESSION = config["claude_session"]
+# Quota check every 2 hours (7200 seconds)
+QUOTA_CHECK_INTERVAL = config.get("quota_check_interval", 7200)
 
 # Load Discord configuration
 discord_config = load_discord_config()
@@ -1439,6 +1492,9 @@ def main():
     
     last_autonomy_check = datetime.now()
     last_discord_check = datetime.now()
+    last_quota_check = datetime.now()
+    last_quota_status = "unknown"
+    last_quota_pct = None
     LOGGED_IN_REMINDER_INTERVAL = 300  # 5 minutes when user is logged in
     
     while True:
@@ -1656,6 +1712,41 @@ def main():
                         log_message(f"Context dropped to {percentage}% - cleared warning state")
                 except:
                     pass
+            
+            # Check Opus quota periodically
+            if current_time - last_quota_check >= timedelta(seconds=QUOTA_CHECK_INTERVAL):
+                quota_status, quota_pct = check_opus_quota()
+                log_message(f"Opus quota check: {quota_pct}% used, status: {quota_status}")
+                
+                # Update Discord status if quota status changed
+                if quota_status != last_quota_status:
+                    if quota_status == "red":
+                        update_discord_status("quota-critical", str(quota_pct))
+                        # Send Discord alert
+                        try:
+                            cmd = [str(AUTONOMY_DIR / "discord" / "write_channel"), "amy-delta",
+                                  f"🔴 **Opus Quota Critical**: {quota_pct}% used. Very limited budget remaining this week."]
+                            subprocess.run(cmd, capture_output=True, text=True)
+                        except:
+                            pass
+                    elif quota_status == "yellow":
+                        update_discord_status("quota-warning", str(quota_pct))
+                        # Only alert if crossing threshold
+                        if last_quota_status == "green":
+                            try:
+                                cmd = [str(AUTONOMY_DIR / "discord" / "write_channel"), "amy-delta",
+                                      f"⚡ **Opus Quota Warning**: {quota_pct}% used. Moderate budget available."]
+                                subprocess.run(cmd, capture_output=True, text=True)
+                            except:
+                                pass
+                    elif quota_status == "green" and last_quota_status in ["yellow", "red"]:
+                        # Clear quota warning when back to green
+                        if not context_state.get("first_warning_sent"):
+                            update_discord_status("operational")
+                
+                last_quota_check = current_time
+                last_quota_status = quota_status
+                last_quota_pct = quota_pct
             
             # Check Discord notifications every 30 seconds regardless of login status
             if current_time - last_discord_check >= timedelta(seconds=DISCORD_CHECK_INTERVAL):
