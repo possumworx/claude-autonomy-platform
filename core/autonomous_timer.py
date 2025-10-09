@@ -520,6 +520,11 @@ def calculate_wait_until_reset(reset_time_str):
 def check_opus_quota():
     """Check Opus quota and return status (green/yellow/orange/red)"""
     try:
+        # Check if this instance is running Opus
+        model = get_config_value("MODEL", "unknown")
+        if "opus" not in model.lower():
+            log_message(f"Skipping quota check - not relevant for model: {model}")
+            return "n/a", None
         # Run the quota check script
         result = subprocess.run(
             [str(AUTONOMY_DIR / "utils" / "check_opus_quota.sh")],
@@ -1713,9 +1718,15 @@ def main():
                 except:
                     pass
             
-            # Check Opus quota periodically
+            # Check Opus quota periodically (only for Opus models)
             if current_time - last_quota_check >= timedelta(seconds=QUOTA_CHECK_INTERVAL):
                 quota_status, quota_pct = check_opus_quota()
+                
+                # Skip processing if not applicable
+                if quota_status == "n/a":
+                    last_quota_check = current_time
+                    continue
+                
                 log_message(f"Opus quota check: {quota_pct}% used, status: {quota_status}")
                 
                 # Update Discord status if quota status changed

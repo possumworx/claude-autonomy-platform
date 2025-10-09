@@ -115,8 +115,14 @@ fi
 
 echo "[SESSION_SWAP] Checking Opus quota before swap..."
 # Run quota check but don't block on critical status - just inform
-if ! "$CLAP_DIR/utils/check_opus_quota.sh" 2>&1; then
-    exit_code=$?
+QUOTA_OUTPUT=$("$CLAP_DIR/utils/check_opus_quota.sh" 2>&1)
+exit_code=$?
+
+# Check if quota monitoring was skipped for non-Opus models
+if echo "$QUOTA_OUTPUT" | grep -q "only relevant for Opus models"; then
+    echo "[SESSION_SWAP] Quota check skipped - not running Opus model"
+    log_info "SESSION_SWAP" "Quota check skipped for non-Opus model"
+elif [ $exit_code -ne 0 ]; then
     if [ $exit_code -eq 2 ]; then
         echo "[SESSION_SWAP] WARNING: Opus quota is critical - consider deferring non-essential work"
         log_warn "SESSION_SWAP" "Opus quota critical before swap"
@@ -124,6 +130,9 @@ if ! "$CLAP_DIR/utils/check_opus_quota.sh" 2>&1; then
         echo "[SESSION_SWAP] Note: Opus quota is moderate - be mindful of usage"
         log_info "SESSION_SWAP" "Opus quota moderate before swap"
     fi
+else
+    # Show the quota output if successful
+    echo "$QUOTA_OUTPUT"
 fi
 
 echo "[SESSION_SWAP] Updating context with keyword: $KEYWORD"

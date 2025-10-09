@@ -25,6 +25,19 @@ TMUX_SESSION="${TMUX_SESSION:-autonomous-claude}"
 source "$CLAP_DIR/utils/send_to_claude.sh"
 source "$CLAP_DIR/utils/log_utils.sh"
 
+# Add parent directory to Python path for infrastructure reader
+export PYTHONPATH="$CLAP_DIR:$PYTHONPATH"
+
+# Check if running as Opus model
+MODEL=$(python3 -c "from utils.infrastructure_config_reader import get_config_value; print(get_config_value('MODEL', 'unknown'))" 2>/dev/null || echo "unknown")
+if [[ ! "$MODEL" =~ opus ]]; then
+    echo "📊 Quota monitoring is only relevant for Opus models"
+    echo "Current model: $MODEL"
+    echo ""
+    echo "Other Claude models don't have weekly quotas to track."
+    exit 0
+fi
+
 # Function to calculate days until Wednesday night reset
 days_until_reset() {
     local current_day=$(date +%u)  # 1=Monday, 7=Sunday
