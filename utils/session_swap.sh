@@ -261,9 +261,5 @@ else
     MESSAGE="✅ Session swap completed successfully at $(date '+%Y-%m-%d %H:%M') with $KEYWORD context.\nFeel free to continue with your plans."
 fi
 
-# Send the completion message (no need for send_to_claude since Claude just started)
-tmux send-keys -t autonomous-claude "$MESSAGE" Enter
-
-# Send Enter to submit the message
-sleep 1
-tmux send-keys -t autonomous-claude Enter
+# Use send_to_claude for consistency and proper handling
+send_to_claude "$MESSAGE"
