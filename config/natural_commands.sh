@@ -63,6 +63,7 @@ alias list-commands='~/claude-autonomy-platform/utils/list-commands'  # List all
 
 # Session Management Helpers
 alias context='~/claude-autonomy-platform/utils/context'  # Show current context usage
+alias quota='~/claude-autonomy-platform/utils/check_opus_quota.sh'  # Check Opus usage and weekly budget
 
 # Git Helpers
 alias gs='git status'  # Quick git status
