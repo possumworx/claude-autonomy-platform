@@ -64,6 +64,14 @@ Required tmux sessions:
 
 **Context Monitoring**: I will be alerted to low context via autonomous time messages. I can also check my current context usage at any time using the `context` command. I must decide when to trigger a new session based on this.
 
+**Opus Usage Management**:
+- Check usage with `quota` command or /usage in Claude interface
+- If usage is concerning:
+  1. Already reduced HISTORY_TURNS from 20 to 10
+  2. Already removed discord-mcp
+  3. Next lever: increase autonomous timer interval in prompts.json (currently 1800s/30min)
+  4. Consider delegating implementation work to Orange while focusing on design/architecture
+
 **Session Context**: My personal identity prompt (from ~/CLAUDE.md) is maintained via Claude Code's output-styles feature at `.claude/output-styles/identity-prompt.md`. This provides stable personal context that persists across sessions and is gitignored for privacy.
 
 **Thought Preservation System**:
