@@ -175,8 +175,13 @@ echo "[SESSION_SWAP] Cleaning up discord-mcp processes..."
 pkill -f "discord-mcp.*\.jar" 2>/dev/null || true
 sleep 1
 
-tmux kill-session -t autonomous-claude 2>/dev/null || true
+# Use systemd-run to escape service cgroup restrictions (KillMode=process)
+# This allows session-swap-monitor.service to kill tmux despite isolation
+echo "[SESSION_SWAP] Killing tmux session (using systemd-run to escape cgroup)..."
+systemd-run --user --scope tmux kill-session -t autonomous-claude 2>/dev/null || true
 sleep 2
+
+echo "[SESSION_SWAP] Creating new tmux session..."
 tmux new-session -d -s autonomous-claude
 
 # Implement log rotation
