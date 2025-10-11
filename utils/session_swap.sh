@@ -28,9 +28,6 @@ touch "$LOCKFILE"
 echo "$$" > "$LOCKFILE"
 log_info "SESSION_SWAP" "Created lockfile with PID $$"
 
-# Set up trap to ensure lockfile is ALWAYS removed, even if script is interrupted/killed
-trap "{ echo '[SESSION_SWAP] Trap triggered - cleaning up lockfile...'; rm -f '$LOCKFILE'; }" EXIT SIGINT SIGTERM SIGHUP
-
 # Load Claude model from config using the standard read_config function
 CLAUDE_MODEL=$(read_config "MODEL")
 if [[ -z "$CLAUDE_MODEL" ]]; then
