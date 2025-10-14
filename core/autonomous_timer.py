@@ -1590,6 +1590,12 @@ def main():
                         trigger_session_swap("NONE")
                     else:
                         log_message("API 500 error cleared - resuming normal operation")
+                elif error_info["error_type"] == "api_400_error":
+                    update_discord_status("api-error")
+                    # POSS-247 FIX: 400 errors typically require fresh session - trigger immediate swap
+                    log_message("API 400 error detected - triggering auto-swap (bad request usually requires fresh session)...")
+                    time.sleep(5)  # Brief pause to log the message
+                    trigger_session_swap("NONE")
                 elif error_info["error_type"] == "api_503_error":
                     update_discord_status("api-error")
                     # 503 is upstream connection failure - wait and retry
@@ -1598,12 +1604,37 @@ def main():
                     # Check if error persists
                     _, current_error = get_token_percentage_and_errors()
                     if current_error and current_error.get("error_type") == "api_503_error":
-                        log_message("API 503 error persists - waiting longer before next check...")
-                        # Don't trigger swap immediately for 503s - they often resolve
+                        # POSS-247 FIX: If 503 persists, wait another 2 minutes then auto-swap
+                        log_message("API 503 error persists - waiting 2 more minutes before auto-swap...")
+                        time.sleep(120)  # Wait 2 more minutes
+                        # Check one final time
+                        _, final_error = get_token_percentage_and_errors()
+                        if final_error and final_error.get("error_type") == "api_503_error":
+                            log_message("API 503 error still persists after 3 minutes - triggering auto-swap...")
+                            trigger_session_swap("NONE")
+                        else:
+                            log_message("API 503 error cleared after extended wait - resuming normal operation")
                     else:
                         log_message("API 503 error cleared - resuming normal operation")
+                elif error_info["error_type"] == "api_error":
+                    update_discord_status("api-error")
+                    # POSS-247 FIX: General API errors - wait for recovery then auto-swap if persistent
+                    log_message("General API error detected - waiting 60 seconds for potential recovery...")
+                    time.sleep(60)
+                    # Check if error persists
+                    _, current_error = get_token_percentage_and_errors()
+                    if current_error and current_error.get("error_type") == "api_error":
+                        log_message("General API error persists after 60 seconds - triggering auto-swap...")
+                        trigger_session_swap("NONE")
+                    else:
+                        log_message("General API error cleared - resuming normal operation")
                 else:
                     update_discord_status("api-error")
+                    # POSS-247 FIX: Unknown error type - log and trigger auto-swap as safety measure
+                    unknown_type = error_info.get("error_type", "unknown")
+                    log_message(f"Unknown error type '{unknown_type}' detected - triggering auto-swap as safety measure...")
+                    time.sleep(30)  # Brief wait for unknown errors
+                    trigger_session_swap("NONE")
                 
                 current_error_state = error_info
             
