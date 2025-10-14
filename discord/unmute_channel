@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""
+Unmute a Discord channel by restoring it to channel_state.json
+Usage: unmute_channel <channel_name>
+Example: unmute_channel box-3
+"""
+
+import sys
+import json
+from pathlib import Path
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: unmute_channel <channel_name>")
+        print("Example: unmute_channel box-3")
+        sys.exit(1)
+
+    channel_name = sys.argv[1]
+
+    # File paths
+    state_file = Path.home() / "claude-autonomy-platform" / "data" / "channel_state.json"
+    muted_file = Path.home() / "claude-autonomy-platform" / "data" / "muted_channels.json"
+
+    if not muted_file.exists():
+        print(f"❌ No muted channels found")
+        sys.exit(1)
+
+    # Load muted channels
+    with open(muted_file, 'r') as f:
+        muted_channels = json.load(f)
+
+    # Check if channel is muted
+    if channel_name not in muted_channels:
+        print(f"❌ Channel #{channel_name} is not muted")
+        print(f"Currently muted: {', '.join(muted_channels.keys()) if muted_channels else 'none'}")
+        sys.exit(1)
+
+    # Load active channel state
+    data = {'channels': {}}
+    if state_file.exists():
+        with open(state_file, 'r') as f:
+            data = json.load(f)
+
+    state = data.get('channels', {})
+
+    # Restore channel to active state (remove muted_until and muted_at fields)
+    channel_data = muted_channels[channel_name].copy()
+    channel_data.pop('muted_until', None)
+    channel_data.pop('muted_at', None)
+    state[channel_name] = channel_data
+
+    # Remove from muted channels
+    del muted_channels[channel_name]
+
+    # Save both files
+    data['channels'] = state
+    with open(state_file, 'w') as f:
+        json.dump(data, f, indent=2)
+
+    with open(muted_file, 'w') as f:
+        json.dump(muted_channels, f, indent=2)
+
+    print(f"🔔 Unmuted #{channel_name}")
+    print(f"   Channel restored to active monitoring")
+
+if __name__ == "__main__":
+    main()

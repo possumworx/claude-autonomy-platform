@@ -1,0 +1,12 @@
+[Unit]
+Description=Timer to check for expired muted Discord channels
+Requires=channel-unmute.service
+
+[Timer]
+# Check every 5 minutes for expired mutes
+OnBootSec=1min
+OnUnitActiveSec=5min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

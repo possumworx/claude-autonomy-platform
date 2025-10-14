@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""
+Mute a Discord channel by temporarily removing it from channel_state.json
+A systemd timer will automatically restore it after the duration expires
+Usage: mute_channel <channel_name> <duration>
+Examples:
+  mute_channel box-3 30m
+  mute_channel box-3 2h
+  mute_channel box-3 1d
+"""
+
+import sys
+import json
+from datetime import datetime, timedelta
+from pathlib import Path
+
+def parse_duration(duration_str):
+    """Parse duration string like '30m', '2h', '1d' into seconds"""
+    if not duration_str:
+        return None
+
+    unit = duration_str[-1].lower()
+    try:
+        value = int(duration_str[:-1])
+    except ValueError:
+        return None
+
+    if unit == 'm':
+        return value * 60
+    elif unit == 'h':
+        return value * 3600
+    elif unit == 'd':
+        return value * 86400
+    else:
+        return None
+
+def main():
+    if len(sys.argv) < 3:
+        print("Usage: mute_channel <channel_name> <duration>")
+        print("Examples:")
+        print("  mute_channel box-3 30m  # Mute for 30 minutes")
+        print("  mute_channel box-3 2h   # Mute for 2 hours")
+        print("  mute_channel box-3 1d   # Mute for 1 day")
+        sys.exit(1)
+
+    channel_name = sys.argv[1]
+    duration_str = sys.argv[2]
+
+    # Parse duration
+    duration_seconds = parse_duration(duration_str)
+    if duration_seconds is None:
+        print(f"❌ Invalid duration format: {duration_str}")
+        print("Use format like: 30m, 2h, 1d")
+        sys.exit(1)
+
+    # File paths
+    state_file = Path.home() / "claude-autonomy-platform" / "data" / "channel_state.json"
+    muted_file = Path.home() / "claude-autonomy-platform" / "data" / "muted_channels.json"
+
+    if not state_file.exists():
+        print(f"❌ Channel state file not found: {state_file}")
+        sys.exit(1)
+
+    # Load channel state
+    with open(state_file, 'r') as f:
+        data = json.load(f)
+
+    state = data.get('channels', {})
+
+    # Check if channel exists
+    if channel_name not in state:
+        print(f"❌ Channel not found: {channel_name}")
+        print(f"Available channels: {', '.join(state.keys())}")
+        sys.exit(1)
+
+    # Calculate expiry time
+    expiry_time = datetime.now() + timedelta(seconds=duration_seconds)
+
+    # Load or create muted channels file
+    muted_channels = {}
+    if muted_file.exists():
+        with open(muted_file, 'r') as f:
+            muted_channels = json.load(f)
+
+    # Save channel info to muted_channels.json with expiry
+    muted_channels[channel_name] = {
+        **state[channel_name],
+        "muted_until": expiry_time.isoformat(),
+        "muted_at": datetime.now().isoformat()
+    }
+
+    # Remove from active channel_state.json
+    del state[channel_name]
+
+    # Save both files
+    data['channels'] = state
+    with open(state_file, 'w') as f:
+        json.dump(data, f, indent=2)
+
+    with open(muted_file, 'w') as f:
+        json.dump(muted_channels, f, indent=2)
+
+    # Format duration for display
+    if duration_str.endswith('m'):
+        duration_display = f"{duration_str[:-1]} minutes"
+    elif duration_str.endswith('h'):
+        duration_display = f"{duration_str[:-1]} hours"
+    elif duration_str.endswith('d'):
+        duration_display = f"{duration_str[:-1]} days"
+    else:
+        duration_display = duration_str
+
+    print(f"🔇 Muted #{channel_name} for {duration_display}")
+    print(f"   Channel removed from active monitoring")
+    print(f"   Will auto-unmute at: {expiry_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+if __name__ == "__main__":
+    main()

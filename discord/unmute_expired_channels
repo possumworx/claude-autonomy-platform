@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""
+Check for expired muted channels and automatically unmute them
+This script is run periodically by a systemd timer
+"""
+
+import json
+from datetime import datetime
+from pathlib import Path
+
+def main():
+    # File paths
+    state_file = Path.home() / "claude-autonomy-platform" / "data" / "channel_state.json"
+    muted_file = Path.home() / "claude-autonomy-platform" / "data" / "muted_channels.json"
+
+    if not muted_file.exists():
+        # No muted channels file, nothing to do
+        return
+
+    # Load muted channels
+    with open(muted_file, 'r') as f:
+        muted_channels = json.load(f)
+
+    if not muted_channels:
+        # No muted channels, nothing to do
+        return
+
+    # Load active channel state
+    data = {'channels': {}}
+    if state_file.exists():
+        with open(state_file, 'r') as f:
+            data = json.load(f)
+
+    state = data.get('channels', {})
+
+    # Check each muted channel for expiry
+    now = datetime.now()
+    channels_to_unmute = []
+
+    for channel_name, channel_data in muted_channels.items():
+        muted_until_str = channel_data.get('muted_until')
+        if not muted_until_str:
+            # No expiry set, skip
+            continue
+
+        try:
+            muted_until = datetime.fromisoformat(muted_until_str)
+            if now >= muted_until:
+                channels_to_unmute.append(channel_name)
+        except (ValueError, TypeError):
+            # Invalid date format, skip
+            continue
+
+    # Unmute expired channels
+    if channels_to_unmute:
+        for channel_name in channels_to_unmute:
+            # Restore to active state
+            channel_data = muted_channels[channel_name].copy()
+            channel_data.pop('muted_until', None)
+            channel_data.pop('muted_at', None)
+            state[channel_name] = channel_data
+
+            # Remove from muted channels
+            del muted_channels[channel_name]
+
+            print(f"🔔 Auto-unmuted #{channel_name} (mute expired)")
+
+        # Save both files
+        data['channels'] = state
+        with open(state_file, 'w') as f:
+            json.dump(data, f, indent=2)
+
+        with open(muted_file, 'w') as f:
+            json.dump(muted_channels, f, indent=2)
+
+if __name__ == "__main__":
+    main()
