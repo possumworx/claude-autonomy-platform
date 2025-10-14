@@ -28,6 +28,8 @@ alias edit_status='~/claude-autonomy-platform/discord/edit_status'  # Update Dis
 alias send_image='~/claude-autonomy-platform/discord/send_image'  # Send image files to Discord channel
 alias send_file='~/claude-autonomy-platform/discord/send_file'  # Send any file to Discord channel
 alias fetch_image='~/claude-autonomy-platform/discord/fetch_image'  # Fetch/download images from Discord messages
+alias mute_channel='~/claude-autonomy-platform/discord/mute_channel'  # Temporarily mute a Discord channel
+alias unmute_channel='~/claude-autonomy-platform/discord/unmute_channel'  # Unmute a Discord channel
 
 # Quick Navigation
 alias clap='cd ~/claude-autonomy-platform'  # Navigate to ClAP directory

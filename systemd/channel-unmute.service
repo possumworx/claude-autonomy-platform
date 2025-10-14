@@ -1,0 +1,12 @@
+[Unit]
+Description=Check for expired muted Discord channels and unmute them
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/claude-autonomy-platform/discord/unmute_expired_channels
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
