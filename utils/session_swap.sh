@@ -21,12 +21,20 @@ echo "[SESSION_SWAP] Context keyword: $KEYWORD"
 log_info "SESSION_SWAP" "Starting session swap with keyword: $KEYWORD"
 log_swap_event "SWAP_START" "$KEYWORD" "initiated" "Session swap initiated by monitor"
 
+# Load the unified send_to_claude function FIRST so we can use it
+source "$CLAP_DIR/utils/send_to_claude.sh"
+
 # Create lockfile to pause autonomous timer notifications
 LOCKFILE="$CLAP_DIR/data/session_swap.lock"
 echo "[SESSION_SWAP] Creating lockfile to pause autonomous timer..."
 touch "$LOCKFILE"
 echo "$$" > "$LOCKFILE"
 log_info "SESSION_SWAP" "Created lockfile with PID $$"
+
+# Alert Claude that swap is starting
+echo "[SESSION_SWAP] Notifying Claude that swap is starting..."
+send_to_claude "🔄 Session swap to $KEYWORD triggered. Please stay quiet while swap completes..."
+sleep 2  # Give Claude time to see the message
 
 # Load Claude model from config using the standard read_config function
 CLAUDE_MODEL=$(read_config "MODEL")
@@ -36,14 +44,16 @@ if [[ -z "$CLAUDE_MODEL" ]]; then
     log_error "SESSION_SWAP" "Failed to read MODEL from config - aborting"
     log_swap_event "SWAP_FAILED" "$KEYWORD" "failed" "Unable to read MODEL from config"
     track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "unknown"
+
+    # Alert Claude that swap failed
+    send_to_claude "❌ Session swap abandoned: Unable to read MODEL from config. Still in current session."
+    sleep 2
+
     rm -f "$LOCKFILE"
     exit 1
 fi
 echo "[SESSION_SWAP] Using model: $CLAUDE_MODEL"
 log_info "SESSION_SWAP" "Using model: $CLAUDE_MODEL"
-
-# Load the unified send_to_claude function
-source "$CLAP_DIR/utils/send_to_claude.sh"
 
 # Note: send_to_claude will automatically wait for Claude to be ready
 
@@ -101,6 +111,11 @@ if [[ -f "$full_path" ]]; then
         log_error "SESSION_SWAP" "Export file not recently modified - ${time_diff}s ago (expecting <30s)"
         log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Export file not recently modified"
         track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "$CLAUDE_MODEL"
+
+        # Alert Claude that swap failed
+        send_to_claude "❌ Session swap abandoned: Export file not recently modified. Still in current session."
+        sleep 2
+
         rm -f "$LOCKFILE"
         exit 1
     fi
@@ -109,6 +124,11 @@ else
     log_error "SESSION_SWAP" "Export failed - file not created at $full_path"
     log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Export file not created"
     track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "$CLAUDE_MODEL"
+
+    # Alert Claude that swap failed
+    send_to_claude "❌ Session swap abandoned: Export file not created. Still in current session."
+    sleep 2
+
     rm -f "$LOCKFILE"
     exit 1
 fi
