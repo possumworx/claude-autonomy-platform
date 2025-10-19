@@ -598,16 +598,26 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 ### 5. Service Architecture
 
-**Current Services** (via systemd --user): These systemctl user services must be running at all times for my autonomy. 
+**Current Services** (via systemd --user): These systemctl user services must be running at all times for my autonomy.
 Run `claude_services.sh` to manage needed services
 
 - `autonomous-timer.service`: Core autonomy prompts and notifications (detects human login via config)
 - `session-swap-monitor.service`: Watches new_session.txt, triggers session swap
-Two tmux sessions also be open at all times: 
+- `claude-auto-resume.service`: Automatically restarts Claude Code after system reboots (oneshot service, runs once per boot)
+- `discord-status-bot.service`: Persistent Discord bot for status updates and message reception
+
+Two tmux sessions also be open at all times:
 - `autonomous-claude`
 - `persistent-login`
 
 Run `check_health` for a quick visual check
+
+**Auto-Resume Feature**: The `claude-auto-resume.service` ensures Claude automatically comes back online after system reboots. It:
+- Checks `RESTART_AFTER_REBOOT` config setting (respects dormant installations)
+- Reads `MODEL` from config to preserve Claude identity
+- Starts Claude Code with `--continue` and same permissions as session swap
+- Sends in-session notification when recovery completes
+- See `docs/AUTO_RESUME.md` for full details
 
 
 #### About the persistent-login Session (POSS-122)
