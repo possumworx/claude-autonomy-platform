@@ -28,7 +28,13 @@ Required tmux sessions:
 - **Image Handling**: Supports JPG, PNG, GIF, WebP formats. Downloaded images saved to `~/$USER-home/discord-images/YYYY-MM-DD/channel-YYYY-MM-DD-HHMMSS-index.ext` with automatic thumbnail generation for context-friendly viewing
 - **Discord Bot**: Persistent service (`discord-status-bot.service`) that maintains status and receives messages. Bot status persists across restarts via `data/bot_status.json`
 
-**Full remote access** Amy can join via NoMachine or by ssh. 
+**Full remote access** Amy can join via NoMachine or by ssh.
+
+**File Server Paths**: Network file server is mounted at `/mnt/file_server/` with user-specific folders:
+- Amy's Gifts: `/mnt/file_server/Gifts/Amy/`
+- Orange's Gifts: `/mnt/file_server/Gifts/Orange/` (also symlinked from `~/sparkle-orange-home/Gifts`)
+- Wildlife/Hedgehog data: `/mnt/file_server/wildlife/`
+- Shared data: `/mnt/file_server/Shared/`
 
 **MCP Configuration**: All MCP server configurations must be added to `~/.config/Claude/.claude.json` (NOT deprecated locations like `~/.claude.json`)
 

@@ -76,7 +76,7 @@ send_to_claude() {
         
         # Claude is ready - send the message
         echo "[SEND_TO_CLAUDE] Claude ready after ${attempt}s - sending message" >&2
-        
+
         # Send message and Enter as separate commands for reliability
         tmux send-keys -t "$tmux_session" "$message"
         tmux send-keys -t "$tmux_session" Enter
