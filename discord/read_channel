@@ -32,7 +32,7 @@ def main():
         return
     
     channel = sys.argv[1]
-    limit = int(sys.argv[2]) if len(sys.argv) > 2 else 25
+    limit = int(sys.argv[2]) if len(sys.argv) > 2 else 10
     
     # Use the unified tools
     tools = get_discord_tools()
