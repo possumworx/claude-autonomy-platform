@@ -76,6 +76,7 @@ target/
 # Personal/instance-specific files
 context/my_personal_interests.md
 context/swap_CLAUDE.md
+context/context_hats/
 CLAUDE.md
 
 # Session exports
