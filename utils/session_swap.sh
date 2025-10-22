@@ -237,6 +237,10 @@ if [ -f "$CLAP_DIR/data/last_discord_notification.txt" ]; then
     echo "[SESSION_SWAP] Cleared notification tracking"
 fi
 
+# Trim Claude Code command history to prevent context bloat
+echo "[SESSION_SWAP] Trimming command history..."
+python3 "$CLAP_DIR/utils/trim_claude_history.py" > /dev/null 2>&1 || echo "[SESSION_SWAP] Warning: History trim failed"
+
 # Wait for state files to be fully cleared
 echo "[SESSION_SWAP] Waiting for state files to clear..."
 sleep 2
