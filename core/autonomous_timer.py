@@ -1139,8 +1139,8 @@ def send_autonomy_prompt():
             context_state["last_warning_time"] = datetime.now().isoformat()
             save_context_state(context_state)
         
-        # Escalated warning - context increased by 5% or more
-        elif percentage >= context_state["last_warning_percentage"] + 5:
+        # Escalated warning - context increased by 5% or more (only after first warning at 70%)
+        elif context_state["first_warning_sent"] and percentage >= context_state["last_warning_percentage"] + 5:
             template = prompts.get("context_escalated", {}).get("template", "")
             prompt_type = "context_escalated"
             # Update state
