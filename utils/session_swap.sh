@@ -166,6 +166,10 @@ echo "[SESSION_SWAP] Updating context with keyword: $KEYWORD"
 python3 "$CLAP_DIR/context/project_session_context_builder.py"
 # Note: Monitor will reset to FALSE after completion
 
+# Fetch Leantime seeds for autonomous time skill
+echo "[SESSION_SWAP] Fetching Leantime seeds for autonomous time..."
+python3 "$CLAP_DIR/utils/fetch_leantime_seeds.py" > /dev/null 2>&1 || echo "[SESSION_SWAP] Warning: Leantime seeds fetch failed (continuing anyway)"
+
 echo "[SESSION_SWAP] Swapping to new session..."
 send_to_claude "/exit"
 
