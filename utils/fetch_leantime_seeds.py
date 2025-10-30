@@ -148,7 +148,7 @@ def generate_skill_content(projects, seeds_by_project):
     return "\n".join(lines)
 
 def main():
-    """Main function to fetch and generate skill file."""
+    """Main function to fetch and generate skill reference files."""
     global API_KEY
 
     # Load API key
@@ -186,21 +186,30 @@ def main():
 
         print(f"✅ Found {total_seeds} total seeds")
 
-        # Generate skill content
+        # Generate markdown content for human reading
         content = generate_skill_content(projects, seeds_by_project)
 
-        # Determine output path
-        if len(sys.argv) > 2 and sys.argv[1] == "--output":
-            output_path = Path(sys.argv[2])
-        else:
-            # Default to skills directory in ClAP
-            skills_dir = Path.home() / ".claude" / "skills"
-            skills_dir.mkdir(parents=True, exist_ok=True)
-            output_path = skills_dir / "spending-autonomous-time.md"
+        # Skill reference directory
+        skill_dir = Path.home() / "claude-autonomy-platform" / ".claude" / "skills" / "spending-autonomous-time" / "reference"
+        skill_dir.mkdir(parents=True, exist_ok=True)
 
-        # Write skill file
-        output_path.write_text(content)
-        print(f"✅ Wrote skill file to: {output_path}")
+        # Write human-readable markdown
+        md_path = skill_dir / "seeds.md"
+        md_path.write_text(content)
+        print(f"✅ Wrote seeds markdown to: {md_path}")
+
+        # Write machine-readable JSON
+        json_data = {
+            "updated": datetime.now().isoformat(),
+            "projects": projects,
+            "seeds_by_project": seeds_by_project,
+            "total_projects": len(projects),
+            "total_seeds": total_seeds
+        }
+        json_path = skill_dir / "seeds.json"
+        json_path.write_text(json.dumps(json_data, indent=2))
+        print(f"✅ Wrote seeds JSON to: {json_path}")
+
         print(f"📝 {len(projects)} projects, {total_seeds} seeds")
 
     except Exception as e:
