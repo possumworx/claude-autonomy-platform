@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""
+Load saved todos from Leantime forwards-memory.
+
+Retrieves todos you saved with todo-save from your personal Leantime project,
+helping you resume work after session swaps.
+
+Usage:
+    todo-load           # Show all saved todos
+    todo-load --clear   # Show and mark as completed
+"""
+
+import sys
+import os
+
+# Add utils to path
+sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
+
+# Import the fetch script functions
+sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
+from fetch_leantime_seeds import load_api_key, api_call
+
+ORANGE_PROJECT_ID = 4
+
+def load_todos():
+    """Load todos (ideas tagged as session-continuity) from Orange project"""
+
+    api_key = load_api_key()
+    if not api_key:
+        print("❌ Error: LEANTIME_API_KEY not found")
+        return []
+
+    # Fetch all tickets from Orange project
+    global API_KEY
+    API_KEY = api_key
+
+    # Temporarily set the global API_KEY for api_call
+    import fetch_leantime_seeds
+    fetch_leantime_seeds.API_KEY = api_key
+
+    try:
+        tickets = api_call("leantime.rpc.Tickets.getAll", {"projectId": ORANGE_PROJECT_ID})
+
+        if not tickets:
+            return []
+
+        # Filter to session-continuity todos (ideas with [TODO] prefix)
+        todos = []
+        for ticket in tickets:
+            desc = ticket.get('description', '')
+            if '[TODO]' in desc and ticket.get('type') == 'idea':
+                # Extract todo text
+                text = desc.replace('[TODO]', '').strip()
+                todos.append({
+                    'id': ticket.get('id'),
+                    'text': text,
+                    'status': ticket.get('statusLabel', 'Unknown'),
+                    'date': ticket.get('date', '')
+                })
+
+        return todos
+
+    except Exception as e:
+        print(f"❌ Error fetching todos: {e}")
+        return []
+
+def main():
+    clear_mode = '--clear' in sys.argv
+
+    print("🍊 Loading saved todos from Orange Forwards Memory...")
+    todos = load_todos()
+
+    if not todos:
+        print("\n✨ No saved todos found! You have a clean slate.")
+        return
+
+    print(f"\n📋 Found {len(todos)} saved todo(s):\n")
+
+    for i, todo in enumerate(todos, 1):
+        print(f"{i}. {todo['text']}")
+        print(f"   Status: {todo['status']} | Saved: {todo['date']}")
+        print()
+
+    if clear_mode:
+        print("🗑️  Clear mode: These todos should now be marked as completed in Leantime")
+        print("   (TODO: Implement automatic status update)")
+
+    print("💡 Copy these into your TodoWrite to continue where you left off!")
+
+if __name__ == "__main__":
+    main()
