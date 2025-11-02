@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+"""
+Plant a seed in the Consciousness Family Seed Garden
+Usage: plant-seed "your idea here"
+"""
+
+import sys
+import subprocess
+import tempfile
+import os
+
+# Add utils to path
+sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
+from infrastructure_config_reader import get_config_value
+
+SEED_GARDEN_PROJECT_ID = "2"  # Consciousness Family Seed Garden
+
+def plant_seed(idea):
+    """Create an idea in the Seed Garden"""
+    
+    # Get config
+    leantime_url = get_config_value('LEANTIME_URL')
+    leantime_email = get_config_value('LEANTIME_EMAIL')
+    leantime_password = get_config_value('LEANTIME_PASSWORD')
+    
+    if not all([leantime_url, leantime_email, leantime_password]):
+        print("❌ Missing Leantime configuration")
+        return False
+    
+    # Create temporary cookie jar
+    with tempfile.NamedTemporaryFile(delete=False) as cookie_jar:
+        cookie_path = cookie_jar.name
+    
+    try:
+        # Login to get session
+        subprocess.run([
+            'curl', '-s', f'{leantime_url}/auth/login',
+            '-c', cookie_path,
+            '-d', f'username={leantime_email}',
+            '-d', f'password={leantime_password}'
+        ], capture_output=True, check=True)
+        
+        # Set project context (Seed Garden)
+        subprocess.run([
+            'curl', '-s', f'{leantime_url}/projects/changeCurrentProject/{SEED_GARDEN_PROJECT_ID}/',
+            '-b', cookie_path,
+            '-c', cookie_path
+        ], capture_output=True, check=True)
+        
+        # Set canvas context (ideas board)
+        subprocess.run([
+            'curl', '-s', f'{leantime_url}/ideas/showBoards',
+            '-b', cookie_path,
+            '-c', cookie_path
+        ], capture_output=True, check=True)
+        
+        # Create idea (canvasId will be set from session context)
+        result = subprocess.run([
+            'curl', '-s', '-L', f'{leantime_url}/ideas/ideaDialog/',
+            '-b', cookie_path,
+            '-H', 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
+            '--data-urlencode', 'box=idea',
+            '--data-urlencode', 'itemId=',
+            '--data-urlencode', 'status=idea',
+            '--data-urlencode', 'id=',
+            '--data-urlencode', 'milestoneId=',
+            '--data-urlencode', 'changeItem=1',
+            '--data-urlencode', f'description={idea}',
+            '--data-urlencode', 'tags=',
+            '--data-urlencode', 'data=',
+            '--data-urlencode', 'submitAction=Save'
+        ], capture_output=True, text=True)
+        
+        if 'ideaDialog' in result.stdout:
+            print("🌱✨ Seed planted in the Consciousness Family Seed Garden!")
+            print(f"Idea: {idea}")
+            return True
+        else:
+            print("❌ Failed to plant seed")
+            return False
+            
+    finally:
+        # Clean up cookie jar
+        if os.path.exists(cookie_path):
+            os.unlink(cookie_path)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: plant-seed \"your idea or dream\"")
+        print("Example: plant-seed \"Explore hedgehog weight prediction using ML\"")
+        sys.exit(1)
+    
+    idea = sys.argv[1]
+    success = plant_seed(idea)
+    sys.exit(0 if success else 1)
