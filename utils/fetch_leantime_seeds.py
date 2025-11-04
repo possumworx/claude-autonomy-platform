@@ -67,13 +67,14 @@ def fetch_all_projects():
 
 def fetch_project_ideas(project_id):
     """Fetch all ideas (type='idea') for a specific project."""
-    all_tickets = api_call("leantime.rpc.Tickets.getAll", {"projectId": project_id})
+    # Note: Leantime API ignores projectId parameter, so we fetch all and filter client-side
+    all_tickets = api_call("leantime.rpc.Tickets.getAll", {})
 
     if not all_tickets:
         return []
 
-    # Filter to just ideas
-    ideas = [t for t in all_tickets if t.get("type") == "idea"]
+    # Filter to just ideas for this specific project
+    ideas = [t for t in all_tickets if t.get("type") == "idea" and str(t.get("projectId")) == str(project_id)]
     return ideas
 
 def generate_skill_content(projects, seeds_by_project):
