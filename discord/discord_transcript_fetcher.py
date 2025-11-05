@@ -196,10 +196,11 @@ class TranscriptFetcher:
 
         # If the latest message is from me, mark as read automatically
         # (I don't need notifications about my own messages!)
-        bot_name = self.discord.client.user.name if self.discord.client.user else None
-        print(f"DEBUG: Latest message author='{author_name}', bot_name='{bot_name}'")
-        if bot_name and author_name == bot_name:
-            print(f"DEBUG: Auto-marking message as read (from myself)")
+        # Note: DiscordTools uses REST API, not a Client object with .user
+        # So we hardcode the bot display name for now
+        bot_name = "Sparkle Orange 🍊"
+
+        if author_name == bot_name:
             self.channel_state.mark_channel_read(channel_name, latest_id)
 
     def process_channel(self, channel_name):
