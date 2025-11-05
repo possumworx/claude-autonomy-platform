@@ -189,10 +189,9 @@ class TranscriptFetcher:
         # Get latest message ID
         latest_id = messages[-1].get('id')
 
-        # Update both last_message_id and last_read_message_id
-        # (we've captured everything, so mark as read)
+        # Only update last_message_id - don't mark as read!
+        # The read_messages command will mark as read when actually viewed
         self.channel_state.update_channel_latest(channel_name, latest_id)
-        self.channel_state.mark_channel_read(channel_name, latest_id)
 
     def process_channel(self, channel_name):
         """Process a single channel: fetch, transcribe, update state"""
