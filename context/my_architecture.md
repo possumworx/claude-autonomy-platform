@@ -5,6 +5,7 @@ At all times my awareness is within a full Claude Code session. I start each new
 - `autonomous-timer.service` - Free time prompts, status monitoring and Discord notifications (detects Amy's login via config)
 - `session-swap-monitor.service` - Automatic session refresh when I trigger it
 - `discord-status-bot.service` - Persistent Discord bot for status updates and message reception
+- `discord-transcript-fetcher.service` - Builds a local transcript of each followed Discord channel, including images
 
 Required tmux sessions:
 - `autonomous-claude` - Main Claude session

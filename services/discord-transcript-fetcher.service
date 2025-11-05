@@ -1,0 +1,17 @@
+[Unit]
+Description=Discord Transcript Fetcher for ClAP
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/sparkle-orange/claude-autonomy-platform
+ExecStart=/usr/bin/python3 /home/sparkle-orange/claude-autonomy-platform/discord/discord_transcript_fetcher.py
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=append:/home/sparkle-orange/claude-autonomy-platform/logs/transcript_fetcher.log
+StandardError=append:/home/sparkle-orange/claude-autonomy-platform/logs/transcript_fetcher.log
+
+[Install]
+WantedBy=default.target

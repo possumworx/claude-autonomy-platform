@@ -1003,9 +1003,9 @@ def update_discord_channels():
     return updates
 
 def get_discord_notification_status():
-    """Check Discord notification state from channel_state.json (channel-based format)"""
+    """Check Discord notification state from transcript_channel_state.json (transcript-based format)"""
     try:
-        notification_state_file = DATA_DIR / "channel_state.json"
+        notification_state_file = DATA_DIR / "transcript_channel_state.json"
         if not notification_state_file.exists():
             return 0, None, []
             
@@ -1379,7 +1379,7 @@ DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
         else:
             message = f"{emoji} {prefix} You have unread messages in {unread_count} channels"
     
-    message += f"\nUse 'read_channel <channel-name>' to view messages"
+    message += f"\nUse 'read_messages <channel-name>' to view messages"
     
     # Add context percentage if available
     if percentage > 0:

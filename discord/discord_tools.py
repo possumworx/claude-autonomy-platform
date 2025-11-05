@@ -244,44 +244,49 @@ class DiscordTools:
             date_dir.mkdir(exist_ok=True)
             
             save_path = date_dir / new_filename
-            
-            # Download image
-            response = requests.get(url, stream=True)
-            if response.status_code == 200:
-                with open(save_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                
-                # Create thumbnail for context-efficient viewing
+            thumb_filename = f"{channel_name}-{date_str}-{time_str}-{index:03d}_thumb{ext}"
+            thumb_path = date_dir / thumb_filename
+
+            # Check if image and thumbnail already exist
+            if save_path.exists() and thumb_path.exists():
+                # Already downloaded and thumbnailed, just return the path
+                return save_path
+
+            # Download image if not exists
+            if not save_path.exists():
+                response = requests.get(url, stream=True)
+                if response.status_code == 200:
+                    with open(save_path, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                else:
+                    print(f"Failed to download image: {response.status_code}")
+                    return None
+
+            # Create thumbnail if not exists
+            if not thumb_path.exists():
                 try:
                     # Open the image
                     img = Image.open(save_path)
-                    
+
                     # Create thumbnail with max dimension of 800px
                     thumbnail = img.copy()
                     thumbnail.thumbnail((800, 800), Image.Resampling.LANCZOS)
-                    
-                    # Save thumbnail with _thumb suffix
-                    thumb_filename = f"{channel_name}-{date_str}-{time_str}-{index:03d}_thumb{ext}"
-                    thumb_path = date_dir / thumb_filename
-                    
+
                     # Convert RGBA to RGB if necessary (for JPEG)
                     if thumbnail.mode == 'RGBA' and ext.lower() in ['.jpg', '.jpeg']:
                         rgb_img = Image.new('RGB', thumbnail.size, (255, 255, 255))
                         rgb_img.paste(thumbnail, mask=thumbnail.split()[3] if len(thumbnail.split()) == 4 else None)
                         thumbnail = rgb_img
-                    
+
                     thumbnail.save(thumb_path, quality=85, optimize=True)
                     print(f"✅ Created thumbnail: {thumb_path.name}")
-                    
+
                 except Exception as e:
                     print(f"⚠️  Could not create thumbnail: {e}")
-                
-                return save_path
-            else:
-                print(f"Failed to download image: {response.status_code}")
-                return None
-                
+
+            return save_path
+
         except Exception as e:
             print(f"Error downloading image: {e}")
             return None
