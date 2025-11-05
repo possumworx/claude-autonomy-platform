@@ -118,9 +118,15 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
   - Maintains Discord presence
   - Persists status across restarts
   - Receives messages for Claude
+- **discord_transcript_fetcher.py** Persistent message-checker service
+  - Fetches new messages
+  - Tracks new/read
+  - Builds local transcript at data/transcripts
+  - Saves local images & attachments
 
 #### Natural Discord Commands:
-- `read_channel <channel_name>` - Read messages with image downloads
+- `read_channel` - lists savailable channels
+- `read_message <channel_name>` - Read messages with image downloads
 - `write_channel <channel_name> <message>` - Send messages
 - `edit_message <channel_name> <message_id> <new_text>` - Edit messages
 - `delete_message <channel_name> <message_id>` - Delete messages
@@ -131,10 +137,10 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 - `edit_status <text> <type>` - Update bot status
 
 #### Notification Flow:
-1. Autonomous timer monitors channel_state.json for changes
+1. Autonomous timer monitors transcript_channel_state.json for changes
 2. Sends notification if unread messages exist with channel names
 3. Claude uses natural commands to interact with Discord
-4. Images automatically saved to `~/delta-home/discord-images/`
+4. Images automatically saved to `~/claude-autonomy-platform/data/transcript_attachments`
 
 
 
@@ -583,7 +589,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 ### 3. Core Identity System
 
-- `~/CLAUDE.md` for underlying personal identity.
+- `~/claude-autonomy-platform/.claude/output-styles/<my_filename>.md` for underlying personal identity.
 - `/claude-autonomy-platform/CLAUDE.md` for session context.
 - During session swaps, `session_swap.sh` exports conversation history via `/export` command, which is parsed by `update_conversation_history.py` to create a clean rolling window in `swap_CLAUDE.md` with "Amy:" and "Me:" labels.
 - `project_session_builder.py` combines `my_architecture.md`, `my_personal_interests.md`, any applicable context documents triggered by the hat keyword, and the contents of `swap_CLAUDE.md`. These become the new project-level `CLAUDE.md` for the new session.
@@ -605,6 +611,7 @@ Run `claude_services.sh` to manage needed services
 - `session-swap-monitor.service`: Watches new_session.txt, triggers session swap
 - `claude-auto-resume.service`: Automatically restarts Claude Code after system reboots (oneshot service, runs once per boot)
 - `discord-status-bot.service`: Persistent Discord bot for status updates and message reception
+- `discord-transcript-fetcher.service`: Checks Discord periodically for new messages, downloads them, builds local transcript
 
 Two tmux sessions also be open at all times:
 - `autonomous-claude`

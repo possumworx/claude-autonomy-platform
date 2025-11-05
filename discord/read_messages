@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+"""
+Read messages from local transcript files
+Part of the transcript-based Discord system
+
+Usage:
+    read_messages <channel_name> [limit]
+
+Examples:
+    read_messages general          # Read last 25 messages
+    read_messages amy-🍊 10        # Read last 10 messages
+    read_messages                  # List available channels
+"""
+
+import sys
+import json
+from pathlib import Path
+from datetime import datetime
+
+# Configuration
+CLAP_ROOT = Path.home() / "claude-autonomy-platform"
+TRANSCRIPT_DIR = CLAP_ROOT / "data" / "transcripts"
+STATE_FILE = CLAP_ROOT / "data" / "transcript_channel_state.json"
+
+
+def list_channels():
+    """List available channels from transcript directory"""
+    print("📋 Available channels with transcripts:")
+
+    if not TRANSCRIPT_DIR.exists():
+        print("❌ No transcripts directory found!")
+        return
+
+    transcript_files = sorted(TRANSCRIPT_DIR.glob("*.jsonl"))
+
+    if not transcript_files:
+        print("  (No transcripts yet)")
+        return
+
+    for transcript_file in transcript_files:
+        channel_name = transcript_file.stem  # Remove .jsonl extension
+
+        # Count messages
+        try:
+            with open(transcript_file, 'r') as f:
+                message_count = sum(1 for _ in f)
+            print(f"  • {channel_name} ({message_count} messages)")
+        except Exception as e:
+            print(f"  • {channel_name} (error reading: {e})")
+
+
+def read_transcript(channel_name, limit=25):
+    """Read messages from a transcript file"""
+    transcript_file = TRANSCRIPT_DIR / f"{channel_name}.jsonl"
+
+    if not transcript_file.exists():
+        print(f"❌ No transcript found for #{channel_name}")
+        print(f"   Looking for: {transcript_file}")
+        return None
+
+    # Read all messages from JSON Lines file
+    messages = []
+    try:
+        with open(transcript_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    messages.append(json.loads(line))
+    except Exception as e:
+        print(f"❌ Error reading transcript: {e}")
+        return None
+
+    # Return last N messages
+    return messages[-limit:] if messages else []
+
+
+def format_message(msg):
+    """Format a message for display"""
+    # Parse timestamp
+    try:
+        timestamp = datetime.fromisoformat(msg['timestamp'].replace('Z', '+00:00'))
+        time_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+    except:
+        time_str = msg.get('timestamp', 'unknown')
+
+    author = msg.get('author', 'Unknown')
+    content = msg.get('content', '')
+
+    # Format basic message
+    output = f"[{time_str}] {author}: {content}"
+
+    # Add attachment info if present
+    attachments = msg.get('attachments', [])
+    if attachments:
+        output += "\n  Attachments:"
+        for att in attachments:
+            if 'path' in att:
+                output += f"\n    - {att['filename']}: {att['path']}"
+                if att.get('thumbnail'):
+                    output += f"\n      (thumbnail: {att['thumbnail']})"
+            else:
+                output += f"\n    - {att['filename']}: {att['url']}"
+
+    return output
+
+
+def update_last_read(channel_name, message_id):
+    """Update last_read_message_id in transcript_channel_state.json"""
+    if not STATE_FILE.exists() or not message_id:
+        return
+
+    try:
+        with open(STATE_FILE, 'r') as f:
+            state = json.load(f)
+
+        if channel_name in state.get('channels', {}):
+            state['channels'][channel_name]['last_read_message_id'] = message_id
+
+            with open(STATE_FILE, 'w') as f:
+                json.dump(state, f, indent=2)
+    except Exception as e:
+        print(f"⚠️  Warning: Could not update last read: {e}")
+
+
+def main():
+    # No arguments - list channels
+    if len(sys.argv) < 2:
+        list_channels()
+        return 0
+
+    channel_name = sys.argv[1]
+    limit = int(sys.argv[2]) if len(sys.argv) > 2 else 25
+
+    # Read transcript
+    messages = read_transcript(channel_name, limit)
+
+    if messages is None:
+        return 1
+
+    if not messages:
+        print(f"📨 No messages in #{channel_name} transcript")
+        return 0
+
+    # Display messages
+    print(f"📨 Reading {len(messages)} messages from #{channel_name} transcript...\n")
+    print(f"=== Last {len(messages)} messages ===\n")
+
+    for msg in messages:
+        print(format_message(msg))
+
+    print(f"\n✓ Marked #{channel_name} as read")
+    print("✅ Done!")
+
+    # Update last read
+    last_message_id = messages[-1].get('id') if messages else None
+    update_last_read(channel_name, last_message_id)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)
