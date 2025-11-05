@@ -19,8 +19,10 @@ DISCORD_PASSWORD=your-discord-password
 # Discord Tokens - IMPORTANT DISTINCTION:
 # DISCORD_BOT_TOKEN: The bot token from Discord Developer Portal (for sending messages)
 # DISCORD_USER_TOKEN: Your personal Discord account token (currently not used, leave empty)
+# DISCORD_BOT_DISPLAY_NAME: The bot's display name in Discord (used to identify own messages)
 DISCORD_BOT_TOKEN=your-discord-bot-token-here
 DISCORD_USER_TOKEN=
+DISCORD_BOT_DISPLAY_NAME=Your Bot Display Name
 
 DISCORD_USERNAME=your-discord-username
 GMAIL_ADDRESS=your-claude-account@gmail.com

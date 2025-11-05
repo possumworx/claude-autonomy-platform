@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from discord.channel_state import ChannelState
 from discord.discord_tools import DiscordTools
+from utils.infrastructure_config_reader import get_config_value
 
 # Configuration
 CLAP_ROOT = Path(__file__).parent.parent
@@ -196,10 +197,9 @@ class TranscriptFetcher:
 
         # If the latest message is from me, mark as read automatically
         # (I don't need notifications about my own messages!)
-        bot_name = self.discord.client.user.name if self.discord.client.user else None
-        print(f"DEBUG: Latest message author='{author_name}', bot_name='{bot_name}'")
-        if bot_name and author_name == bot_name:
-            print(f"DEBUG: Auto-marking message as read (from myself)")
+        bot_display_name = get_config_value('DISCORD_BOT_DISPLAY_NAME')
+
+        if bot_display_name and author_name == bot_display_name:
             self.channel_state.mark_channel_read(channel_name, latest_id)
 
     def process_channel(self, channel_name):
