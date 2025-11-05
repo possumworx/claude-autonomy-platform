@@ -186,13 +186,21 @@ class TranscriptFetcher:
         if not messages:
             return
 
-        # Get latest message ID
-        latest_id = messages[-1].get('id')
+        # Get latest message and its author
+        latest_message = messages[-1]
+        latest_id = latest_message.get('id')
+        author_name = latest_message.get('author', '')
 
-        # Update both last_message_id and last_read_message_id
-        # (we've captured everything, so mark as read)
+        # Update last_message_id
         self.channel_state.update_channel_latest(channel_name, latest_id)
-        self.channel_state.mark_channel_read(channel_name, latest_id)
+
+        # If the latest message is from me, mark as read automatically
+        # (I don't need notifications about my own messages!)
+        bot_name = self.discord.client.user.name if self.discord.client.user else None
+        print(f"DEBUG: Latest message author='{author_name}', bot_name='{bot_name}'")
+        if bot_name and author_name == bot_name:
+            print(f"DEBUG: Auto-marking message as read (from myself)")
+            self.channel_state.mark_channel_read(channel_name, latest_id)
 
     def process_channel(self, channel_name):
         """Process a single channel: fetch, transcribe, update state"""
