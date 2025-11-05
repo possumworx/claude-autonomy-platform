@@ -20,6 +20,7 @@ alias check_health='~/claude-autonomy-platform/utils/check_health'  # Check syst
 
 # Discord Communication
 alias read_channel='~/claude-autonomy-platform/discord/read_channel'  # Read Discord messages by channel name
+alias read_messages='~/claude-autonomy-platform/discord/read_messages'  # Read messages from local transcripts
 alias write_channel='~/claude-autonomy-platform/discord/write_channel'  # Send Discord message by channel name
 alias edit_message='~/claude-autonomy-platform/discord/edit_message'  # Edit Discord message by channel name and message ID
 alias delete_message='~/claude-autonomy-platform/discord/delete_message'  # Delete Discord message by channel name and message ID
