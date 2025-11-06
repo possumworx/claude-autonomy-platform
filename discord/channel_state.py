@@ -27,7 +27,34 @@ class ChannelState:
         return {"channels": {}}
     
     def save(self):
-        """Save state to file"""
+        """Save state to file with reload-merge to prevent race conditions"""
+        # Reload from disk first to catch any concurrent modifications
+        current_disk_state = self._load_state()
+
+        # Merge changes: preserve any fields that were updated on disk
+        # while keeping our in-memory changes
+        for channel_name, channel_data in self.state.get("channels", {}).items():
+            if channel_name in current_disk_state.get("channels", {}):
+                # Merge: keep whichever value is newer/non-None for each field
+                disk_channel = current_disk_state["channels"][channel_name]
+
+                # Preserve last_read_message_id if it was updated on disk
+                if disk_channel.get("last_read_message_id") and \
+                   disk_channel.get("last_read_message_id") != channel_data.get("last_read_message_id"):
+                    # Disk has a different last_read - keep the higher ID (more recent)
+                    disk_read = int(disk_channel.get("last_read_message_id") or 0)
+                    mem_read = int(channel_data.get("last_read_message_id") or 0)
+                    if disk_read > mem_read:
+                        channel_data["last_read_message_id"] = disk_channel["last_read_message_id"]
+
+        # Add any channels that exist on disk but not in memory
+        for channel_name, channel_data in current_disk_state.get("channels", {}).items():
+            if channel_name not in self.state.get("channels", {}):
+                if "channels" not in self.state:
+                    self.state["channels"] = {}
+                self.state["channels"][channel_name] = channel_data
+
+        # Now save our merged state
         with open(self.state_file, 'w') as f:
             json.dump(self.state, f, indent=2)
     
