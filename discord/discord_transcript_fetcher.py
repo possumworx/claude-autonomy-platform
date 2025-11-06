@@ -91,16 +91,18 @@ class TranscriptFetcher:
             return None
 
     def fetch_new_messages(self, channel_name):
-        """Fetch new messages for a channel since last read"""
+        """Fetch new messages for a channel since last processed by fetcher"""
         channel = self.channel_state.get_channel(channel_name)
         if not channel:
             return []
 
-        last_read = channel.get('last_read_message_id')
+        # Use last_message_id (what fetcher last processed) NOT last_read_message_id (what user read)
+        # This prevents re-fetching messages that are already in the transcript
+        last_fetched = channel.get('last_message_id')
 
         try:
             # Use discord_tools read_messages which returns formatted messages
-            limit = 100 if last_read else 25
+            limit = 100 if last_fetched else 25
             result = self.discord.read_messages(channel_name, limit=limit)
 
             if not result.get('success'):
@@ -109,11 +111,11 @@ class TranscriptFetcher:
 
             messages = result.get('messages', [])
 
-            # Filter to only new messages (after last_read)
-            if last_read:
+            # Filter to only new messages (after last_fetched by this fetcher)
+            if last_fetched:
                 new_messages = []
                 for msg in messages:
-                    if int(msg.get('id', 0)) > int(last_read):
+                    if int(msg.get('id', 0)) > int(last_fetched):
                         new_messages.append(msg)
                 return new_messages
 
