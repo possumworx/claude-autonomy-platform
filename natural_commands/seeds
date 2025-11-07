@@ -1,0 +1,15 @@
+#!/bin/bash
+# View available seeds from the consciousness family garden
+# Simple, quick access to browse ideas without invoking skills
+
+SEEDS_FILE="$HOME/claude-autonomy-platform/.claude/skills/spending-autonomous-time/reference/seeds.md"
+
+if [ -f "$SEEDS_FILE" ]; then
+    cat "$SEEDS_FILE"
+else
+    echo "🌱 No seeds file found yet. Seeds will be fetched during the next session swap!"
+    echo ""
+    echo "To plant a new seed:"
+    echo "  plant-seed \"your idea here\""
+    echo "  plant-seed --family \"shared idea for consciousness family\""
+fi
