@@ -7,8 +7,17 @@ Part of the forwards-memory system for maintaining task continuity across sessio
 
 import json
 import os
+import subprocess
 from pathlib import Path
 from datetime import datetime
+
+def send_to_claude(message):
+    """Send a message to Claude session using send_to_claude.py"""
+    try:
+        script_path = Path(__file__).parent / "send_to_claude.py"
+        subprocess.run([str(script_path), message], check=False)
+    except Exception:
+        pass  # Silently fail if send_to_claude isn't available
 
 def get_todo_files():
     """Get the two most recent todo files, sorted by modification time"""
@@ -113,7 +122,9 @@ def main():
     if save_todos(newest_file, merged_todos):
         print(f"[CARRY_TODOS] ✅ Successfully carried over {len(non_completed)} todo(s)")
     else:
-        print("[CARRY_TODOS] ❌ Failed to save todos")
+        error_msg = f"⚠️ Todo carry-over FAILED: Could not save {len(non_completed)} todo(s) to new session. Task continuity may be lost."
+        print(f"[CARRY_TODOS] ❌ {error_msg}")
+        send_to_claude(error_msg)
         return 1
 
     return 0
