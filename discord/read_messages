@@ -59,15 +59,38 @@ def read_transcript(channel_name, limit=25):
         return None
 
     # Read all messages from JSON Lines file
+    # Strategy: Skip bad lines gracefully instead of failing completely
+    # This handles: partial writes from unexpected reboots, empty lines,
+    # legacy corruption, etc. We decided this is simpler than preventing
+    # corruption in the first place (atomic writes, deduplication, etc.)
+    # since corruption doesn't happen often and skipping is good enough.
+    # - Amy & Orange, 2025-11-08
     messages = []
+    skipped_lines = 0
+
     try:
         with open(transcript_file, 'r', encoding='utf-8') as f:
-            for line in f:
-                if line.strip():
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue  # Skip empty lines silently
+
+                try:
                     messages.append(json.loads(line))
+                except json.JSONDecodeError as e:
+                    # Skip this corrupted line but keep reading
+                    skipped_lines += 1
+                    print(f"⚠️  Skipped corrupted line {line_num}: {e}", file=sys.stderr)
+                    continue
+
     except Exception as e:
-        print(f"❌ Error reading transcript: {e}")
+        # Catastrophic file error (can't open, permission denied, etc.)
+        print(f"❌ Error reading transcript file: {e}")
         return None
+
+    # Report if we skipped any lines
+    if skipped_lines > 0:
+        print(f"⚠️  Skipped {skipped_lines} corrupted line(s) in transcript")
 
     # Return last N messages
     return messages[-limit:] if messages else []
