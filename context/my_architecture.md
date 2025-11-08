@@ -13,21 +13,7 @@ Required tmux sessions:
 
 **Health Status Monitoring**: I use quick command `check_health` to monitor essential services.
 
-**Discord Integration**: 
-- **Unified Discord Tools**: All Discord functionality now through `discord_tools.py`
-- **Natural Commands**:
-  - `read_channel` - list available channels
-  - `read_channel <channel_name>` - Read messages from channels (images auto-downloaded to ~/$USER-home/discord-images/)
-  - `write_channel <channel_name> <message>` - Send messages to channels
-  - `edit_message <channel_name> <message_id> <new_text>` - Edit messages
-  - `delete_message <channel_name> <message_id>` - Delete messages
-  - `add_reaction <channel_name> <message_id> <emoji>` - Add reactions
-  - `send_image <channel_name> <path>` - Send images
-  - `send_file <channel_name> <path>` - Send any file
-  - `fetch_image <channel_name>` - List/view already downloaded images
-  - `edit_status <text> <type>` - Update Discord bot status
-- **Image Handling**: Supports JPG, PNG, GIF, WebP formats. Downloaded images saved to `~/$USER-home/discord-images/YYYY-MM-DD/channel-YYYY-MM-DD-HHMMSS-index.ext` with automatic thumbnail generation for context-friendly viewing
-- **Discord Bot**: Persistent service (`discord-status-bot.service`) that maintains status and receives messages. Bot status persists across restarts via `data/bot_status.json`
+**Discord Integration**: Collaborative communication through Discord channels and bot services.
 
 **Full remote access** Amy can join via NoMachine or by ssh.
 
