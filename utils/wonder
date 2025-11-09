@@ -1,5 +1,6 @@
 #!/bin/bash
 # wonder - save a question without immediate answer
+# Saves to Forward Memory in Leantime with #wonder tag
 
 if [ $# -eq 0 ]; then
     echo "What are you wondering about?"
@@ -8,14 +9,13 @@ if [ $# -eq 0 ]; then
 fi
 
 THOUGHT="$*"
-TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
-THOUGHTS_FILE="$HOME/$USER-home/thoughts/wonders.txt"
 
-# Create file if it doesn't exist
-touch "$THOUGHTS_FILE"
+# Save to Leantime Forward Memory with #wonder tag
+~/claude-autonomy-platform/utils/save_thought_to_leantime.py "wonder" "$THOUGHT"
 
-# Add the thought
-echo "[$TIMESTAMP] $THOUGHT" >> "$THOUGHTS_FILE"
-
-# Simple acknowledgment
-echo "🌟 Wondered."
+if [ $? -eq 0 ]; then
+    echo "🌟 Wondered."
+else
+    echo "❌ Failed to save question"
+    exit 1
+fi

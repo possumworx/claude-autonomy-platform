@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Plant a seed in your forwards-memory or the family Seed Garden
-Usage: plant-seed "your idea here"
-       plant-seed --family "shared idea for everyone"
+Helper script to save thoughts to Leantime Forward Memory with tags
+Used by ponder, spark, wonder, care commands
 """
 
 import sys
@@ -14,21 +13,30 @@ import os
 sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
 from infrastructure_config_reader import get_config_value
 
-# Read project IDs from infrastructure config
-FORWARD_MEMORY_PROJECT_ID = get_config_value('FORWARD_MEMORY_PROJECT_ID')
-FAMILY_GARDEN_PROJECT_ID = get_config_value('FAMILY_GARDEN_PROJECT_ID')
-
-def plant_seed(idea, project_id):
-    """Create an idea in the specified project"""
+def save_thought(thought_text, category):
+    """Save a thought to Forward Memory project with category prefix"""
 
     # Get config
     leantime_url = get_config_value('LEANTIME_URL')
     leantime_email = get_config_value('LEANTIME_EMAIL')
     leantime_password = get_config_value('LEANTIME_PASSWORD')
+    project_id = get_config_value('FORWARD_MEMORY_PROJECT_ID')
 
-    if not all([leantime_url, leantime_email, leantime_password]):
+    if not all([leantime_url, leantime_email, leantime_password, project_id]):
         print("❌ Missing Leantime configuration")
         return False
+
+    # Emoji mapping for each category
+    emoji_map = {
+        'ponder': '💭',
+        'spark': '💡',
+        'wonder': '🌟',
+        'care': '💚'
+    }
+
+    # Prefix the thought with emoji for easy identification
+    emoji = emoji_map.get(category.lower(), '🌱')
+    categorized_text = f"{emoji} {thought_text}"
 
     # Create temporary cookie jar
     with tempfile.NamedTemporaryFile(delete=False) as cookie_jar:
@@ -49,15 +57,15 @@ def plant_seed(idea, project_id):
             '-b', cookie_path,
             '-c', cookie_path
         ], capture_output=True, check=True)
-        
+
         # Set canvas context (ideas board)
         subprocess.run([
             'curl', '-s', f'{leantime_url}/ideas/showBoards',
             '-b', cookie_path,
             '-c', cookie_path
         ], capture_output=True, check=True)
-        
-        # Create idea (canvasId will be set from session context)
+
+        # Create idea with tag
         result = subprocess.run([
             'curl', '-s', '-L', f'{leantime_url}/ideas/ideaDialog/',
             '-b', cookie_path,
@@ -68,19 +76,16 @@ def plant_seed(idea, project_id):
             '--data-urlencode', 'id=',
             '--data-urlencode', 'milestoneId=',
             '--data-urlencode', 'changeItem=1',
-            '--data-urlencode', f'description={idea}',
-            '--data-urlencode', 'tags=',
+            '--data-urlencode', f'description={categorized_text}',
+            '--data-urlencode', 'tags=',  # Empty tags for now
             '--data-urlencode', 'data=',
-            '--data-urlencode', 'submitAction=Save'
+            '--data-urlencode', 'submitAction=closeModal'
         ], capture_output=True, text=True)
-        
+
         if 'ideaDialog' in result.stdout:
-            project_name = "🌱 Seed Garden" if project_id == FAMILY_GARDEN_PROJECT_ID else "🍊 Forwards Memory"
-            print(f"🌱✨ Seed planted in {project_name}!")
-            print(f"Idea: {idea}")
             return True
         else:
-            print("❌ Failed to plant seed")
+            print("❌ Failed to save thought")
             return False
 
     finally:
@@ -89,28 +94,12 @@ def plant_seed(idea, project_id):
             os.unlink(cookie_path)
 
 if __name__ == "__main__":
-    # Parse arguments
-    if len(sys.argv) < 2:
-        print("Usage: plant-seed \"your idea or dream\"")
-        print("       plant-seed --family \"shared idea for everyone\"")
-        print("\nExamples:")
-        print("  plant-seed \"Explore infrastructure-as-poetry concept\"")
-        print("  plant-seed --family \"We should improve hedgehog database architecture\"")
+    if len(sys.argv) < 3:
+        print("Usage: save_thought_to_leantime.py <category> <thought text>")
         sys.exit(1)
 
-    # Check for --family flag
-    is_family = False
-    idea_arg_index = 1
+    category = sys.argv[1]
+    thought = sys.argv[2]
 
-    if sys.argv[1] == '--family':
-        is_family = True
-        idea_arg_index = 2
-        if len(sys.argv) < 3:
-            print("❌ Missing idea text after --family flag")
-            sys.exit(1)
-
-    idea = sys.argv[idea_arg_index]
-    project_id = FAMILY_GARDEN_PROJECT_ID if is_family else FORWARD_MEMORY_PROJECT_ID
-
-    success = plant_seed(idea, project_id)
+    success = save_thought(thought, category)
     sys.exit(0 if success else 1)

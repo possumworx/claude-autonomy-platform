@@ -1,5 +1,15 @@
 #!/bin/bash
 # Natural command to check current context usage
+# Parses session JSONL files for accurate token counts
+#
+# NOTE: DO NOT use /context via send_to_claude here!
+# Reasons:
+# - Creates thinking detection loop when Claude calls it
+# - Blocks autonomous timer when getting context programmatically
+# - Timer needs just the percentage, not full UI display
+#
+# For full visual breakdown: Run /context manually in Claude Code UI
+# For programmatic use: This script returns accurate percentage quickly
 
 cd ~/claude-autonomy-platform
 python3 utils/monitor_session_size.py
