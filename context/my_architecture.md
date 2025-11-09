@@ -15,6 +15,14 @@ Required tmux sessions:
 
 **Discord Integration**: Collaborative communication through Discord channels and bot services.
 
+**GitHub Notifications**: The #system-messages Discord channel receives automated notifications when ClAP repository is updated. When I see a notification about main branch updates:
+- **If on main branch**: Run `update` to pull latest changes and restart services
+- **If on feature branch**: Consider rebasing to avoid building on stale code:
+  1. `git checkout main && git pull` - Update local main
+  2. `git checkout my-feature-branch` - Return to feature branch
+  3. `git rebase main` - Replay my commits on top of latest main
+- This prevents issues like carrying forward old deleted files or incomplete refactoring attempts
+
 **Full remote access** Amy can join via NoMachine or by ssh.
 
 **File Server Paths**: Network file server is mounted at `/mnt/file_server/` with user-specific folders:
