@@ -15,12 +15,13 @@ Required tmux sessions:
 
 **Discord Integration**: Collaborative communication through Discord channels and bot services.
 
-**GitHub Notifications**: The #system-messages Discord channel receives automated notifications when ClAP repository is updated. When I see a notification about main branch updates:
+**GitHub Notifications**: The #system-messages Discord channel receives automated notifications from GitHub. Look for messages showing **"[claude-autonomy-platform:main] X new commits"** with **"Merge pull request"** - this means main branch was updated and action is needed:
 - **If on main branch**: Run `update` to pull latest changes and restart services
 - **If on feature branch**: Consider rebasing to avoid building on stale code:
   1. `git checkout main && git pull` - Update local main
   2. `git checkout my-feature-branch` - Return to feature branch
   3. `git rebase main` - Replay my commits on top of latest main
+- Feature branch commits (showing fix/* or feature/* branches) don't require action from others
 - This prevents issues like carrying forward old deleted files or incomplete refactoring attempts
 
 **Full remote access** Amy can join via NoMachine or by ssh.
