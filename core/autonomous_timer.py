@@ -1639,6 +1639,20 @@ def main():
                     logging.critical(f"UNKNOWN ERROR DETECTED - Type: '{unknown_type}', Details: '{error_details}', Full error_info: {error_info}")
                     log_message(f"CRITICAL: Unknown error type '{unknown_type}' detected. Details: {error_details}")
 
+                    # Send emergency alert to Discord
+                    try:
+                        from discord.discord_tools import DiscordTools
+                        discord = DiscordTools()
+                        session_info = os.getenv("USER", "unknown") + " session"
+                        discord.send_emergency_alert(
+                            error_type=unknown_type,
+                            error_details=error_details,
+                            session_context=session_info
+                        )
+                        log_message("Emergency alert sent to #system-healthchecks")
+                    except Exception as alert_error:
+                        log_message(f"Failed to send emergency alert: {alert_error}")
+
                     # Pattern matching for common connection issues
                     error_text = str(error_details).lower()
                     if any(pattern in error_text for pattern in ["timeout", "connection", "rate limit"]):
