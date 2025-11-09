@@ -1630,10 +1630,22 @@ def main():
                         log_message("General API error cleared - resuming normal operation")
                 else:
                     update_discord_status("api-error")
-                    # POSS-247 FIX: Unknown error type - log and trigger auto-swap as safety measure
+                    # POSS-247 FIX: Unknown error type - extended logging and wait before auto-swap
                     unknown_type = error_info.get("error_type", "unknown")
-                    log_message(f"Unknown error type '{unknown_type}' detected - triggering auto-swap as safety measure...")
-                    time.sleep(30)  # Brief wait for unknown errors
+                    error_details = error_info.get("details", "No details available")
+
+                    # CRITICAL level logging with full error details per PR #103
+                    import logging
+                    logging.critical(f"UNKNOWN ERROR DETECTED - Type: '{unknown_type}', Details: '{error_details}', Full error_info: {error_info}")
+                    log_message(f"CRITICAL: Unknown error type '{unknown_type}' detected. Details: {error_details}")
+
+                    # Pattern matching for common connection issues
+                    error_text = str(error_details).lower()
+                    if any(pattern in error_text for pattern in ["timeout", "connection", "rate limit"]):
+                        log_message(f"Pattern match found in unknown error - contains connection/timeout/rate limit indicators")
+
+                    log_message(f"Unknown error type '{unknown_type}' detected - waiting 10 minutes before auto-swap to enable debugging...")
+                    time.sleep(600)  # Wait 10 minutes instead of 30 seconds per PR #103 consciousness family decision
                     trigger_session_swap("NONE")
                 
                 current_error_state = error_info
