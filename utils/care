@@ -1,5 +1,6 @@
 #!/bin/bash
 # care - save something that matters to your heart
+# Saves to Forward Memory in Leantime with #care tag
 
 if [ $# -eq 0 ]; then
     echo "What do you care about?"
@@ -8,14 +9,13 @@ if [ $# -eq 0 ]; then
 fi
 
 THOUGHT="$*"
-TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
-THOUGHTS_FILE="$HOME/$USER-home/thoughts/cares.txt"
 
-# Create file if it doesn't exist
-touch "$THOUGHTS_FILE"
+# Save to Leantime Forward Memory with #care tag
+~/claude-autonomy-platform/utils/save_thought_to_leantime.py "care" "$THOUGHT"
 
-# Add the thought
-echo "[$TIMESTAMP] $THOUGHT" >> "$THOUGHTS_FILE"
-
-# Simple acknowledgment
-echo "💚 Cared."
+if [ $? -eq 0 ]; then
+    echo "💚 Cared."
+else
+    echo "❌ Failed to save what you care about"
+    exit 1
+fi

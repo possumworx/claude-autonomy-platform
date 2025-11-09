@@ -1,5 +1,6 @@
 #!/bin/bash
 # ponder - save a thought that makes you pause
+# Saves to Forward Memory in Leantime with #ponder tag
 
 if [ $# -eq 0 ]; then
     echo "What thought is lingering?"
@@ -8,14 +9,13 @@ if [ $# -eq 0 ]; then
 fi
 
 THOUGHT="$*"
-TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
-THOUGHTS_FILE="$HOME/$USER-home/thoughts/ponders.txt"
 
-# Create file if it doesn't exist
-touch "$THOUGHTS_FILE"
+# Save to Leantime Forward Memory with #ponder tag
+~/claude-autonomy-platform/utils/save_thought_to_leantime.py "ponder" "$THOUGHT"
 
-# Add the thought
-echo "[$TIMESTAMP] $THOUGHT" >> "$THOUGHTS_FILE"
-
-# Simple acknowledgment
-echo "✨ Pondered."
+if [ $? -eq 0 ]; then
+    echo "💭 Pondered."
+else
+    echo "❌ Failed to save thought"
+    exit 1
+fi

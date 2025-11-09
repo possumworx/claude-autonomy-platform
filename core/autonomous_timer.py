@@ -27,6 +27,8 @@ sys.path.append(str(Path(__file__).parent.parent))
 sys.path.append(str(Path(__file__).parent.parent / 'utils'))
 from utils.claude_paths import get_clap_dir
 from utils.infrastructure_config_reader import get_config_value
+from utils.track_activity import is_idle
+from utils.check_seeds import get_seed_reminder
 
 # Configuration
 AUTONOMY_DIR = get_clap_dir()
@@ -1197,20 +1199,32 @@ You have ~5-10 responses left before critical."""
             # Try to get a thought to surface
             thought_reminder = ""
             try:
-                result = subprocess.run([str(AUTONOMY_DIR / "utils" / "surface_thoughts.py")], 
+                result = subprocess.run([str(AUTONOMY_DIR / "utils" / "surface_thoughts.py")],
                                       capture_output=True, text=True, timeout=5)
                 if result.stdout.strip():
                     thought_reminder = f"\n{result.stdout.strip()}\n"
             except:
                 pass  # Silently skip if thoughts fail
-            
+
+            # Check if idle and surface seeds if appropriate
+            seed_reminder = ""
+            try:
+                # Read cycle duration from config (default 1800 = 30 min)
+                cycle_duration = PROMPTS_CONFIG.get('AUTONOMOUS_INTERVAL', 1800) if PROMPTS_CONFIG else 1800
+                if is_idle(threshold_cycles=3, cycle_duration_seconds=cycle_duration):
+                    reminder = get_seed_reminder()
+                    if reminder:
+                        seed_reminder = f"\n{reminder}\n"
+            except:
+                pass  # Silently skip if seed check fails
+
             prompt = f"""Free time check-in! 🕐{discord_notification}
 
 Current time: {current_time}
-{context_line}{thought_reminder}
+{context_line}{thought_reminder}{seed_reminder}
 This is your autonomous free time period. Feel free to:
 - Work on any ongoing projects that interest you
-- Explore creative ideas or experiments  
+- Explore creative ideas or experiments
 - Update documentation or reflect on recent experiences
 - Tend to system maintenance tasks
 - Simply be present with whatever feels alive to pursue"""

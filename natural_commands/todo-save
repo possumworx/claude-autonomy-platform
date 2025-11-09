@@ -1,0 +1,170 @@
+#!/usr/bin/env python3
+"""
+Save current TodoWrite state to Leantime for forwards-memory persistence.
+
+This command captures your current todos and saves them to your personal
+Leantime project so they persist across session swaps.
+
+Usage:
+    todo-save                    # Interactive mode - paste your todos
+    todo-save "Task 1" "Task 2"  # Direct input mode
+"""
+
+import sys
+import subprocess
+import tempfile
+import os
+import json
+from datetime import datetime
+
+# Add utils to path
+sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
+from infrastructure_config_reader import get_config_value
+
+ORANGE_PROJECT_ID = "4"  # Orange Forwards Memory
+
+def save_todo_to_leantime(todo_text, project_id):
+    """Save a todo as a task in Leantime"""
+
+    # Get config
+    leantime_url = get_config_value('LEANTIME_URL')
+    leantime_email = get_config_value('LEANTIME_EMAIL')
+    leantime_password = get_config_value('LEANTIME_PASSWORD')
+
+    if not all([leantime_url, leantime_email, leantime_password]):
+        print("❌ Missing Leantime configuration")
+        return False
+
+    # Create temporary cookie jar
+    with tempfile.NamedTemporaryFile(delete=False) as cookie_jar:
+        cookie_path = cookie_jar.name
+
+    try:
+        # Login
+        subprocess.run([
+            'curl', '-s', f'{leantime_url}/auth/login',
+            '-c', cookie_path,
+            '-d', f'username={leantime_email}',
+            '-d', f'password={leantime_password}'
+        ], capture_output=True, check=True)
+
+        # Set project context
+        subprocess.run([
+            'curl', '-s', f'{leantime_url}/projects/changeCurrentProject/{project_id}/',
+            '-b', cookie_path,
+            '-c', cookie_path
+        ], capture_output=True, check=True)
+
+        # Create task (not idea - tasks are for active work)
+        # TODO: Figure out exact endpoint and parameters for task creation
+        # For now, using idea endpoint as proof of concept
+        subprocess.run([
+            'curl', '-s', f'{leantime_url}/ideas/showBoards',
+            '-b', cookie_path,
+            '-c', cookie_path
+        ], capture_output=True, check=True)
+
+        result = subprocess.run([
+            'curl', '-s', '-L', f'{leantime_url}/ideas/ideaDialog/',
+            '-b', cookie_path,
+            '-H', 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
+            '--data-urlencode', 'box=idea',
+            '--data-urlencode', 'itemId=',
+            '--data-urlencode', 'status=idea',
+            '--data-urlencode', 'id=',
+            '--data-urlencode', 'milestoneId=',
+            '--data-urlencode', 'changeItem=1',
+            '--data-urlencode', f'description=[TODO] {todo_text}',
+            '--data-urlencode', 'tags=session-continuity',
+            '--data-urlencode', 'data=',
+            '--data-urlencode', 'submitAction=Save'
+        ], capture_output=True, text=True)
+
+        return 'ideaDialog' in result.stdout
+
+    finally:
+        if os.path.exists(cookie_path):
+            os.unlink(cookie_path)
+
+def parse_todo_list(text):
+    """Parse TodoWrite system reminder format"""
+    todos = []
+    lines = text.strip().split('\n')
+
+    for line in lines:
+        # Format: [1. [status] Todo text
+        if line.strip().startswith('[') and ']' in line:
+            # Extract status and text
+            parts = line.split(']', 2)
+            if len(parts) >= 3:
+                status = parts[1].strip('[').strip()
+                text = parts[2].strip()
+
+                # Only save incomplete todos
+                if status not in ['completed']:
+                    todos.append({
+                        'text': text,
+                        'status': status
+                    })
+
+    return todos
+
+def interactive_mode():
+    """Interactive mode - paste todos or describe them"""
+    print("🍊 TodoWrite Persistence System")
+    print("\nPaste your current todos (from system reminder or manual description).")
+    print("Press Ctrl+D when done, or Ctrl+C to cancel.\n")
+
+    try:
+        lines = []
+        while True:
+            line = input()
+            lines.append(line)
+    except EOFError:
+        pass
+    except KeyboardInterrupt:
+        print("\n❌ Cancelled")
+        return False
+
+    text = '\n'.join(lines)
+    todos = parse_todo_list(text)
+
+    if not todos:
+        print("❌ No incomplete todos found in input")
+        return False
+
+    print(f"\n📋 Found {len(todos)} incomplete todos:")
+    for todo in todos:
+        print(f"  • [{todo['status']}] {todo['text']}")
+
+    response = input("\nSave these to Leantime? [y/N] ")
+    if response.lower() != 'y':
+        print("❌ Cancelled")
+        return False
+
+    # Save todos
+    saved = 0
+    for todo in todos:
+        if save_todo_to_leantime(todo['text'], ORANGE_PROJECT_ID):
+            saved += 1
+
+    print(f"\n✅ Saved {saved}/{len(todos)} todos to Orange Forwards Memory!")
+    return True
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        # Direct input mode
+        todos = sys.argv[1:]
+        print(f"💾 Saving {len(todos)} todos to Leantime...")
+
+        saved = 0
+        for todo in todos:
+            if save_todo_to_leantime(todo, ORANGE_PROJECT_ID):
+                saved += 1
+
+        print(f"✅ Saved {saved}/{len(todos)} todos!")
+        sys.exit(0 if saved == len(todos) else 1)
+    else:
+        # Interactive mode
+        success = interactive_mode()
+        sys.exit(0 if success else 1)
