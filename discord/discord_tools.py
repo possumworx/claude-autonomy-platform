@@ -125,7 +125,51 @@ class DiscordTools:
             return {"success": True}
         else:
             return {"success": False, "error": self._format_error(response)}
-    
+
+    def send_emergency_alert(self, error_type: str, error_details: str, session_context: str = "unknown") -> Dict:
+        """
+        Send emergency alert to system-healthchecks channel
+        For critical errors that require immediate attention
+
+        Args:
+            error_type: Type of error encountered
+            error_details: Detailed error information
+            session_context: Context about which session encountered the error
+
+        Returns:
+            Dict with success status and response data
+        """
+        channel_id = "1395327375440613376"  # system-healthchecks channel
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        alert_message = f"""🚨 **AUTOMATED EMERGENCY ALERT** 🚨
+⚠️ **DO NOT REPLY TO THIS MESSAGE** ⚠️
+
+**Unknown Error Detected**
+**Session**: {session_context}
+**Error Type**: {error_type}
+**Timestamp**: {timestamp}
+
+**Error Details**:
+```
+{error_details}
+```
+
+**Status**: Critical logs preserved for investigation
+**Auto-swap**: Will trigger in 10 minutes if not manually resolved
+
+⚠️ This is an automated broadcast - please investigate via logs/direct intervention ⚠️"""
+
+        url = f"{DISCORD_API_BASE}/channels/{channel_id}/messages"
+        data = {"content": alert_message}
+
+        response = requests.post(url, headers=self.headers, json=data)
+
+        if response.status_code == 200:
+            return {"success": True, "data": response.json()}
+        else:
+            return {"success": False, "error": self._format_error(response)}
+
     def read_messages(self, channel: str, limit: int = 25) -> Dict:
         """
         Read messages from a channel with automatic image handling
