@@ -1,6 +1,6 @@
 ---
 name: _skillwriting
-description: how to write claude code skills
+description: When creating new Claude Code skills or needing skill structure guidance - provides naming conventions, directory structure, underscore convention for core skills, and best practices
 ---
 
 # Skill Writing Guide
@@ -22,6 +22,11 @@ description: how to write claude code skills
 ```
 
 **Important**: Use project-level skills directory, not user-level `~/.claude/skills/`
+
+**Naming Convention**:
+- **Core/system skills**: Prefix with underscore (e.g., `_skillwriting`, `_video-watching`, `_svg-drawing`)
+- **Personal skills**: No underscore (e.g., `remembering-amy`, `spending-autonomous-time`)
+- Core skills are utilities useful to all Claudes; personal skills are individual-specific
 
 ### 3. SKILL.md Format
 ```yaml
