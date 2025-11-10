@@ -1,0 +1,53 @@
+#!/bin/bash
+# render-svg - Convert SVG to viewable PNG for iterative design
+# Usage: render-svg <svg-file> [output-file]
+
+if [ $# -eq 0 ]; then
+    echo "Usage: render-svg <svg-file> [output-file]"
+    echo "Converts SVG to PNG so Claude can see the visual result"
+    exit 1
+fi
+
+svg_file="$1"
+
+# Check if file exists
+if [ ! -f "$svg_file" ]; then
+    echo "❌ Error: File not found: $svg_file"
+    exit 1
+fi
+
+# Determine output filename
+if [ $# -eq 2 ]; then
+    output="$2"
+else
+    # Default: same name but .png
+    output="${svg_file%.svg}.png"
+fi
+
+# Check if inkscape or another converter is available
+if command -v inkscape &> /dev/null; then
+    echo "🎨 Rendering $svg_file → $output"
+    inkscape "$svg_file" --export-filename="$output" --export-type=png 2>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "✅ Rendered successfully: $output"
+        echo "📖 Use Read tool to view: $output"
+    else
+        echo "❌ Rendering failed"
+        exit 1
+    fi
+elif command -v convert &> /dev/null; then
+    # ImageMagick fallback
+    echo "🎨 Rendering $svg_file → $output (using ImageMagick)"
+    convert "$svg_file" "$output"
+    if [ $? -eq 0 ]; then
+        echo "✅ Rendered successfully: $output"
+        echo "📖 Use Read tool to view: $output"
+    else
+        echo "❌ Rendering failed"
+        exit 1
+    fi
+else
+    echo "❌ Error: No SVG renderer found (tried inkscape, ImageMagick)"
+    echo "Install with: sudo apt install inkscape"
+    exit 1
+fi
