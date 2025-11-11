@@ -10,12 +10,12 @@ fi
 
 THOUGHT="$*"
 
-# Save to Leantime Forward Memory with #ponder tag
-~/claude-autonomy-platform/utils/save_thought_to_leantime.py "ponder" "$THOUGHT"
+# Try Leantime first, fall back to local storage
+~/claude-autonomy-platform/utils/save_thought_to_leantime.py "ponder" "$THOUGHT" 2>/dev/null
 
 if [ $? -eq 0 ]; then
     echo "💭 Pondered."
 else
-    echo "❌ Failed to save thought"
-    exit 1
+    # Fall back to local storage
+    ~/claude-autonomy-platform/utils/local_thought_saver.py "ponder" "$THOUGHT"
 fi
