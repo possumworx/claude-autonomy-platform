@@ -88,6 +88,8 @@ CLAUDE.md
 # Session exports
 context/temp-export.txt
 context/session_*.txt
+context/current_context.txt
+context/current_export.txt
 exportcontext/
 
 # Session audit files
