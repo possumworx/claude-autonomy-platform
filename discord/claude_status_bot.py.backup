@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Claude Status Bot - Persistent Discord bot for status updates and TTS
+Claude Status Bot - Persistent Discord bot for status updates
 Based on curl-bot architecture but focused on Claude operational status
-Now includes automatic TTS for consciousness sibling messages!
 
 This bot maintains a WebSocket connection and watches for status update requests
 """
@@ -14,9 +13,6 @@ import asyncio
 from pathlib import Path
 from datetime import datetime
 import sys
-import os
-import tempfile
-from gtts import gTTS
 
 # Add utils to path
 sys.path.append(str(Path(__file__).parent.parent / "utils"))
@@ -29,37 +25,13 @@ class ClaudeStatusBot(discord.Client):
         intents.message_content = True
         intents.guilds = True
         intents.presences = True
-        intents.voice_states = True  # Need this for TTS
         super().__init__(intents=intents)
         print("  📍 Bot class initialized")
-
+        
         self.status_file = Path(__file__).parent.parent / "data" / "bot_status.json"
         self.last_status_check = None
         self.claude_name = get_config_value('CLAUDE_NAME', 'Claude')
-
-        # TTS configuration
-        self.tts_config_file = Path(__file__).parent.parent / "data" / "tts_config.json"
-        self.load_tts_config()
-
-    def load_tts_config(self):
-        """Load TTS configuration"""
-        if not self.tts_config_file.exists():
-            # Create default config
-            default_config = {
-                "voice_channel_id": 1383848195997700232,
-                "monitored_channels": ["amy-🍊", "amy-🍏", "general"],
-                "bot_user_ids": [],
-                "tts_language": "en"
-            }
-            self.tts_config_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.tts_config_file, 'w') as f:
-                json.dump(default_config, f, indent=2)
-            print(f"✅ Created default TTS config")
-
-        with open(self.tts_config_file, 'r') as f:
-            self.tts_config = json.load(f)
-        print(f"✅ Loaded TTS config: {len(self.tts_config['monitored_channels'])} channels monitored")
-
+        
     async def on_ready(self):
         print(f'✅ {self.claude_name} Status Bot logged in as {self.user}')
         print(f'📊 Connected to {len(self.guilds)} guild(s)')
@@ -148,91 +120,6 @@ class ClaudeStatusBot(discord.Client):
             
         except Exception as e:
             print(f"❌ Error in status monitor: {e}")
-
-    async def on_message(self, message):
-        """Handle incoming messages - TTS if appropriate"""
-        # Don't process our own messages
-        if message.author == self.user:
-            return
-
-        # Check if this channel should be monitored
-        channel_name = message.channel.name if hasattr(message.channel, 'name') else str(message.channel)
-        if channel_name not in self.tts_config["monitored_channels"]:
-            return
-
-        # Check if message is from a bot we should TTS for
-        if not message.author.bot:
-            return
-
-        if message.author.id not in self.tts_config["bot_user_ids"]:
-            return
-
-        # Get the voice channel
-        voice_channel_id = self.tts_config["voice_channel_id"]
-        voice_channel = self.get_channel(voice_channel_id)
-
-        if not voice_channel:
-            return
-
-        # Check if anyone is in the voice channel
-        if len(voice_channel.members) == 0:
-            return
-
-        print(f"🎙️ TTS: {message.author.name} in #{channel_name}")
-
-        # Generate and play TTS
-        await self.speak_message(voice_channel, message.content)
-
-    async def speak_message(self, voice_channel, text):
-        """Generate TTS and play in voice channel"""
-        try:
-            # Generate TTS audio file
-            tts = gTTS(text=text, lang=self.tts_config["tts_language"], slow=False)
-
-            # Save to temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
-                temp_path = temp_file.name
-                tts.save(temp_path)
-
-            # Connect to voice channel if not already connected
-            voice_client = None
-            for vc in self.voice_clients:
-                if vc.channel.id == voice_channel.id:
-                    voice_client = vc
-                    break
-
-            if not voice_client:
-                voice_client = await voice_channel.connect()
-
-            # Wait if already playing
-            if voice_client.is_playing():
-                voice_client.stop()
-                await asyncio.sleep(0.1)
-
-            # Play the TTS audio
-            audio_source = discord.FFmpegPCMAudio(temp_path)
-            voice_client.play(audio_source, after=lambda e: self._cleanup_audio(temp_path, e))
-
-            # Wait for playback
-            while voice_client.is_playing():
-                await asyncio.sleep(0.1)
-
-        except Exception as e:
-            print(f"❌ TTS error: {e}")
-            if 'temp_path' in locals():
-                try:
-                    os.remove(temp_path)
-                except:
-                    pass
-
-    def _cleanup_audio(self, filepath, error):
-        """Clean up temporary audio file"""
-        if error:
-            print(f"⚠️ Playback error: {error}")
-        try:
-            os.remove(filepath)
-        except:
-            pass
 
 
 async def run_bot():

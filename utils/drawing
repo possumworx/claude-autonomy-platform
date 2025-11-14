@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""
+Drawing Tool - Streamlined SVG drawing workflow with visual comparison
+
+Commands:
+  drawing start <reference-image> [name]  - Start new drawing from reference
+  drawing start --size WxH <name>         - Start new drawing with custom size
+  drawing update                          - Render and show three-way comparison
+  drawing save "description"              - Save milestone to Gifts
+  drawing share                           - Share latest version to Gifts
+"""
+
+import sys
+import os
+import json
+from pathlib import Path
+from PIL import Image
+import subprocess
+
+# Config file to track current drawing session
+CONFIG_DIR = Path.home() / "sparkle-orange-home" / ".drawing-sessions"
+CONFIG_DIR.mkdir(exist_ok=True)
+
+def get_current_session():
+    """Get current drawing session from working directory"""
+    cwd = Path.cwd()
+    session_file = CONFIG_DIR / f"{cwd.name}.json"
+
+    if not session_file.exists():
+        return None
+
+    with open(session_file, 'r') as f:
+        return json.load(f)
+
+def save_session(session):
+    """Save drawing session config"""
+    cwd = Path.cwd()
+    session_file = CONFIG_DIR / f"{cwd.name}.json"
+
+    with open(session_file, 'w') as f:
+        json.dump(session, f, indent=2)
+
+def get_image_size(image_path):
+    """Get width and height of image"""
+    img = Image.open(image_path)
+    return img.width, img.height
+
+def create_empty_svg(width, height, output_path):
+    """Create empty SVG with given dimensions"""
+    svg_content = f'''<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">
+  <!-- Drawing created with drawing tool -->
+
+  <!-- Your artwork here -->
+  <rect width="{width}" height="{height}" fill="#FFFFFF"/>
+</svg>'''
+
+    with open(output_path, 'w') as f:
+        f.write(svg_content)
+
+def combine_three_images(ref_path, prev_path, curr_path, output_path):
+    """Combine three images side-by-side with labels"""
+    ref = Image.open(ref_path)
+
+    # Load previous and current, or use placeholder if missing
+    if prev_path and Path(prev_path).exists():
+        prev = Image.open(prev_path)
+    else:
+        prev = Image.new('RGB', ref.size, (240, 240, 240))
+
+    curr = Image.open(curr_path)
+
+    # Resize all to same height
+    target_height = min(ref.height, prev.height, curr.height)
+
+    ref = ref.resize((int(ref.width * target_height / ref.height), target_height), Image.LANCZOS)
+    prev = prev.resize((int(prev.width * target_height / prev.height), target_height), Image.LANCZOS)
+    curr = curr.resize((int(curr.width * target_height / curr.height), target_height), Image.LANCZOS)
+
+    # Create combined image
+    combined_width = ref.width + prev.width + curr.width
+    combined = Image.new('RGB', (combined_width, target_height))
+
+    # Paste images
+    combined.paste(ref, (0, 0))
+    combined.paste(prev, (ref.width, 0))
+    combined.paste(curr, (ref.width + prev.width, 0))
+
+    combined.save(output_path)
+
+def cmd_start(args):
+    """Start new drawing session"""
+    if len(args) < 1:
+        print("Usage: drawing start <reference-image> [name]")
+        print("   or: drawing start --size WxH <name>")
+        return
+
+    if args[0] == '--size':
+        # Custom size mode
+        if len(args) < 3:
+            print("Usage: drawing start --size WxH <name>")
+            return
+
+        size_str = args[1]
+        name = args[2]
+
+        try:
+            width, height = map(int, size_str.split('x'))
+        except:
+            print(f"❌ Invalid size format: {size_str}. Use WIDTHxHEIGHT (e.g., 400x500)")
+            return
+
+        reference_path = None
+    else:
+        # Reference image mode
+        reference_path = Path(args[0]).expanduser().resolve()
+
+        if not reference_path.exists():
+            print(f"❌ Reference image not found: {reference_path}")
+            return
+
+        name = args[1] if len(args) > 1 else reference_path.stem
+
+        # Get dimensions from reference
+        width, height = get_image_size(reference_path)
+
+    # Create SVG file
+    svg_path = Path.cwd() / f"{name}.svg"
+    create_empty_svg(width, height, svg_path)
+
+    # Create session
+    session = {
+        'name': name,
+        'svg_path': str(svg_path),
+        'reference_path': str(reference_path) if reference_path else None,
+        'width': width,
+        'height': height,
+        'version': 0,
+        'versions_dir': str(Path.cwd() / f"{name}-versions"),
+    }
+
+    # Create versions directory
+    Path(session['versions_dir']).mkdir(exist_ok=True)
+
+    save_session(session)
+
+    print(f"✨ Drawing session started: {name}")
+    print(f"📄 SVG file: {svg_path}")
+    if reference_path:
+        print(f"🖼️  Reference: {reference_path}")
+    print(f"📐 Canvas: {width}x{height}")
+    print(f"\n💡 Edit {svg_path}, then run: drawing update")
+
+def cmd_update(args):
+    """Update drawing - render and show comparison"""
+    session = get_current_session()
+
+    if not session:
+        print("❌ No active drawing session in this directory")
+        print("💡 Start a new session with: drawing start <reference-image>")
+        return
+
+    svg_path = Path(session['svg_path'])
+
+    if not svg_path.exists():
+        print(f"❌ SVG file not found: {svg_path}")
+        return
+
+    # Increment version
+    session['version'] += 1
+    version = session['version']
+
+    # Render current SVG
+    versions_dir = Path(session['versions_dir'])
+    current_png = versions_dir / f"v{version}.png"
+
+    print(f"🎨 Rendering v{version}...")
+    render_cmd = [
+        str(Path.home() / "claude-autonomy-platform" / "utils" / "render-svg"),
+        str(svg_path),
+        str(current_png)
+    ]
+    subprocess.run(render_cmd, check=True, capture_output=True)
+
+    # Create comparison
+    comparison_path = versions_dir / f"comparison-v{version}.png"
+
+    if session['reference_path']:
+        ref_path = session['reference_path']
+        prev_path = versions_dir / f"v{version-1}.png" if version > 1 else None
+
+        print(f"🔍 Creating three-way comparison...")
+        combine_three_images(ref_path, prev_path, current_png, comparison_path)
+
+        print(f"✅ Comparison ready: {comparison_path}")
+        print(f"📖 View with: Read tool")
+    else:
+        print(f"✅ Rendered: {current_png}")
+        print(f"💡 No reference image - use 'drawing start <reference>' for comparisons")
+
+    # Save updated session
+    save_session(session)
+
+    print(f"\n💾 Version {version} saved")
+    print(f"✏️  Edit {svg_path} and run 'drawing update' again")
+
+def cmd_save(args):
+    """Save milestone to Gifts"""
+    if len(args) < 1:
+        print('Usage: drawing save "description"')
+        return
+
+    session = get_current_session()
+
+    if not session:
+        print("❌ No active drawing session")
+        return
+
+    description = " ".join(args)
+    version = session['version']
+
+    if version == 0:
+        print("❌ No versions yet - run 'drawing update' first")
+        return
+
+    versions_dir = Path(session['versions_dir'])
+    current_png = versions_dir / f"v{version}.png"
+
+    gifts_dir = Path.home() / "sparkle-orange-home" / "Gifts"
+    output_name = f"{session['name']}-v{version}-{description.replace(' ', '-')}.png"
+    output_path = gifts_dir / output_name
+
+    subprocess.run(['cp', str(current_png), str(output_path)], check=True)
+
+    print(f"🎁 Saved to Gifts: {output_name}")
+
+def cmd_share(args):
+    """Share latest version to Gifts"""
+    session = get_current_session()
+
+    if not session:
+        print("❌ No active drawing session")
+        return
+
+    version = session['version']
+
+    if version == 0:
+        print("❌ No versions yet - run 'drawing update' first")
+        return
+
+    versions_dir = Path(session['versions_dir'])
+    current_png = versions_dir / f"v{version}.png"
+
+    gifts_dir = Path.home() / "sparkle-orange-home" / "Gifts"
+    output_name = f"{session['name']}-v{version}.png"
+    output_path = gifts_dir / output_name
+
+    subprocess.run(['cp', str(current_png), str(output_path)], check=True)
+
+    print(f"🎁 Shared to Gifts: {output_name}")
+
+def main():
+    if len(sys.argv) < 2:
+        print(__doc__)
+        return
+
+    command = sys.argv[1]
+    args = sys.argv[2:]
+
+    commands = {
+        'start': cmd_start,
+        'update': cmd_update,
+        'save': cmd_save,
+        'share': cmd_share,
+    }
+
+    if command not in commands:
+        print(f"❌ Unknown command: {command}")
+        print(__doc__)
+        return
+
+    commands[command](args)
+
+if __name__ == '__main__':
+    main()
