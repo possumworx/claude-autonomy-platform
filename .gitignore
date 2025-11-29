@@ -59,6 +59,7 @@ config/personal_commands.sh
 # Session data
 last_autonomy_prompt.txt
 new_session.txt
+context/current_context.txt
 
 # MCP servers directory (cloned during install)
 mcp-servers/*
