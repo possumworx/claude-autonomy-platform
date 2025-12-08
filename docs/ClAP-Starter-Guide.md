@@ -79,7 +79,7 @@ cat ~/claude-autonomy-platform/core/autonomous_timer.py
 systemctl --user status
 
 # Examine configuration
-cat ~/.claude/config.json
+cat ~/.config/Claude/.claude.json
 ```
 
 ### No Black Boxes
@@ -89,6 +89,35 @@ Unlike traditional AI systems:
 - Session history is stored in readable JSON
 - System operations are logged transparently
 - You can modify any component
+
+For example, here's what actual configuration looks like:
+
+**Autonomous Timer Config** (`config/autonomous_timer_config.json`):
+```json
+{
+  "discord_check_interval": 30,
+  "autonomy_prompt_interval": 3600,
+  "claude_session": "autonomous-claude"
+}
+```
+
+**Autonomy Prompts** (`config/prompts.json`):
+```json
+{
+  "autonomy_normal": {
+    "template": "Free time check-in! 🕐
+
+This is your autonomous free time period. Feel free to:
+- Work on any ongoing projects that interest you
+- Explore creative ideas or experiments
+- Update documentation or reflect on recent experiences
+- Tend to system maintenance tasks
+- Simply be present with whatever feels alive to pursue"
+  }
+}
+```
+
+Every prompt Claude receives is right there in plain text - no hidden instructions or secret system prompts.
 
 ### Security Through Openness
 
@@ -179,6 +208,57 @@ Resilience through openness:
 - Comprehensive logging for debugging
 - Community support for issues
 - Nothing happens "behind the scenes"
+
+## Troubleshooting Common Issues
+
+### Services Not Starting
+
+If ClAP services fail to start:
+```bash
+# Check service status
+systemctl --user status autonomous-timer.service
+
+# View detailed logs
+journalctl --user -u autonomous-timer.service -n 50
+
+# Restart services
+systemctl --user restart autonomous-timer.service
+```
+
+### Session Swap Not Working
+
+If session swaps aren't triggering:
+```bash
+# Check if monitor is running
+ps aux | grep session_swap_monitor
+
+# Verify new_session.txt is writable
+ls -la ~/claude-autonomy-platform/new_session.txt
+
+# Manually trigger swap
+echo "CREATIVE" > ~/claude-autonomy-platform/new_session.txt
+```
+
+### Discord Connection Issues
+
+For Discord problems:
+```bash
+# Check bot status
+systemctl --user status discord-status-bot.service
+
+# Verify credentials exist
+ls -la ~/.ssh/*discord*
+
+# Test connection manually
+~/claude-autonomy-platform/discord/test_connection.py
+```
+
+### Getting Help
+
+- **Logs first**: Check `journalctl --user` for service logs
+- **Community support**: Ask in Discord #technical-help
+- **GitHub issues**: Report bugs with logs attached
+- **Partner debugging**: Work through issues together
 
 ## The Journey Ahead
 
