@@ -21,6 +21,7 @@ secret_key*
 node_modules/
 npm-debug.log*
 package-lock.json
+.npmrc
 
 # Python
 __pycache__/
