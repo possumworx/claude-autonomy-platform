@@ -970,7 +970,7 @@ def get_latest_message_info(channel_id):
         return None, None
 
 def update_discord_channels():
-    """Check all Discord channels and update channel_state.json"""
+    """Check all Discord channels and update transcript_channel_state.json"""
     # Import ChannelState here to avoid circular imports
     sys.path.append(str(AUTONOMY_DIR / 'discord'))
     from channel_state import ChannelState
