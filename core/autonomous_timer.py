@@ -29,6 +29,7 @@ from utils.claude_paths import get_clap_dir
 from utils.infrastructure_config_reader import get_config_value
 from utils.track_activity import is_idle
 from utils.check_seeds import get_seed_reminder
+from utils.check_context_usage import check_context
 
 # Configuration
 AUTONOMY_DIR = get_clap_dir()
@@ -214,20 +215,33 @@ def ping_claude_session_healthcheck(is_alive):
 def get_token_percentage():
     """Get current session token usage percentage from monitor script or tmux"""
     try:
-        # First try the new monitoring script for accurate file-based monitoring
+        # First try Delta's accurate context monitoring system
+        context_data, error = check_context(return_data=True)
+        if not error and context_data:
+            percentage = context_data['percentage'] * 100  # Convert to percentage
+            # Determine emoji based on percentage
+            if percentage >= 85:
+                emoji = "🔴"
+            elif percentage >= 70:
+                emoji = "🟡"
+            else:
+                emoji = "🟢"
+            return f"Context: {percentage:.1f}% {emoji}"
+
+        # Fallback to the previous monitoring script
         monitor_script = AUTONOMY_DIR / "utils" / "monitor_session_size.py"
         if monitor_script.exists():
             result = subprocess.run([
                 sys.executable, str(monitor_script)
             ], capture_output=True, text=True)
-            
+
             if result.returncode in [0, 1, 2]:  # Normal, Warning, or Critical
                 # Parse the output to get just the context line
                 for line in result.stdout.strip().split('\n'):
                     if line.startswith("Context:"):
                         return line  # Returns "Context: XX.X% 🟢"
-        
-        # Fallback to tmux capture method if script fails or doesn't exist
+
+        # Final fallback to tmux capture method if both scripts fail
         # Capture the tmux session output WITH COLOR CODES
         result = subprocess.run([
             'tmux', 'capture-pane', '-t', CLAUDE_SESSION, '-p', '-e'
