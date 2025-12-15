@@ -11,9 +11,9 @@ from datetime import datetime
 class ChannelState:
     def __init__(self, state_file=None):
         if state_file is None:
-            # Default to data/channel_state.json relative to ClAP root
+            # Default to data/transcript_channel_state.json relative to ClAP root
             clap_root = Path(__file__).parent.parent
-            state_file = clap_root / "data" / "channel_state.json"
+            state_file = clap_root / "data" / "transcript_channel_state.json"
         self.state_file = Path(state_file)
         # Ensure data directory exists
         self.state_file.parent.mkdir(exist_ok=True)
