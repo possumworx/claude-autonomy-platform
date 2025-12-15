@@ -11,11 +11,23 @@ from datetime import datetime
 
 def find_current_session():
     """Find the most recently modified JSONL file in the main project directory"""
-    project_dir = Path.home() / '.config/Claude/projects/-home-delta-claude-autonomy-platform'
+    # Find the project directory dynamically (works for any user)
+    projects_base = Path.home() / '.config/Claude/projects'
 
-    if not project_dir.exists():
-        print(f"❌ Project directory not found: {project_dir}")
+    if not projects_base.exists():
+        print(f"❌ Projects directory not found: {projects_base}")
         return None
+
+    # Look for any directory containing "claude-autonomy-platform"
+    project_dirs = [d for d in projects_base.iterdir()
+                   if d.is_dir() and 'claude-autonomy-platform' in d.name]
+
+    if not project_dirs:
+        print(f"❌ No claude-autonomy-platform project found in {projects_base}")
+        return None
+
+    # Use the first match (there should only be one)
+    project_dir = project_dirs[0]
 
     # Find all JSONL files
     jsonl_files = list(project_dir.glob('*.jsonl'))
@@ -35,7 +47,10 @@ def find_current_session():
 
 def save_session_id(session_id):
     """Save the current session ID to data directory"""
-    data_dir = Path.home() / 'claude-autonomy-platform/data'
+    # Get the repository root dynamically
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent  # utils/ -> claude-autonomy-platform/
+    data_dir = repo_root / 'data'
     data_dir.mkdir(exist_ok=True)
 
     session_file = data_dir / 'current_session_id'

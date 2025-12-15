@@ -20,7 +20,10 @@ TOTAL_CONTEXT = 200000   # 200k token limit
 
 def get_current_session_id():
     """Read the current session ID from tracking file"""
-    session_file = Path.home() / 'claude-autonomy-platform/data/current_session_id'
+    # Get the repository root dynamically
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent  # utils/ -> claude-autonomy-platform/
+    session_file = repo_root / 'data' / 'current_session_id'
 
     if not session_file.exists():
         return None
