@@ -59,16 +59,17 @@ class TranscriptFetcher:
         # Get Discord tools instance (includes attachment handling)
         self.discord = DiscordTools()
 
-        # Load channel configuration from my_discord_channels.json
-        channels_config_file = CLAP_ROOT / "config" / "my_discord_channels.json"
-        if channels_config_file.exists():
-            with open(channels_config_file, 'r') as f:
-                channels_config = json.load(f)
-                self.channels_to_track = channels_config.get('channels', ['general'])
-        else:
-            # Fallback to just general if config doesn't exist
+        # Track ALL channels that exist in the channel state
+        # This automatically includes any new channels as they're discovered
+        all_channels = self.channel_state.state.get('channels', {})
+        self.channels_to_track = list(all_channels.keys())
+
+        # If no channels exist yet, start with general
+        if not self.channels_to_track:
             self.channels_to_track = ['general']
-            print("⚠️  No my_discord_channels.json found, defaulting to ['general']")
+            print("⚠️  No channels in state yet, starting with ['general']")
+        else:
+            print(f"📡 Tracking {len(self.channels_to_track)} channels from state")
 
     def initialize_channels(self):
         """Initialize tracked channels if not already in state"""
