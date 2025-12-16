@@ -649,8 +649,11 @@ def check_and_handle_rate_limit_menu():
 
         console_output = result.stdout
 
-        # Check if we're in the rate limit menu
-        if "> /rate-limit-options" in console_output:
+        # Check if we're in the rate limit menu - be specific to avoid false positives
+        # Look for multiple indicators that we're actually in the menu, not just discussing it
+        if ("> /rate-limit-options" in console_output and
+            "What do you want to do?" in console_output and
+            "Stop and wait for limit to reset" in console_output):
             log_message("⚠️  Detected rate limit menu - automatically selecting option 1 (stop and wait)")
 
             # Send "1" to select "Stop and wait for limit to reset"
