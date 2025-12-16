@@ -686,6 +686,7 @@ def load_config():
 config = load_config()
 DISCORD_CHECK_INTERVAL = config["discord_check_interval"]
 AUTONOMY_PROMPT_INTERVAL = config["autonomy_prompt_interval"]
+LOGGED_IN_REMINDER_INTERVAL = config.get("logged_in_reminder_interval", 300)  # 5 minutes default
 CLAUDE_SESSION = config["claude_session"]
 
 # Load Discord configuration
@@ -1474,8 +1475,7 @@ def main():
     
     last_autonomy_check = datetime.now()
     last_discord_check = datetime.now()
-    LOGGED_IN_REMINDER_INTERVAL = 300  # 5 minutes when user is logged in
-    
+
     while True:
         try:
             current_time = datetime.now()
