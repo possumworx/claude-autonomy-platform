@@ -2,13 +2,13 @@
 # X11 environment variables for desktop automation
 # Source this file to access the logged-in desktop session
 
-# Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the directory where this script is located (config directory)
+CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Function to read values from infrastructure config
 read_config() {
     local key="$1"
-    local config_file="$SCRIPT_DIR/claude_infrastructure_config.txt"
+    local config_file="$CONFIG_DIR/claude_infrastructure_config.txt"
     
     if [[ -f "$config_file" ]]; then
         grep "^${key}=" "$config_file" | cut -d'=' -f2-
