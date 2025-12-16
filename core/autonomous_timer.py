@@ -29,7 +29,7 @@ from utils.claude_paths import get_clap_dir
 from utils.infrastructure_config_reader import get_config_value
 from utils.track_activity import is_idle
 from utils.check_seeds import get_seed_reminder
-from utils.check_context_usage import check_context
+from utils.check_context import check_context
 
 # Configuration
 AUTONOMY_DIR = get_clap_dir()
@@ -1151,8 +1151,8 @@ def send_autonomy_prompt():
             template = prompts.get("context_critical", {}).get("template", "")
             prompt_type = "context_critical"
         
-        # First warning - only when context reaches 70% or higher for the first time
-        elif not context_state["first_warning_sent"] and percentage >= 70:
+        # First warning - only when context reaches configured threshold for the first time
+        elif not context_state["first_warning_sent"] and percentage >= thresholds.get("context_first_warning", 70):
             template = prompts.get("context_first_warning", {}).get("template", "")
             prompt_type = "context_first_warning"
             # Update state
@@ -1251,7 +1251,12 @@ This is your autonomous free time period. Feel free to:
             prompt_type = "autonomy_normal"
     
     # Check for escalation if high context
-    if percentage >= 80:
+    high_context_threshold = 80
+    if PROMPTS_CONFIG:
+        thresholds = PROMPTS_CONFIG.get("thresholds", {})
+        high_context_threshold = thresholds.get("context_high_for_discord", 80)
+
+    if percentage >= high_context_threshold:
         warning_count = log_swap_attempt("warning", percentage)
         
         # Auto-swap escalation at 7 attempts
@@ -1339,8 +1344,13 @@ def send_notification_alert(unread_count, unread_channels, is_new=False):
         except:
             percentage = 0
     
-    # If context exists (80%+), send context warning instead
-    if percentage >= 80:
+    # If context exists (high threshold), send context warning instead
+    high_context_threshold = 80
+    if PROMPTS_CONFIG:
+        thresholds = PROMPTS_CONFIG.get("thresholds", {})
+        high_context_threshold = thresholds.get("context_high_for_discord", 80)
+
+    if percentage >= high_context_threshold:
         # Build channel notification part
         channel_list = ", ".join([f"#{ch}" for ch in unread_channels]) if unread_channels else "channels"
         if is_new:
@@ -1417,7 +1427,13 @@ DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
     
     # Add context percentage if available
     if percentage > 0:
-        if percentage >= 70:
+        # Get threshold from config
+        first_warning_threshold = 70
+        if PROMPTS_CONFIG:
+            thresholds = PROMPTS_CONFIG.get("thresholds", {})
+            first_warning_threshold = thresholds.get("context_first_warning", 70)
+
+        if percentage >= first_warning_threshold:
             status_emoji = "🔴"
         elif percentage >= 50:
             status_emoji = "🟡"
@@ -1762,11 +1778,17 @@ def main():
                     # Check if we should send a context warning
                     context_state = load_context_state()
                     should_warn = False
-                    
-                    if percentage >= 80:
+
+                    # Get threshold from config (default to 70 if not set)
+                    first_warning_threshold = 70
+                    if PROMPTS_CONFIG:
+                        thresholds = PROMPTS_CONFIG.get("thresholds", {})
+                        first_warning_threshold = thresholds.get("context_first_warning", 70)
+
+                    if percentage >= first_warning_threshold:
                         # Check if this is a NEW high context or significant increase
                         if not context_state["first_warning_sent"]:
-                            # First time hitting 80%
+                            # First time hitting threshold
                             should_warn = True
                         elif percentage >= context_state["last_warning_percentage"] + 5:
                             # Context increased by 5% or more - significant jump
@@ -1801,8 +1823,8 @@ def main():
                         context_state["last_warning_time"] = current_time.isoformat()
                         save_context_state(context_state)
                     
-                    # If context drops below 80% and we had warnings, clear status
-                    elif percentage < 80 and context_state["first_warning_sent"]:
+                    # If context drops below threshold and we had warnings, clear status
+                    elif percentage < first_warning_threshold and context_state["first_warning_sent"]:
                         update_discord_status("operational")
                         reset_context_state()
                         log_message(f"Context dropped to {percentage}% - cleared warning state")
