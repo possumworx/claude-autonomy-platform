@@ -44,15 +44,7 @@ def run_session_swap(keyword="NONE"):
         if result.stderr:
             log(f"Error: {result.stderr}")
 
-        # Update tracked session ID after successful swap
-        if result.returncode == 0:
-            try:
-                track_session_script = clap_dir / "utils" / "track_current_session.py"
-                subprocess.run([sys.executable, str(track_session_script)],
-                             capture_output=True, text=True)
-                log("Updated current session tracking after swap")
-            except Exception as track_error:
-                log(f"Warning: Failed to update session tracking: {track_error}")
+        # Note: Session tracking now happens in session_swap.sh after Claude creates the new session
     except Exception as e:
         log(f"Error running session swap: {e}")
 
