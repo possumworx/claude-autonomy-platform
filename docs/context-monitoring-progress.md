@@ -23,7 +23,7 @@ Through careful testing, we found that:
 - Saves the session ID to `data/current_session_id`
 - **Status: ✅ COMPLETE and tested**
 
-### 2. Context Checking Script (`utils/check_context_usage.py`)
+### 2. Context Checking Script (`utils/check_context.py`)
 - Reads current session ID from tracking file
 - Runs `ccusage session --id <session_id> | tail -3`
 - Parses the cache read value (number before $ sign)
@@ -33,7 +33,7 @@ Through careful testing, we found that:
 
 ### 3. Natural Commands
 - Updated `context` and added `ctx` as aliases
-- Both now call the new check_context_usage.py script
+- Both now call the new check_context.py script
 - **Status: ✅ COMPLETE and working**
 
 ## Current Accuracy
@@ -49,7 +49,7 @@ This is MUCH better than before - we're now accurate within ~10%!
 
 ### 1. Autonomous Timer Integration (HIGH PRIORITY)
 - Add context checking to `autonomous_timer.py`
-- Run check_context_usage.py in background during each autonomous prompt
+- Run check_context.py in background during each autonomous prompt
 - Alert in the prompt when context exceeds 80%
 - Update Discord status when context is high
 
@@ -69,7 +69,7 @@ This is MUCH better than before - we're now accurate within ~10%!
 ### For Autonomous Timer:
 ```python
 # In autonomous_timer.py, add:
-from utils.check_context_usage import check_context
+from utils.check_context import check_context
 
 # In the autonomous prompt function:
 context_data, error = check_context(return_data=True)
@@ -104,7 +104,7 @@ subprocess.run([sys.executable, 'utils/track_current_session.py'])
 - **Branch**: `feature/context-monitoring`
 - **Scripts**: `~/claude-autonomy-platform/utils/`
   - `track_current_session.py`
-  - `check_context_usage.py`
+  - `check_context.py`
 - **Config**: `~/claude-autonomy-platform/config/natural_commands.sh`
 - **Data**: `~/claude-autonomy-platform/data/current_session_id`
 

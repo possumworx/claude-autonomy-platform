@@ -9,8 +9,8 @@ The context monitoring system provides accurate real-time context usage tracking
 
 ### 1. Core Scripts
 - **`utils/track_current_session.py`**: Finds and tracks the current Claude session ID
-- **`utils/check_context_usage.py`**: Calculates accurate context usage (ccusage + 15.6k overhead)
-- **`utils/check_current_context.sh`**: Bash wrapper for integration
+- **`utils/check_context.py`**: Calculates accurate context usage (ccusage + 15.6k overhead)
+- **`utils/context`**: Bash wrapper for integration
 
 ### 2. Natural Commands
 - `context` - Shows current context usage with color-coded warnings
@@ -27,7 +27,7 @@ The autonomous timer should check context during each prompt and warn when high:
 
 ```python
 # In autonomous_timer.py, add context checking:
-from utils.check_context_usage import check_context
+from utils.check_context import check_context
 
 # In the autonomous prompt function:
 context_data, error = check_context(return_data=True)
