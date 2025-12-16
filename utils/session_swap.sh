@@ -304,3 +304,13 @@ fi
 
 # Use send_to_claude for consistency and proper handling
 send_to_claude "$MESSAGE"
+
+# Wait for Claude to process the message and create new session file
+sleep 3
+
+# Update tracked session ID to the new session
+log_info "SESSION_SWAP" "Updating tracked session ID to new session"
+if ! python3 "$SCRIPT_DIR/track_current_session.py" >> "$LOG_FILE" 2>&1; then
+    log_error "SESSION_SWAP" "Failed to update session tracking"
+    send_to_claude "⚠️ Warning: Session tracking failed after swap. Context monitoring may not work correctly. Check logs/session_swap.log"
+fi

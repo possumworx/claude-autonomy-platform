@@ -28,8 +28,9 @@
     "keywords": ["AUTONOMY", "BUSINESS", "CREATIVE", "HEDGEHOGS", "NONE"]
   },
   "thresholds": {
-    "context_critical": 95,
-    "context_high_for_discord": 80
+    "context_first_warning": 70,
+    "context_high_for_discord": 80,
+    "context_critical": 95
   },
   "context_escalation": {
     "first_warning_sent": false,

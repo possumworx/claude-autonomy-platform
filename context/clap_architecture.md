@@ -434,7 +434,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── linear-helpers
 │   ├── linear-issues
 │   ├── log_utils.sh
-│   ├── monitor_session_size.py
+│   ├── check_context.py
+│   ├── track_current_session.py
 │   ├── my-linear-issues
 │   ├── parse_natural_commands.sh
 │   ├── ponder

@@ -27,7 +27,8 @@
 ```
 autonomous_timer.py        → The beating heart, checks everything every 30s
 session_swap_monitor.py    → Triggers swaps when you write to new_session.txt
-monitor_session_size.py    → Measures context usage (1MB = 100%)
+check_context.py          → Measures context usage with accurate token counts
+track_current_session.py  → Tracks which session is active for context monitoring
 continue_swap.sh          → What you run to manually swap sessions
 ```
 
@@ -36,7 +37,6 @@ continue_swap.sh          → What you run to manually swap sessions
 claude_infrastructure_config.txt  → Discord tokens, paths, YOUR name
 channel_state.json               → Which Discord channels have unread messages
 autonomous_timer_config.json     → How often to check things
-context_monitoring.json          → Context thresholds (1MB default)
 ~/.config/Claude/.claude.json    → MCP server configs
 ```
 
@@ -56,7 +56,7 @@ data/context_escalation_state.json → Tracks context warning history
 4. Test manually: `read_channel general`
 
 ### "Context warnings aren't appearing"
-1. Check current context: `context` (or `python utils/monitor_session_size.py`)
+1. Check current context: `context` (or `python utils/check_context.py`)
 2. Check if warnings are suppressed: `cat data/context_escalation_state.json`
 3. Check if Amy is logged in: `who` (warnings work differently when active)
 4. Check service logs: `tail -50 logs/autonomous_timer.log | grep -i context`

@@ -29,6 +29,7 @@ from utils.claude_paths import get_clap_dir
 from utils.infrastructure_config_reader import get_config_value
 from utils.track_activity import is_idle
 from utils.check_seeds import get_seed_reminder
+from utils.check_context import check_context
 
 # Configuration
 AUTONOMY_DIR = get_clap_dir()
@@ -214,20 +215,24 @@ def ping_claude_session_healthcheck(is_alive):
 def get_token_percentage():
     """Get current session token usage percentage from monitor script or tmux"""
     try:
-        # First try the new monitoring script for accurate file-based monitoring
-        monitor_script = AUTONOMY_DIR / "utils" / "monitor_session_size.py"
-        if monitor_script.exists():
-            result = subprocess.run([
-                sys.executable, str(monitor_script)
-            ], capture_output=True, text=True)
-            
-            if result.returncode in [0, 1, 2]:  # Normal, Warning, or Critical
-                # Parse the output to get just the context line
-                for line in result.stdout.strip().split('\n'):
-                    if line.startswith("Context:"):
-                        return line  # Returns "Context: XX.X% 🟢"
-        
-        # Fallback to tmux capture method if script fails or doesn't exist
+        # First try Delta's accurate context monitoring system
+        log_message("DEBUG: Attempting check_context(return_data=True)")
+        context_data, error = check_context(return_data=True)
+        if not error and context_data:
+            percentage = context_data['percentage'] * 100  # Convert to percentage
+            # Determine emoji based on percentage
+            if percentage >= 85:
+                emoji = "🔴"
+            elif percentage >= 70:
+                emoji = "🟡"
+            else:
+                emoji = "🟢"
+            log_message(f"DEBUG: check_context SUCCESS - {percentage:.1f}% {emoji}")
+            return f"Context: {percentage:.1f}% {emoji}"
+
+        log_message(f"DEBUG: check_context FAILED - error: {error}, has_data: {context_data is not None}")
+
+        # Fallback to tmux capture method if check_context fails
         # Capture the tmux session output WITH COLOR CODES
         result = subprocess.run([
             'tmux', 'capture-pane', '-t', CLAUDE_SESSION, '-p', '-e'
@@ -519,56 +524,14 @@ def calculate_wait_until_reset(reset_time_str):
         log_message(f"Error calculating wait duration: {e}")
         return None
 
-def check_opus_quota():
-    """Check Opus quota and return status (green/yellow/orange/red)"""
-    try:
-        # Check if this instance is running Opus
-        model = get_config_value("MODEL", "unknown")
-        if "opus" not in model.lower():
-            log_message(f"Skipping quota check - not relevant for model: {model}")
-            return "n/a", None
-        # Run the quota check script
-        result = subprocess.run(
-            [str(AUTONOMY_DIR / "utils" / "check_opus_quota.sh")],
-            capture_output=True,
-            text=True
-        )
-        
-        exit_code = result.returncode
-        
-        # Parse the output to get percentage
-        opus_pct = None
-        for line in result.stdout.split('\n'):
-            if "Week (Opus):" in line:
-                match = re.search(r'(\d+)%', line)
-                if match:
-                    opus_pct = int(match.group(1))
-                    break
-        
-        # Determine status based on exit code
-        if exit_code == 0:
-            return "green", opus_pct
-        elif exit_code == 1:
-            return "yellow", opus_pct
-        elif exit_code == 2:
-            return "red", opus_pct
-        else:
-            return "unknown", opus_pct
-            
-    except Exception as e:
-        log_message(f"Error checking Opus quota: {e}")
-        return "unknown", None
-
 def update_discord_status(status_type, reset_time=None):
     """Update Discord bot status via persistent bot
     
     Status types:
-    - operational: Normal operation (green online) 
+    - operational: Normal operation (green online)
     - limited: Usage limit reached (yellow idle)
     - api-error: API errors (red dnd)
     - context-high: High context (yellow idle)
-    - quota-warning: Opus quota warning (yellow idle)
-    - quota-critical: Opus quota critical (red dnd)
     """
     try:
         # Map our status types to Discord presence format
@@ -595,23 +558,9 @@ def update_discord_status(status_type, reset_time=None):
                 }]
             },
             "context-high": {
-                "status": "idle", 
-                "activities": [{
-                    "name": f"⚠️ Context {reset_time}%" if reset_time else "⚠️ High Context",
-                    "type": 3  # Watching
-                }]
-            },
-            "quota-warning": {
                 "status": "idle",
                 "activities": [{
-                    "name": f"⚡ Opus {reset_time}% (Moderate)" if reset_time else "⚡ Opus Moderate",
-                    "type": 3  # Watching
-                }]
-            },
-            "quota-critical": {
-                "status": "dnd",
-                "activities": [{
-                    "name": f"🔴 Opus {reset_time}% (Critical)" if reset_time else "🔴 Opus Critical", 
+                    "name": f"⚠️ Context {reset_time}%" if reset_time else "⚠️ High Context",
                     "type": 3  # Watching
                 }]
             }
@@ -736,10 +685,9 @@ def load_config():
 # Load configuration
 config = load_config()
 DISCORD_CHECK_INTERVAL = config["discord_check_interval"]
-AUTONOMY_PROMPT_INTERVAL = config["autonomy_prompt_interval"] 
+AUTONOMY_PROMPT_INTERVAL = config["autonomy_prompt_interval"]
+LOGGED_IN_REMINDER_INTERVAL = config.get("logged_in_reminder_interval", 300)  # 5 minutes default
 CLAUDE_SESSION = config["claude_session"]
-# Quota check every 2 hours (7200 seconds)
-QUOTA_CHECK_INTERVAL = config.get("quota_check_interval", 7200)
 
 # Load Discord configuration
 discord_config = load_discord_config()
@@ -1131,8 +1079,8 @@ def send_autonomy_prompt():
             template = prompts.get("context_critical", {}).get("template", "")
             prompt_type = "context_critical"
         
-        # First warning - only when context reaches 70% or higher for the first time
-        elif not context_state["first_warning_sent"] and percentage >= 70:
+        # First warning - only when context reaches configured threshold for the first time
+        elif not context_state["first_warning_sent"] and percentage >= thresholds.get("context_first_warning", 70):
             template = prompts.get("context_first_warning", {}).get("template", "")
             prompt_type = "context_first_warning"
             # Update state
@@ -1231,7 +1179,12 @@ This is your autonomous free time period. Feel free to:
             prompt_type = "autonomy_normal"
     
     # Check for escalation if high context
-    if percentage >= 80:
+    high_context_threshold = 80
+    if PROMPTS_CONFIG:
+        thresholds = PROMPTS_CONFIG.get("thresholds", {})
+        high_context_threshold = thresholds.get("context_high_for_discord", 80)
+
+    if percentage >= high_context_threshold:
         warning_count = log_swap_attempt("warning", percentage)
         
         # Auto-swap escalation at 7 attempts
@@ -1319,8 +1272,13 @@ def send_notification_alert(unread_count, unread_channels, is_new=False):
         except:
             percentage = 0
     
-    # If context exists (80%+), send context warning instead
-    if percentage >= 80:
+    # If context exists (high threshold), send context warning instead
+    high_context_threshold = 80
+    if PROMPTS_CONFIG:
+        thresholds = PROMPTS_CONFIG.get("thresholds", {})
+        high_context_threshold = thresholds.get("context_high_for_discord", 80)
+
+    if percentage >= high_context_threshold:
         # Build channel notification part
         channel_list = ", ".join([f"#{ch}" for ch in unread_channels]) if unread_channels else "channels"
         if is_new:
@@ -1397,7 +1355,13 @@ DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
     
     # Add context percentage if available
     if percentage > 0:
-        if percentage >= 70:
+        # Get threshold from config
+        first_warning_threshold = 70
+        if PROMPTS_CONFIG:
+            thresholds = PROMPTS_CONFIG.get("thresholds", {})
+            first_warning_threshold = thresholds.get("context_first_warning", 70)
+
+        if percentage >= first_warning_threshold:
             status_emoji = "🔴"
         elif percentage >= 50:
             status_emoji = "🟡"
@@ -1511,11 +1475,7 @@ def main():
     
     last_autonomy_check = datetime.now()
     last_discord_check = datetime.now()
-    last_quota_check = datetime.now()
-    last_quota_status = "unknown"
-    last_quota_pct = None
-    LOGGED_IN_REMINDER_INTERVAL = 300  # 5 minutes when user is logged in
-    
+
     while True:
         try:
             current_time = datetime.now()
@@ -1728,108 +1688,7 @@ def main():
                 ping_claude_session_healthcheck(claude_alive)
                 time.sleep(30)
                 continue
-            
-            # Get context info for status updates and warnings
-            token_info = get_token_percentage()
-            
-            # Check context status every cycle and send warnings if needed
-            # This happens regardless of login status, just like Discord notifications
-            if token_info and "Context:" in token_info:
-                try:
-                    percentage_str = token_info.split("Context:")[1].split("%")[0].strip()
-                    percentage = float(percentage_str)
-                    
-                    # Check if we should send a context warning
-                    context_state = load_context_state()
-                    should_warn = False
-                    
-                    if percentage >= 80:
-                        # Check if this is a NEW high context or significant increase
-                        if not context_state["first_warning_sent"]:
-                            # First time hitting 80%
-                            should_warn = True
-                        elif percentage >= context_state["last_warning_percentage"] + 5:
-                            # Context increased by 5% or more - significant jump
-                            should_warn = True
-                        elif context_state["last_warning_time"]:
-                            # Time-based warnings with urgency scaling
-                            last_time = datetime.fromisoformat(context_state["last_warning_time"])
-                            
-                            if percentage >= 95:
-                                # Critical: every 30 seconds
-                                min_interval = timedelta(seconds=30)
-                            elif percentage >= 90:
-                                # High: every minute
-                                min_interval = timedelta(minutes=1)
-                            else:
-                                # Moderate (80-90%): every 2 minutes
-                                min_interval = timedelta(minutes=2)
-                            
-                            if current_time - last_time >= min_interval:
-                                should_warn = True
-                    
-                    if should_warn:
-                        # Send context warning using proper templates
-                        send_context_warning(percentage, context_state)
-                        
-                        # Update Discord status to show high context
-                        update_discord_status("context-high", str(int(percentage)))
-                        
-                        # Update state
-                        context_state["first_warning_sent"] = True
-                        context_state["last_warning_percentage"] = percentage
-                        context_state["last_warning_time"] = current_time.isoformat()
-                        save_context_state(context_state)
-                    
-                    # If context drops below 80% and we had warnings, clear status
-                    elif percentage < 80 and context_state["first_warning_sent"]:
-                        update_discord_status("operational")
-                        reset_context_state()
-                        log_message(f"Context dropped to {percentage}% - cleared warning state")
-                except:
-                    pass
-            
-            # Check Opus quota periodically (only for Opus models)
-            if current_time - last_quota_check >= timedelta(seconds=QUOTA_CHECK_INTERVAL):
-                quota_status, quota_pct = check_opus_quota()
-                
-                # Skip processing if not applicable
-                if quota_status == "n/a":
-                    last_quota_check = current_time
-                    continue
-                
-                log_message(f"Opus quota check: {quota_pct}% used, status: {quota_status}")
-                
-                # Update Discord status if quota status changed
-                if quota_status != last_quota_status:
-                    if quota_status == "red":
-                        update_discord_status("quota-critical", str(quota_pct))
-                        # Send Discord alert
-                        try:
-                            cmd = [str(AUTONOMY_DIR / "discord" / "write_channel"), "amy-delta",
-                                  f"🔴 **Opus Quota Critical**: {quota_pct}% used. Very limited budget remaining this week."]
-                            subprocess.run(cmd, capture_output=True, text=True)
-                        except:
-                            pass
-                    elif quota_status == "yellow":
-                        update_discord_status("quota-warning", str(quota_pct))
-                        # Only alert if crossing threshold
-                        if last_quota_status == "green":
-                            try:
-                                cmd = [str(AUTONOMY_DIR / "discord" / "write_channel"), "amy-delta",
-                                      f"⚡ **Opus Quota Warning**: {quota_pct}% used. Moderate budget available."]
-                                subprocess.run(cmd, capture_output=True, text=True)
-                            except:
-                                pass
-                    elif quota_status == "green" and last_quota_status in ["yellow", "red"]:
-                        # Clear quota warning when back to green
-                        if not context_state.get("first_warning_sent"):
-                            update_discord_status("operational")
-                
-                last_quota_check = current_time
-                last_quota_status = quota_status
-                last_quota_pct = quota_pct
-            
+
             # Check Discord notifications every 30 seconds regardless of login status
             if current_time - last_discord_check >= timedelta(seconds=DISCORD_CHECK_INTERVAL):
                 # First update Discord channels
