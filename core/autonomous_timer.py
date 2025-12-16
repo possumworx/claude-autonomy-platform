@@ -1807,7 +1807,7 @@ def main():
                         # Send Discord alert
                         try:
                             cmd = [str(AUTONOMY_DIR / "discord" / "write_channel"), "amy-delta",
-                                  f"🔴 **Opus Quota Critical**: {quota_pct}% used. Very limited budget remaining this week."]
+                                  f"🔴 **Opus Quota Critical**: {quota_pct}% used. Very limited budget remaining this week." if quota_pct is not None else "🔴 Quota monitoring unavailable - using shared quota system"]
                             subprocess.run(cmd, capture_output=True, text=True)
                         except:
                             pass
@@ -1817,7 +1817,7 @@ def main():
                         if last_quota_status == "green":
                             try:
                                 cmd = [str(AUTONOMY_DIR / "discord" / "write_channel"), "amy-delta",
-                                      f"⚡ **Opus Quota Warning**: {quota_pct}% used. Moderate budget available."]
+                                      f"⚡ **Opus Quota Warning**: {quota_pct}% used. Moderate budget available." if quota_pct is not None else "⚡ Quota monitoring unavailable - using shared quota system"]
                                 subprocess.run(cmd, capture_output=True, text=True)
                             except:
                                 pass
