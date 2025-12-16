@@ -2,4 +2,4 @@
 # Natural command to check current context usage
 
 cd ~/claude-autonomy-platform
-python3 utils/check_context_usage.py
+python3 utils/check_context.py

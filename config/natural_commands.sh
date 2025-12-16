@@ -66,8 +66,8 @@ alias linear-help='~/claude-autonomy-platform/linear/help'  # Show Linear CLI he
 alias list-commands='~/claude-autonomy-platform/utils/list-commands'  # List all natural and personal commands
 
 # Session Management Helpers
-alias context='~/claude-autonomy-platform/utils/check_context_usage.py'  # Show current context usage
-alias ctx='~/claude-autonomy-platform/utils/check_context_usage.py'  # Short version of context command
+alias context='~/claude-autonomy-platform/utils/check_context.py'  # Show current context usage
+alias ctx='~/claude-autonomy-platform/utils/check_context.py'  # Short version of context command
 
 
 # Git Helpers
