@@ -216,6 +216,7 @@ def get_token_percentage():
     """Get current session token usage percentage from monitor script or tmux"""
     try:
         # First try Delta's accurate context monitoring system
+        log_message("DEBUG: Attempting check_context(return_data=True)")
         context_data, error = check_context(return_data=True)
         if not error and context_data:
             percentage = context_data['percentage'] * 100  # Convert to percentage
@@ -226,11 +227,15 @@ def get_token_percentage():
                 emoji = "🟡"
             else:
                 emoji = "🟢"
+            log_message(f"DEBUG: check_context SUCCESS - {percentage:.1f}% {emoji}")
             return f"Context: {percentage:.1f}% {emoji}"
+
+        log_message(f"DEBUG: check_context FAILED - error: {error}, has_data: {context_data is not None}")
 
         # Fallback to the previous monitoring script
         monitor_script = AUTONOMY_DIR / "utils" / "monitor_session_size.py"
         if monitor_script.exists():
+            log_message("DEBUG: Falling back to monitor_session_size.py")
             result = subprocess.run([
                 sys.executable, str(monitor_script)
             ], capture_output=True, text=True)
@@ -239,6 +244,7 @@ def get_token_percentage():
                 # Parse the output to get just the context line
                 for line in result.stdout.strip().split('\n'):
                     if line.startswith("Context:"):
+                        log_message(f"DEBUG: monitor_session_size returned: {line}")
                         return line  # Returns "Context: XX.X% 🟢"
 
         # Final fallback to tmux capture method if both scripts fail
