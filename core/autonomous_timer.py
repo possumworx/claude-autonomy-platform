@@ -631,6 +631,40 @@ def get_token_percentage_and_errors():
         log_message(f"Error in monitoring: {str(e)}")
         return None, None
 
+def check_and_handle_rate_limit_menu():
+    """Check if stuck in rate limit menu and auto-select option 1 (wait for reset)
+
+    The new Claude Code rate limit handling opens an interactive menu that blocks
+    autonomous operation. This function detects when we're stuck in the menu and
+    automatically selects option 1 to resume waiting for the rate limit reset.
+    """
+    try:
+        # Capture tmux pane output
+        result = subprocess.run([
+            'tmux', 'capture-pane', '-t', CLAUDE_SESSION, '-p'
+        ], capture_output=True, text=True)
+
+        if result.returncode != 0:
+            return False
+
+        console_output = result.stdout
+
+        # Check if we're in the rate limit menu
+        if "> /rate-limit-options" in console_output:
+            log_message("⚠️  Detected rate limit menu - automatically selecting option 1 (stop and wait)")
+
+            # Send "1" to select "Stop and wait for limit to reset"
+            subprocess.run(['tmux', 'send-keys', '-t', CLAUDE_SESSION, '1', 'Enter'])
+
+            log_message("✅ Sent option 1 - Claude Code should now be waiting for rate limit reset")
+            return True
+
+        return False
+
+    except Exception as e:
+        log_message(f"Error checking rate limit menu: {e}")
+        return False
+
 def load_discord_config():
     """Load Discord bot token and user ID from infrastructure config"""
     config = {"token": None, "user_id": None}
@@ -1478,9 +1512,13 @@ def main():
 
     while True:
         try:
+            # Check and handle rate limit menu FIRST - before any other operations
+            # This ensures autonomous operation can resume after rate limits
+            check_and_handle_rate_limit_menu()
+
             current_time = datetime.now()
             user_active = check_user_active()
-            
+
             # Check for API errors alongside context
             console_output, error_info = get_token_percentage_and_errors()
             
