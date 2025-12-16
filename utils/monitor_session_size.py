@@ -73,8 +73,10 @@ def find_current_session():
 def get_latest_token_usage(filepath):
     """Extract token usage from the most recent message with usage data"""
     try:
-        # Read the last 20 lines to find the most recent message with token usage
-        cmd = f"tail -20 {filepath} | jq -r 'select(.message.usage) | .message.usage | (.input_tokens + .cache_read_input_tokens + (.output_tokens // 0))' | tail -1"
+        # Read the last 20 lines to find the most recent message with usage data
+        # Total input = input_tokens + cache_creation_input_tokens + cache_read_input_tokens
+        # Note: output_tokens don't count toward the 200K context window
+        cmd = f"tail -20 {filepath} | jq -r 'select(.message.usage) | .message.usage | (.input_tokens + (.cache_creation_input_tokens // 0) + (.cache_read_input_tokens // 0))' | tail -1"
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
         if result.returncode == 0 and result.stdout.strip():
