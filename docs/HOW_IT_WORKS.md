@@ -42,8 +42,8 @@ This is THE central loop. Everything else supports this.
 
 1. Session file `~/.config/Claude/projects/*/XXXX.jsonl` grows
 2. autonomous_timer calls `get_token_percentage()`
-3. Which runs `monitor_session_size.py`
-4. Which checks file size vs 1MB threshold
+3. Which runs `check_context.py`
+4. Which uses ccusage to get actual token counts from tracked session
 5. Returns "Context: 85% 🟠"
 6. autonomous_timer compares with `context_escalation_state.json`
 7. Sees increase from last warning (was 75%)

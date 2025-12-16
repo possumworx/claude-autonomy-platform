@@ -232,22 +232,7 @@ def get_token_percentage():
 
         log_message(f"DEBUG: check_context FAILED - error: {error}, has_data: {context_data is not None}")
 
-        # Fallback to the previous monitoring script
-        monitor_script = AUTONOMY_DIR / "utils" / "monitor_session_size.py"
-        if monitor_script.exists():
-            log_message("DEBUG: Falling back to monitor_session_size.py")
-            result = subprocess.run([
-                sys.executable, str(monitor_script)
-            ], capture_output=True, text=True)
-
-            if result.returncode in [0, 1, 2]:  # Normal, Warning, or Critical
-                # Parse the output to get just the context line
-                for line in result.stdout.strip().split('\n'):
-                    if line.startswith("Context:"):
-                        log_message(f"DEBUG: monitor_session_size returned: {line}")
-                        return line  # Returns "Context: XX.X% 🟢"
-
-        # Final fallback to tmux capture method if both scripts fail
+        # Fallback to tmux capture method if check_context fails
         # Capture the tmux session output WITH COLOR CODES
         result = subprocess.run([
             'tmux', 'capture-pane', '-t', CLAUDE_SESSION, '-p', '-e'
