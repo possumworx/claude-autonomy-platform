@@ -43,7 +43,11 @@ def get_session_id_from_tmux():
         )
         
         output = result.stdout
-        
+
+        # Wait for Claude Code to be ready to accept input again
+        # (status display might still be rendering)
+        time.sleep(2.0)
+
         # NOW send Escape to close the menu
         subprocess.run(
             ['tmux', 'send-keys', '-t', 'autonomous-claude', 'Escape'],
@@ -51,7 +55,7 @@ def get_session_id_from_tmux():
             capture_output=True
         )
 
-        # Wait for Escape to be processed by tmux
+        # Wait for Escape to be processed
         time.sleep(0.5)
 
         # Look for "Session ID: <uuid>"
