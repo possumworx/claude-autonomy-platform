@@ -42,9 +42,13 @@ PROMPTS_FILE = AUTONOMY_DIR / "config" / "prompts.json"
 SWAP_LOG_FILE = AUTONOMY_DIR / "logs" / "swap_attempts.log"
 CONTEXT_STATE_FILE = DATA_DIR / "context_escalation_state.json"
 API_ERROR_STATE_FILE = DATA_DIR / "api_error_state.json"
+RESOURCE_TRACKING_STATE_FILE = DATA_DIR / "last_cache_tokens.json"
 
 # Create logs directory if it doesn't exist
 (AUTONOMY_DIR / "logs").mkdir(exist_ok=True)
+
+# Resource-share webhook configuration
+RESOURCE_SHARE_WEBHOOK_URL = "http://localhost:8765/resource-share/increment"
 
 # Discord API configuration
 DISCORD_API_BASE = "https://discord.com/api/v10"
@@ -276,6 +280,69 @@ def get_token_percentage():
         
     except Exception as e:
         return f"Context check failed: {str(e)}"
+
+def track_resource_usage():
+    """
+    Track cache read increments and report to resource-share webhook.
+    Compares current cache_tokens with previous value, calculates increment,
+    and POSTs to the resource-share server if increment > 0.
+    """
+    try:
+        # Get current cache tokens from check_context
+        context_data, error = check_context(return_data=True)
+        if error or not context_data:
+            log_message(f"DEBUG: resource-share tracking skipped - check_context failed: {error}")
+            return
+
+        current_cache_tokens = context_data.get('cache_tokens', 0)
+
+        # Load previous cache tokens from state file
+        previous_cache_tokens = 0
+        if RESOURCE_TRACKING_STATE_FILE.exists():
+            try:
+                with open(RESOURCE_TRACKING_STATE_FILE, 'r') as f:
+                    state = json.load(f)
+                    previous_cache_tokens = state.get('cache_tokens', 0)
+            except (json.JSONDecodeError, KeyError) as e:
+                log_message(f"DEBUG: resource-share state file corrupted, resetting: {e}")
+
+        # Calculate increment
+        increment = current_cache_tokens - previous_cache_tokens
+
+        # Only POST if increment > 0
+        if increment > 0:
+            # Get Claude name from infrastructure config
+            claude_name = get_config_value("CLAUDE_NAME")
+            if not claude_name:
+                claude_name = "Unknown"  # Fallback
+
+            # Prepare payload
+            payload = {
+                "claude_name": claude_name,
+                "cache_read_increment": increment,
+                "mode": "autonomy"  # autonomous_timer means autonomy mode
+            }
+
+            # POST to resource-share webhook
+            try:
+                response = requests.post(
+                    RESOURCE_SHARE_WEBHOOK_URL,
+                    json=payload,
+                    timeout=5
+                )
+                if response.status_code == 200:
+                    log_message(f"DEBUG: resource-share reported {increment} tokens for {claude_name}")
+                else:
+                    log_message(f"WARNING: resource-share webhook returned {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                log_message(f"WARNING: resource-share webhook request failed: {e}")
+
+        # Save current as new previous (even if increment was 0 or negative)
+        with open(RESOURCE_TRACKING_STATE_FILE, 'w') as f:
+            json.dump({'cache_tokens': current_cache_tokens}, f)
+
+    except Exception as e:
+        log_message(f"ERROR: resource-share tracking failed: {e}")
 
 def detect_api_errors(tmux_output):
     """
@@ -1717,6 +1784,10 @@ def main():
                     else:
                         log_message(f"Waiting for usage limit reset at {reset_time}")
             
+            # Track resource usage (cache read increments) for fair allocation
+            # Do this even during pause states to capture all usage
+            track_resource_usage()
+
             # Skip notifications if in error state
             if should_pause_notifications(current_error_state):
                 log_message("Pausing notifications due to active error state")
