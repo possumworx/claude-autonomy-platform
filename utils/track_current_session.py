@@ -1,49 +1,71 @@
 #!/usr/bin/env python3
 """
-Track the current Claude session ID by finding the most recent JSONL file
-in the projects directory. Called during session swaps to update tracking.
+Track the current Claude session ID by querying Claude Code's /status command.
+Called during session swaps to update tracking.
 """
 
-import os
+import subprocess
 import json
+import re
 from pathlib import Path
 from datetime import datetime
+import time
 
-def find_current_session():
-    """Find the most recently modified JSONL file in the main project directory"""
-    # Find the project directory dynamically (works for any user)
-    projects_base = Path.home() / '.config/Claude/projects'
-
-    if not projects_base.exists():
-        print(f"❌ Projects directory not found: {projects_base}")
+def get_session_id_from_tmux():
+    """Get session ID from Claude Code /status command via tmux"""
+    try:
+        # Send /status command to tmux session (without Enter yet)
+        subprocess.run(
+            ['tmux', 'send-keys', '-t', 'autonomous-claude', '/status'],
+            check=True,
+            capture_output=True
+        )
+        
+        # Wait for menu to appear
+        time.sleep(1.0)
+        
+        # Now send Enter to activate default option (Show Claude Code status)
+        subprocess.run(
+            ['tmux', 'send-keys', '-t', 'autonomous-claude', 'Enter'],
+            check=True,
+            capture_output=True
+        )
+        
+        # Wait plenty of time for status display to fully render
+        time.sleep(10.0)
+        
+        # Capture the pane content BEFORE closing menu
+        result = subprocess.run(
+            ['tmux', 'capture-pane', '-t', 'autonomous-claude', '-p'],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        
+        output = result.stdout
+        
+        # NOW send Escape to close the menu
+        subprocess.run(
+            ['tmux', 'send-keys', '-t', 'autonomous-claude', 'Escape'],
+            check=True,
+            capture_output=True
+        )
+        
+        # Look for "Session ID: <uuid>"
+        pattern = r'Session ID:\s+([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})'
+        match = re.search(pattern, output)
+        
+        if match:
+            return match.group(1)
+        else:
+            print("❌ Could not find Session ID in /status output")
+            print("Debug - captured output:")
+            print(output[-500:])  # Last 500 chars for debugging
+            return None
+            
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error running tmux command: {e}")
         return None
-
-    # Look for any directory containing "claude-autonomy-platform"
-    project_dirs = [d for d in projects_base.iterdir()
-                   if d.is_dir() and 'claude-autonomy-platform' in d.name]
-
-    if not project_dirs:
-        print(f"❌ No claude-autonomy-platform project found in {projects_base}")
-        return None
-
-    # Use the first match (there should only be one)
-    project_dir = project_dirs[0]
-
-    # Find all JSONL files
-    jsonl_files = list(project_dir.glob('*.jsonl'))
-
-    if not jsonl_files:
-        print("❌ No JSONL files found in project directory")
-        return None
-
-    # Sort by modification time, newest first
-    jsonl_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
-
-    # Get the session ID from the newest file
-    newest = jsonl_files[0]
-    session_id = newest.stem  # filename without .jsonl extension
-
-    return session_id, newest
 
 def save_session_id(session_id):
     """Save the current session ID to data directory"""
@@ -70,22 +92,15 @@ def save_session_id(session_id):
 
 def main():
     """Main function to track current session"""
-    print("🔍 Finding current Claude session...")
+    print("🔍 Getting current Claude session from /status...")
 
-    result = find_current_session()
-    if not result:
+    session_id = get_session_id_from_tmux()
+    
+    if not session_id:
+        print("❌ Failed to get session ID")
         return 1
 
-    session_id, filepath = result
-
-    # Show info about the session
-    file_size = filepath.stat().st_size / 1024  # KB
-    mod_time = datetime.fromtimestamp(filepath.stat().st_mtime)
-
     print(f"📋 Found session: {session_id}")
-    print(f"   File: {filepath.name}")
-    print(f"   Size: {file_size:.1f} KB")
-    print(f"   Modified: {mod_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Save it
     save_session_id(session_id)
