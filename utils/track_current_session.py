@@ -44,19 +44,16 @@ def get_session_id_from_tmux():
         
         output = result.stdout
 
-        # Wait for Claude Code to be ready to accept input again
-        # (status display might still be rendering)
-        time.sleep(2.0)
-
-        # NOW send Escape to close the menu
-        subprocess.run(
-            ['tmux', 'send-keys', '-t', 'autonomous-claude', 'Escape'],
-            check=True,
-            capture_output=True
-        )
-
-        # Wait for Escape to be processed
-        time.sleep(0.5)
+        # Send multiple Escape presses to ensure menu closes
+        # In case Claude Code isn't immediately ready to accept input,
+        # one of these will catch it when it is ready. Extra presses are harmless.
+        for i in range(3):
+            subprocess.run(
+                ['tmux', 'send-keys', '-t', 'autonomous-claude', 'Escape'],
+                check=True,
+                capture_output=True
+            )
+            time.sleep(1.0)
 
         # Look for "Session ID: <uuid>"
         pattern = r'Session ID:\s+([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})'
