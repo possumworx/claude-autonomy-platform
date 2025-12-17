@@ -50,7 +50,10 @@ def get_session_id_from_tmux():
             check=True,
             capture_output=True
         )
-        
+
+        # Wait for Escape to be processed by tmux
+        time.sleep(0.5)
+
         # Look for "Session ID: <uuid>"
         pattern = r'Session ID:\s+([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})'
         match = re.search(pattern, output)
