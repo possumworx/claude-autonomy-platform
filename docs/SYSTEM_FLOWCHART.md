@@ -31,8 +31,8 @@ START
 │              CHECK CONTEXT EVERY TIME                       │
 │              (get_token_percentage())                       │
 │                                                             │
-│  Runs: monitor_session_size.py                             │
-│  Measures: ~/.config/Claude/projects/*/session.jsonl       │
+│  Runs: check_context.py                                    │
+│  Uses: ccusage to get accurate token counts                │
 │  Returns: "Context: 67.3% 🟡"                              │
 └─────────────────────────────────────────────────────────────┘
   │

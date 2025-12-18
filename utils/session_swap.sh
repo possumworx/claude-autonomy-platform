@@ -282,8 +282,18 @@ if [[ ! -z "$SESSION_SWAP_PING" ]]; then
     echo "[SESSION_SWAP] Sent healthcheck ping"
 fi
 
-# Wait for Claude to be ready, then send completion message
+# Wait for new session to be ready
 sleep 10
+
+# Update tracked session ID to the new session BEFORE sending completion message
+# This prevents interference between /status command and Claude's response
+log_info "SESSION_SWAP" "Updating tracked session ID to new session"
+if ! python3 "$SCRIPT_DIR/track_current_session.py" 2>&1 | tee -a "$CLAP_DIR/logs/session_swap.log"; then
+    log_error "SESSION_SWAP" "Failed to update session tracking"
+    # Don't send warning yet - wait until after completion message
+fi
+
+# Now send completion message (no interference with session tracking)
 # Load prompts config
 PROMPTS_CONFIG="$CLAP_DIR/config/prompts.json"
 if [[ -f "$PROMPTS_CONFIG" ]]; then

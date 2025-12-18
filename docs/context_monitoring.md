@@ -51,15 +51,17 @@ You can adjust thresholds based on your needs:
 
 The monitoring system consists of:
 
-1. **monitor_session_size.py** - Core monitoring script
-2. **context_monitoring.json** - Configuration file
+1. **check_context.py** - Core monitoring script using ccusage for accurate token counts
+2. **track_current_session.py** - Tracks current session ID for context checking
 3. **autonomous-timer integration** - Real-time monitoring
 
 ## Usage
 
 ### Manual Check
 ```bash
-python3 utils/monitor_session_size.py
+python3 utils/check_context.py
+# Or use the natural command:
+context
 ```
 
 ### Automatic Monitoring

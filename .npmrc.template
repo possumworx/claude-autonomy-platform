@@ -1,0 +1,7 @@
+# NPM Configuration Template
+# Copy this file to .npmrc and customize for your user
+# The actual .npmrc file is gitignored to prevent hardcoded paths
+
+# Set your npm global packages directory
+# Replace YOUR_USERNAME with your actual username
+prefix=/home/YOUR_USERNAME/.npm-global

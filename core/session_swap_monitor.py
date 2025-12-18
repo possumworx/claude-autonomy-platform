@@ -36,13 +36,15 @@ def run_session_swap(keyword="NONE"):
     """Run the session swap script with the given keyword"""
     log(f"Running session swap with keyword: {keyword}")
     try:
-        result = subprocess.run([str(SCRIPT_PATH), keyword], 
+        result = subprocess.run([str(SCRIPT_PATH), keyword],
                               capture_output=True, text=True)
         log(f"Session swap completed: {result.returncode}")
         if result.stdout:
             log(f"Output: {result.stdout}")
         if result.stderr:
             log(f"Error: {result.stderr}")
+
+        # Note: Session tracking now happens in session_swap.sh after Claude creates the new session
     except Exception as e:
         log(f"Error running session swap: {e}")
 

@@ -38,7 +38,7 @@ class DiscordTools:
         self.image_dir.mkdir(parents=True, exist_ok=True)
         
         # Load channel state for easy name lookup
-        self.channel_state_file = Path.home() / "claude-autonomy-platform" / "data" / "channel_state.json"
+        self.channel_state_file = Path.home() / "claude-autonomy-platform" / "data" / "transcript_channel_state.json"
         self.load_channel_state()
     
     @property

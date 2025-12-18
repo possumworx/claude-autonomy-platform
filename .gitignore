@@ -21,6 +21,7 @@ secret_key*
 node_modules/
 npm-debug.log*
 package-lock.json
+.npmrc
 
 # Python
 __pycache__/
@@ -116,3 +117,8 @@ linear/pattern
 linear/poss
 linear/*/TEST_RESULTS.md
 config/my_discord_channels.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
