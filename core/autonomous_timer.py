@@ -62,6 +62,27 @@ def log_message(message):
     with open(LOG_FILE, "a") as f:
         f.write(log_entry + "\n")
 
+def is_tmux_session_attached():
+    """Check if the autonomous-claude tmux session is currently attached"""
+    try:
+        result = subprocess.run(
+            ['tmux', 'list-sessions', '-F', '#{session_name} #{session_attached}'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            for line in result.stdout.strip().split('\n'):
+                if line.startswith('autonomous-claude '):
+                    # Line format: "autonomous-claude 1" (attached) or "autonomous-claude 0" (detached)
+                    parts = line.split()
+                    if len(parts) >= 2 and parts[1] == '1':
+                        return True
+        return False
+    except Exception as e:
+        log_message(f"DEBUG: Error checking tmux attachment: {e}")
+        return False  # Default to autonomy if we can't determine
+
 def load_prompts_config():
     """Load prompts configuration from JSON file"""
     try:
@@ -316,11 +337,14 @@ def track_resource_usage():
             if not claude_name:
                 claude_name = "Unknown"  # Fallback
 
+            # Detect mode based on tmux session attachment
+            mode = "collaboration" if is_tmux_session_attached() else "autonomy"
+
             # Prepare payload
             payload = {
                 "claude_name": claude_name,
                 "cache_read_increment": increment,
-                "mode": "autonomy"  # autonomous_timer means autonomy mode
+                "mode": mode
             }
 
             # POST to resource-share webhook
