@@ -122,3 +122,4 @@ config/my_discord_channels.json
 *.db
 *.sqlite
 *.sqlite3
+context/current_context.txt
