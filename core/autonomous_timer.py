@@ -48,7 +48,8 @@ RESOURCE_TRACKING_STATE_FILE = DATA_DIR / "last_cache_tokens.json"
 (AUTONOMY_DIR / "logs").mkdir(exist_ok=True)
 
 # Resource-share webhook configuration
-RESOURCE_SHARE_WEBHOOK_URL = "http://localhost:8765/resource-share/increment"
+WEBHOOK_HOST = get_config_value("WEBHOOK_HOST", "localhost")
+RESOURCE_SHARE_WEBHOOK_URL = f"http://{WEBHOOK_HOST}:8765/resource-share/increment"
 
 # Discord API configuration
 DISCORD_API_BASE = "https://discord.com/api/v10"

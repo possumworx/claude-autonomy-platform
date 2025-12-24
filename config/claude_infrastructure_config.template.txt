@@ -88,5 +88,11 @@ SESSION_SWAP_MONITOR=session-swap-monitor.service
 [USER_CONFIG]
 HISTORY_TURNS=20
 
+[RESOURCE_SHARE]
+# Webhook host for resource tracking
+# For the main instance running the webhook server: localhost
+# For remote instances connecting to the webhook: IP address of webhook server (e.g., 192.168.1.2)
+WEBHOOK_HOST=localhost
+
 # This file should be sourced by setup scripts to ensure consistency
 # across all configuration files and installations
