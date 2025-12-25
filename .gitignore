@@ -106,6 +106,7 @@ discord_downloads/*
 .claude/output-styles/identity-prompt.md
 .claude/output-styles/*-identity.md
 context/current_export.txt
+context/current_context.txt
 
 # Linear project shortcuts (user-specific)
 linear/clap
