@@ -32,7 +32,8 @@ def get_session_id_from_tmux():
         )
         
         # Wait plenty of time for status display to fully render
-        time.sleep(10.0)
+        # Increased from 10.0 to 15.0 to handle "Perusing..." delay
+        time.sleep(15.0)
         
         # Capture the pane content BEFORE closing menu
         result = subprocess.run(
@@ -94,22 +95,43 @@ def save_session_id(session_id):
     print(f"✅ Saved session ID: {session_id}")
     print(f"   Timestamp: {data['tracked_at']}")
 
+def log_retry_attempt(attempt_num):
+    """Log retry attempt to file for monitoring"""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent
+    log_dir = repo_root / 'logs'
+    log_dir.mkdir(exist_ok=True)
+
+    log_file = log_dir / 'session_id_retry.log'
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    with open(log_file, 'a') as f:
+        f.write(f"{timestamp} - Session ID extraction failed (attempt #{attempt_num})\n")
+
+    print(f"📝 Logged retry attempt #{attempt_num} to {log_file}")
+
 def main():
-    """Main function to track current session"""
+    """Main function to track current session with infinite retry"""
     print("🔍 Getting current Claude session from /status...")
 
-    session_id = get_session_id_from_tmux()
-    
-    if not session_id:
-        print("❌ Failed to get session ID")
-        return 1
+    attempt = 1
+    while True:
+        print(f"🔄 Attempt #{attempt}")
+        session_id = get_session_id_from_tmux()
 
-    print(f"📋 Found session: {session_id}")
+        if session_id:
+            print(f"✅ Success! Found session: {session_id} (attempt #{attempt})")
+            save_session_id(session_id)
+            return 0
 
-    # Save it
-    save_session_id(session_id)
+        print(f"❌ Failed to get session ID (attempt #{attempt})")
+        print(f"⏳ Retrying in 30 seconds...")
 
-    return 0
+        # Log failure to file for monitoring
+        log_retry_attempt(attempt)
+
+        time.sleep(30.0)
+        attempt += 1
 
 if __name__ == "__main__":
     exit(main())
