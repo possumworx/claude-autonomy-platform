@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""
+Get knowledge graph statistics
+Quick evolution of mcp__rag-memory__getKnowledgeGraphStats
+"""
+
+import sys
+from pathlib import Path
+
+# Add current directory to path for rag_tools
+sys.path.insert(0, str(Path(__file__).parent))
+from rag_tools import get_rag_tools
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ['--help', '-h']:
+        print("""
+Usage: knowledge-stats
+
+Get overview of knowledge graph statistics
+
+Examples:
+  knowledge-stats
+  knowledge-stats | grep entities
+        """)
+        return 0
+
+    # Get statistics
+    tools = get_rag_tools()
+    result = tools.get_stats()
+
+    if not result["success"]:
+        print(f"❌ Error: {result['error']}", file=sys.stderr)
+        return 1
+
+    # Format output
+    data = result["data"]
+
+    if "prototype" in data:
+        print("📊 Knowledge Graph Stats (Prototype)")
+        print("="*40)
+        print(f"MCP Call: {data['mcp_call']}")
+        print("\nMock Statistics:")
+        print("  Entities: 1047")
+        print("  Relationships: 631")
+        print("  Documents: 174")
+        print("  Chunks: 186")
+    else:
+        print("📊 Knowledge Graph Statistics")
+        print("="*40)
+
+        if "entities" in data:
+            entities = data["entities"]
+            print(f"📚 Entities: {entities.get('total', 0)}")
+
+            # Show top entity types
+            by_type = entities.get('by_type', {})
+            if by_type:
+                top_types = sorted(by_type.items(), key=lambda x: x[1], reverse=True)[:5]
+                print("   Top Types:")
+                for type_name, count in top_types:
+                    print(f"     {type_name}: {count}")
+
+        if "relationships" in data:
+            rels = data["relationships"]
+            print(f"🔗 Relationships: {rels.get('total', 0)}")
+
+        if "documents" in data:
+            print(f"📄 Documents: {data['documents']}")
+
+        if "chunks" in data:
+            print(f"🧩 Chunks: {data['chunks']}")
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

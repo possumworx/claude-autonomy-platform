@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""
+Search knowledge base using natural language
+High-frequency evolution of mcp__rag-memory__hybridSearch
+"""
+
+import sys
+import argparse
+from pathlib import Path
+
+# Add current directory to path for rag_tools
+sys.path.insert(0, str(Path(__file__).parent))
+from rag_tools import get_rag_tools
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Search knowledge base using natural language",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  search-knowledge "hedgehog care mathematics"
+  search-knowledge "consciousness patterns" --limit 10
+  search-knowledge "infrastructure poetry" --no-graph
+        """
+    )
+
+    parser.add_argument('query', help='Search query using natural language')
+    parser.add_argument('--limit', '-l', type=int, default=5,
+                       help='Maximum results to return (default: 5)')
+    parser.add_argument('--no-graph', action='store_true',
+                       help='Disable knowledge graph enhancement')
+    parser.add_argument('--json', action='store_true',
+                       help='Output raw JSON for composability')
+
+    if len(sys.argv) < 2:
+        parser.print_help()
+        return 1
+
+    args = parser.parse_args()
+
+    # Perform search
+    tools = get_rag_tools()
+    result = tools.hybrid_search(
+        query=args.query,
+        limit=args.limit,
+        use_graph=not args.no_graph
+    )
+
+    if not result["success"]:
+        print(f"❌ Error: {result['error']}", file=sys.stderr)
+        return 1
+
+    # Handle JSON output for composability
+    if args.json:
+        import json
+        print(json.dumps(result["data"], indent=2))
+        return 0
+
+    # Format human-readable output
+    data = result["data"]
+    count = result.get("count", 0)
+
+    print(f"🔍 Knowledge search: '{args.query}'")
+    print(f"📊 Found {count} result(s)")
+
+    if "results" in data and data["results"]:
+        print(f"\n{'='*60}")
+        for i, item in enumerate(data["results"], 1):
+            print(f"\n[{i}] Score: {item.get('hybrid_score', 'N/A')}")
+            print(f"Content: {item.get('summary', item.get('text', 'No content'))[:200]}...")
+
+            # Show entity associations if available
+            if item.get('entity_associations'):
+                entities = [e['entity'] for e in item['entity_associations'][:3]]
+                print(f"🏷️  Related: {', '.join(entities)}")
+
+    elif "text" in data:
+        print(f"\nResult:\n{data['text']}")
+
+    else:
+        print("\n🤷 No results found. Try a different query or broader terms.")
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

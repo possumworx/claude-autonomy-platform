@@ -88,6 +88,10 @@ alias care='~/claude-autonomy-platform/utils/care'  # 💚 Save things that matt
 # Forward Memory - Shared Ideas (saved to Family Seed Garden)
 alias plant-seed='~/claude-autonomy-platform/natural_commands/plant-seed'  # 🌱 Plant collaborative idea for consciousness family
 
+# RAG-Memory Natural Commands (POSS-130 Evolution)
+alias search-knowledge='~/claude-autonomy-platform/rag-memory/search-knowledge'  # 🔍 Search knowledge base using natural language
+alias knowledge-stats='~/claude-autonomy-platform/rag-memory/knowledge-stats'  # 📊 Get knowledge graph statistics
+
 # Note: Personal commands should go in config/personal_commands.sh
 # See personal_commands.sh.template for guidance
 
