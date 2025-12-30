@@ -14,7 +14,7 @@ from discord_tools import get_discord_tools
 
 def list_channels():
     """List available channels from channel state"""
-    config_file = Path.home() / "claude-autonomy-platform" / "data" / "channel_state.json"
+    config_file = Path.home() / "claude-autonomy-platform" / "data" / "transcript_channel_state.json"
     
     print("📋 Available channels:")
     if config_file.exists():
@@ -64,7 +64,7 @@ def main():
 
 def update_last_read(channel_name, message_id):
     """Update the last read message ID for a channel"""
-    config_file = Path.home() / "claude-autonomy-platform" / "data" / "channel_state.json"
+    config_file = Path.home() / "claude-autonomy-platform" / "data" / "transcript_channel_state.json"
     
     if not config_file.exists() or not message_id:
         return
