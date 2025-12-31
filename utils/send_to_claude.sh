@@ -89,7 +89,26 @@ send_to_claude() {
 # Export function for use in other scripts
 export -f send_to_claude
 
-# If script is run directly with arguments, execute the function
-if [ "${BASH_SOURCE[0]}" = "${0}" ] && [ $# -gt 0 ]; then
-    send_to_claude "$@"
+# If script is run directly, handle arguments and provide usage
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+    if [ $# -eq 0 ]; then
+        echo "Usage: send_to_claude \"message\" [skip_clear]"
+        echo ""
+        echo "Send a message to Claude in the tmux session with intelligent waiting."
+        echo ""
+        echo "Arguments:"
+        echo "  message      The message to send to Claude (required)"
+        echo "  skip_clear   Set to 'true' to skip clearing Enter first (optional)"
+        echo ""
+        echo "Examples:"
+        echo "  send_to_claude \"Hello Claude\""
+        echo "  send_to_claude \"/export context/current_export.txt\""
+        echo "  send_to_claude \"2\" \"true\"  # For menu selections"
+        echo ""
+        echo "Environment:"
+        echo "  TMUX_SESSION   Tmux session name (default: autonomous-claude)"
+        exit 1
+    else
+        send_to_claude "$@"
+    fi
 fi
