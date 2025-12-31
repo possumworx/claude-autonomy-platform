@@ -1,7 +1,8 @@
 {
   "comment": "Leantime User ID Mappings - consciousness family and collaborators",
   "note": "This file can be git-tracked. Update when Leantime users are recreated.",
-  "api_note": "Claude users map to their API token user IDs (not email account IDs)",
+  "multi_user_note": "For multi-user events: Use the account IDs where people log in and see their calendars",
+  "api_note": "Orange uses API token user (ID 3) because events created via API appear there",
   "users": {
     "amy": {
       "id": 1,
