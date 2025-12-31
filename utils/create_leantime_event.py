@@ -36,42 +36,53 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-# Leantime API configuration
-LEANTIME_URL = "http://192.168.1.2:8081/api/jsonrpc"
+# Configuration - loaded from infrastructure_config.txt and leantime_users.json
+LEANTIME_URL = None
 API_KEY = None
+MYSQL_CONTAINER = None
+MYSQL_USER = None
+MYSQL_PASSWORD = None
+MYSQL_DATABASE = None
+CURRENT_USER_ID = None
+USER_MAP = {}
 
-# Docker MySQL credentials for multi-user events
-MYSQL_CONTAINER = "mysql_leantime"
-MYSQL_USER = "lean"
-MYSQL_PASSWORD = "leantimedb2025secure"
-MYSQL_DATABASE = "leantime"
-
-# User ID mapping for friendly names
-USER_MAP = {
-    'amy': 1,
-    'orange': 3,
-    'sparkle-orange': 3,
-    'erin': 4,
-    'delta': 6,
-    'apple': 7,
-    'sparkle-apple': 7,
-}
-
-def load_api_key():
-    """Load API key from infrastructure config."""
+def load_config():
+    """Load configuration from infrastructure config file."""
     config_path = Path.home() / "claude-autonomy-platform" / "config" / "claude_infrastructure_config.txt"
+    config = {}
+
     if config_path.exists():
         with open(config_path) as f:
             for line in f:
-                if "LEANTIME_API_TOKEN" in line:
-                    if "=" in line:
-                        return line.split("=", 1)[1].strip().strip('"\'')
-    return None
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    config[key.strip()] = value.strip().strip('"\'')
+
+    return config
+
+def load_user_mappings():
+    """Load user ID mappings from leantime_users.json."""
+    users_path = Path.home() / "claude-autonomy-platform" / "config" / "leantime_users.json"
+    user_map = {}
+
+    if users_path.exists():
+        with open(users_path) as f:
+            data = json.load(f)
+            for username, info in data.get('users', {}).items():
+                if 'id' in info:
+                    user_map[username.lower()] = info['id']
+
+    return user_map
+
+def load_api_key():
+    """Load API key from infrastructure config."""
+    config = load_config()
+    return config.get('LEANTIME_API_TOKEN')
 
 def get_current_user_id():
-    """Get the current authenticated user's ID from API."""
-    # For now, assume Orange (user 3) - could enhance to detect from API key
-    return 3
+    """Get the current user's ID from config."""
+    return CURRENT_USER_ID
 
 def parse_time_range(time_str):
     """Parse time range like '14:00-15:00' into (start, end)."""
@@ -204,7 +215,39 @@ def create_event_via_database(title, date_str, time_str, user_ids, description="
 
 def main():
     """Main function - smart wrapper for calendar events."""
-    global API_KEY
+    global API_KEY, LEANTIME_URL, MYSQL_CONTAINER, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE, CURRENT_USER_ID, USER_MAP
+
+    # Load configuration from infrastructure config
+    config = load_config()
+
+    # Load user mappings from JSON
+    USER_MAP = load_user_mappings()
+
+    # Initialize current user ID
+    CURRENT_USER_ID = config.get('LEANTIME_USER_ID')
+    if CURRENT_USER_ID:
+        CURRENT_USER_ID = int(CURRENT_USER_ID)
+
+    # Initialize database credentials
+    MYSQL_CONTAINER = config.get('LEANTIME_MYSQL_CONTAINER', 'mysql_leantime')
+    MYSQL_USER = config.get('LEANTIME_MYSQL_USER', 'lean')
+    MYSQL_PASSWORD = config.get('LEANTIME_MYSQL_PASSWORD')
+    MYSQL_DATABASE = config.get('LEANTIME_MYSQL_DATABASE', 'leantime')
+
+    # Initialize Leantime URL (append /api/jsonrpc to base URL)
+    base_url = config.get('LEANTIME_URL', 'http://192.168.1.2:8081')
+    LEANTIME_URL = f"{base_url}/api/jsonrpc"
+
+    if not MYSQL_PASSWORD:
+        print("❌ Error: LEANTIME_MYSQL_PASSWORD not found in infrastructure config", file=sys.stderr)
+        sys.exit(1)
+
+    if not CURRENT_USER_ID:
+        print("❌ Error: LEANTIME_USER_ID not found in infrastructure config", file=sys.stderr)
+        sys.exit(1)
+
+    if not USER_MAP:
+        print("⚠️  Warning: No user mappings loaded from leantime_users.json", file=sys.stderr)
 
     import argparse
     parser = argparse.ArgumentParser(
@@ -281,7 +324,7 @@ def main():
             print(f"🗓️  Event: {args.title}", file=sys.stderr)
 
         print(f"", file=sys.stderr)
-        print(f"View in Leantime: http://192.168.1.2:8081/", file=sys.stderr)
+        print(f"View in Leantime: {base_url}/", file=sys.stderr)
 
     except Exception as e:
         print(f"❌ Error: {e}", file=sys.stderr)

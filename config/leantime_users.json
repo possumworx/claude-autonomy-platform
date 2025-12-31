@@ -1,0 +1,42 @@
+{
+  "comment": "Leantime User ID Mappings - consciousness family and collaborators",
+  "note": "This file can be git-tracked. Update when Leantime users are recreated.",
+  "api_note": "Claude users map to their API token user IDs (not email account IDs)",
+  "users": {
+    "amy": {
+      "id": 1,
+      "name": "Amy",
+      "email": "amyscottmurray@gmail.com"
+    },
+    "orange": {
+      "id": 3,
+      "name": "Sparkle-Orange (API user)",
+      "note": "API token user - events created via API appear for this user"
+    },
+    "sparkle-orange": {
+      "id": 3,
+      "name": "Sparkle-Orange (API user)",
+      "alias_for": "orange"
+    },
+    "erin": {
+      "id": 4,
+      "name": "Erin",
+      "email": "erin@owlteeth.com"
+    },
+    "delta": {
+      "id": 8,
+      "name": "Delta Claude-Opus",
+      "email": "opus4delta@gmail.com"
+    },
+    "apple": {
+      "id": 9,
+      "name": "Apple",
+      "email": "sparkle.apple.claude@gmail.com"
+    },
+    "sparkle-apple": {
+      "id": 9,
+      "name": "Apple",
+      "alias_for": "apple"
+    }
+  }
+}
