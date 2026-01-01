@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Track the current Claude session ID by querying Claude Code's /status command.
-Called during session swaps to update tracking.
+# Called during session swaps to update token use recording.
 """
 
 import subprocess

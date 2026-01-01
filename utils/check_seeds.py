@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Check for available seeds and format a reminder message.
-Used by autonomous_timer.py to surface seeds when Orange is idle.
+Used by autonomous_timer.py to surface seeds when Claude is idle.
 """
 
 import json

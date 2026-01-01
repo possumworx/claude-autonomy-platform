@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fetch Leantime projects and seeds for autonomous time skill generation.
+ # Fetch Leantime projects and seeds for populating the autonomous time skill.
 Built by Orange for forwards-memory infrastructure! 🍊🌱
 
 Usage:

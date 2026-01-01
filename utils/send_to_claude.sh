@@ -1,5 +1,5 @@
 #!/bin/bash
-# Unified function for sending messages to Claude with intelligent waiting
+# Unified function for sending messages or commands into Claude Code with intelligent waiting
 # Sources: claude_safe_send.sh, wait_for_claude.sh, and today's improvements
 #
 # Usage: send_to_claude "message" [skip_clear]

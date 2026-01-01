@@ -19,6 +19,7 @@ config\claude_infrastructure_config.template.txt
 config\claude_init.sh
 # Claude Code Session Initialization
 # This script ensures all ClAP commands are available in Claude Code sessions
+# Called by utils/claude_code_init_hook.sh 
 *contains hardcoded paths*
 
 config\claude_state_detector.sh
