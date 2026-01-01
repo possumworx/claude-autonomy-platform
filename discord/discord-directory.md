@@ -12,12 +12,6 @@ discord\write_channel_v2  # exact duplicate
 # Uses the unified discord_tools library
 *have all these been superseded by discord_utils.py?*
 
-discord\channel_monitor_simple.py
-# Channel-based Discord monitoring for ClAP
-# Updates channel_state.json with latest message IDs
-# Uses Discord REST API directly with requests
-*almost certainly obsolete; certainly should be! Needs to be checked*
-
 discord\channel_state.py
 # Channel-based state management for ClAP
 # Tracks Discord channels instead of users - simpler and unified!
@@ -45,12 +39,6 @@ discord\discord_utils.py
 # Provides common functionality for all Discord operations
 *this, vs discord_tools.py? which one is current?*
 
-discord\mute_channel
-# python
-# Mute a Discord channel by temporarily removing it from channel_state.json
-# A systemd timer will automatically restore it after the duration expires
-*Probably obsolete; delete or rewrite to use transcript_channel_state.json*
-
 discord\read_messages
 # Read messages from local transcript files
 # Part of the transcript-based Discord system
@@ -60,14 +48,6 @@ discord\README.md
 *been superseded by discord_utils.py?*
 *should it live in docs/?*
 
-discord\unmute_channel
-# Unmute a Discord channel by restoring it to channel_state.json
-*Probably obsolete; delete or rewrite to use transcript_channel_state.json*
-
-discord\unmute_expired_channels
-# Check for expired muted channels and automatically unmute them
-# This script is run periodically by a systemd timer
-*we do NOT need this zombie stuff*
 
 
 
