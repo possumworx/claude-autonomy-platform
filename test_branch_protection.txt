@@ -1,1 +1,0 @@
-# Branch Protection Test\nTesting if branch protection works!
