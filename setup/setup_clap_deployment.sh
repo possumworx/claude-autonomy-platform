@@ -1239,7 +1239,6 @@ else
         ["config/claude_infrastructure_config.txt"]="Infrastructure config"
         ["utils/claude_paths.py"]="Path utilities"
         ["core/autonomous_timer.py"]="Autonomous timer"
-        ["core/session_bridge_monitor.py"]="Session bridge"
         ["core/session_swap_monitor.py"]="Session swap"
         # Channel monitor functionality now integrated into autonomous-timer
     )
