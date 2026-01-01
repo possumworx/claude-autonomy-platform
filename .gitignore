@@ -45,6 +45,7 @@ target/logs/
 channel_state.json
 last_seen_message_id.txt
 monitor_debug.log
+logs/bot_status.json
 
 # Claude Code directory (personal settings and identity)
 .claude/*
