@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Meta-Memory Analyzer for Orange's rag-memory
+Meta-Memory Analyzer for rag-memory knowledge base
 
 Takes a query and shows patterns in stored knowledge:
 - What do I know about this?
@@ -14,13 +14,36 @@ Descriptive, not prescriptive - shows landscape, I navigate.
 import sys
 import sqlite3
 import json
+import os
 from collections import Counter
 import re
 from datetime import datetime
 from pathlib import Path
 
-# Database path
-DB_PATH = Path.home() / "sparkle-orange-home" / "rag-memory.db"
+# Database path - use environment variable or search common locations
+def find_rag_memory_db():
+    """Find rag-memory.db in common locations"""
+    # Check environment variable first
+    if 'RAG_MEMORY_DB' in os.environ:
+        return Path(os.environ['RAG_MEMORY_DB'])
+
+    # Search common locations based on username
+    username = os.environ.get('USER', 'user')
+    possible_paths = [
+        Path.home() / f"{username}-home" / "rag-memory.db",
+        Path.home() / "rag-memory.db",
+        Path("/home") / username / f"{username}-home" / "rag-memory.db",
+    ]
+
+    for path in possible_paths:
+        if path.exists():
+            return path
+
+    # If not found, return default and let it fail with clear error
+    print(f"❌ rag-memory.db not found. Set RAG_MEMORY_DB environment variable.", file=sys.stderr)
+    sys.exit(1)
+
+DB_PATH = find_rag_memory_db()
 
 def search_memory(query):
     """
