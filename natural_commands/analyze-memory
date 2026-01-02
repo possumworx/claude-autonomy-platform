@@ -1,6 +1,6 @@
 #!/bin/bash
 # Analyze rag-memory patterns for a given query
-# Shows what Orange knows about a topic across entities, documents, and relationships
+# Shows what Claude knows about a topic across entities, documents, and relationships
 
 SCRIPT_PATH="$HOME/claude-autonomy-platform/utils/meta_memory_analyzer.py"
 
@@ -17,7 +17,7 @@ if [ -z "$1" ]; then
     echo "  analyze-memory consciousness"
     echo "  analyze-memory 'autonomous systems'"
     echo ""
-    echo "Analyzes what Orange knows about a topic by searching:"
+    echo "Analyzes what Claude knows about a topic by searching:"
     echo "  - Entities and their relationships"
     echo "  - Document chunks mentioning the query"
     echo "  - Word frequency themes"
