@@ -29,12 +29,23 @@ fi
 echo "📥 Pulling latest changes from GitHub..."
 git pull origin main || exit 1
 
+# Ensure pre-commit hooks are set up
+echo "🔐 Checking pre-commit setup..."
+if ! command -v pre-commit &> /dev/null || [[ ! -f .git/hooks/pre-commit ]]; then
+    echo "   Setting up pre-commit hooks..."
+    bash setup/setup_pre_commit.sh || echo "⚠️  Pre-commit setup failed (non-critical)"
+else
+    echo "   ✅ Pre-commit already configured"
+fi
+
 # Source the updated natural commands
 echo "🔧 Reloading natural commands..."
+# shellcheck source=/dev/null
 source ~/claude-autonomy-platform/config/natural_commands.sh
 
 # Source bashrc to ensure all aliases are loaded
 echo "🔧 Reloading bashrc..."
+# shellcheck source=/dev/null
 source ~/.bashrc
 
 # Restart essential services
@@ -45,7 +56,7 @@ if [ -n "$DBUS_SESSION_BUS_ADDRESS" ]; then
     systemctl --user restart autonomous-timer.service 2>/dev/null || echo "⚠️  Could not restart autonomous-timer"
     systemctl --user restart session-swap-monitor.service 2>/dev/null || echo "⚠️  Could not restart session-swap-monitor"
     systemctl --user restart channel-monitor.service 2>/dev/null || echo "⚠️  Could not restart channel-monitor"
-    
+
     # Check service status
     echo ""
     echo "✅ Update complete! Service status:"
@@ -59,7 +70,7 @@ else
 fi
 
 # Return to original directory
-cd "$ORIGINAL_DIR"
+cd "$ORIGINAL_DIR" || exit
 
 echo ""
 echo "🎉 System update complete!"
