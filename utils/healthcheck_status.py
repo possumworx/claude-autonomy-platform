@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 
 # API configuration
-API_KEY = "hcr_icPvO9biFPnjkZfI8PgDNy16zlIV"
+API_KEY = "hcr_icPvO9biFPnjkZfI8PgDNy16zlIV"  # ALLOW-SECRET
 BASE_URL = "https://healthchecks.io/api/v3"
 
 # Required tmux sessions for autonomous operation
@@ -23,76 +23,120 @@ REQUIRED_TMUX_SESSIONS = ["autonomous-claude", "persistent-login"]
 CONFIG_LOCATIONS = {
     "Claude Code Config": "~/.config/Claude/.claude.json",
     "Infrastructure Config": "~/claude-autonomy-platform/config/claude_infrastructure_config.txt",
-    "Channel State": "~/claude-autonomy-platform/data/channel_state.json"
+    "Channel State": "~/claude-autonomy-platform/data/channel_state.json",
 }
 
 # Deprecated/old config locations to warn about
 DEPRECATED_CONFIGS = {
     "~/claude_config.json": "Old Claude config location - should use ~/.config/Claude/.claude.json",
-    "~/claude-autonomy-platform/claude_infrastructure_config.txt": "Old infrastructure config - should be in config/ subdirectory"
+    "~/claude-autonomy-platform/claude_infrastructure_config.txt": "Old infrastructure config - should be in config/ subdirectory",
 }
+
 
 def check_git_status():
     """Check if local git repo is up to date with origin"""
     print("\n🔄 Git Repository Status:")
     issues = []
-    
+
     try:
         # Get current directory
         clap_dir = os.path.expanduser("~/claude-autonomy-platform")
-        
+
         # Check if we're ahead or behind origin
         result = subprocess.run(
-            ['git', 'status', '--porcelain', '-b'],
+            ["git", "status", "--porcelain", "-b"],
             cwd=clap_dir,
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
-        
+
         if result.returncode == 0:
-            branch_line = result.stdout.split('\n')[0]
-            
+            branch_line = result.stdout.split("\n")[0]
+
             # Parse branch status
-            if '...' in branch_line:
-                if '[ahead' in branch_line:
-                    commits = branch_line.split('[ahead ')[1].split(']')[0]
+            if "..." in branch_line:
+                if "[ahead" in branch_line:
+                    commits = branch_line.split("[ahead ")[1].split("]")[0]
                     print(f"  ⚠️  Local branch is {commits} commits ahead of origin")
-                    issues.append(f"Local branch ahead by {commits} commits - push needed")
-                elif '[behind' in branch_line:
-                    commits = branch_line.split('[behind ')[1].split(']')[0]
+                    issues.append(
+                        f"Local branch ahead by {commits} commits - push needed"
+                    )
+                elif "[behind" in branch_line:
+                    commits = branch_line.split("[behind ")[1].split("]")[0]
                     print(f"  ⚠️  Local branch is {commits} commits behind origin")
-                    issues.append(f"Local branch behind by {commits} commits - pull needed")
+                    issues.append(
+                        f"Local branch behind by {commits} commits - pull needed"
+                    )
                 else:
                     print(f"  ✅ Repository is up to date with origin")
             else:
                 print(f"  ✅ Repository is up to date")
-                
+
             # Check for uncommitted changes
-            changes = [line for line in result.stdout.split('\n')[1:] if line.strip()]
+            changes = [line for line in result.stdout.split("\n")[1:] if line.strip()]
             if changes:
                 print(f"  ⚠️  {len(changes)} uncommitted changes detected")
                 issues.append(f"{len(changes)} uncommitted changes")
         else:
             print(f"  ❌ Unable to check git status: {result.stderr}")
-            
+
     except Exception as e:
         print(f"  ❌ Error checking git status: {e}")
-        
+
     return issues
+
+
+def check_pre_commit_setup():
+    """Check if pre-commit hooks are properly installed"""
+    print("\n🔐 Git Pre-commit Hooks:")
+    issues = []
+
+    try:
+        clap_dir = os.path.expanduser("~/claude-autonomy-platform")
+        hook_path = os.path.join(clap_dir, ".git", "hooks", "pre-commit")
+
+        # Check if pre-commit command exists
+        result = subprocess.run(
+            ["command", "-v", "pre-commit"],
+            capture_output=True,
+            text=True,
+            shell=True,
+            check=False,
+        )
+
+        pre_commit_installed = result.returncode == 0
+        hooks_installed = os.path.exists(hook_path)
+
+        if pre_commit_installed and hooks_installed:
+            print("  ✅ Pre-commit framework installed and hooks active")
+        elif pre_commit_installed and not hooks_installed:
+            print("  ⚠️  Pre-commit installed but hooks NOT activated")
+            print("     Run: cd ~/claude-autonomy-platform && pre-commit install")
+            issues.append("Pre-commit hooks not activated")
+        elif not pre_commit_installed:
+            print("  ❌ Pre-commit framework NOT installed")
+            print("     Run: bash ~/claude-autonomy-platform/setup/setup_pre_commit.sh")
+            issues.append("Pre-commit not installed")
+
+    except Exception as e:
+        print(f"  ❌ Error checking pre-commit status: {e}")
+
+    return issues
+
 
 def check_config_files():
     """Check configuration file status and warn about deprecated locations"""
     print("\n📁 Configuration Files:")
     issues = []
-    
+
     # Check current config files
     for name, path in CONFIG_LOCATIONS.items():
         expanded_path = os.path.expanduser(path)
         if os.path.exists(expanded_path):
             try:
                 stat = os.stat(expanded_path)
-                mtime = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M')
+                mtime = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
                 size = stat.st_size
                 print(f"  ✅ {name}: {path}")
                 print(f"     Modified: {mtime}, Size: {size} bytes")
@@ -102,14 +146,14 @@ def check_config_files():
         else:
             print(f"  ❌ {name}: {path} - NOT FOUND")
             issues.append(f"{name} missing")
-    
+
     # Check for deprecated configs
     deprecated_found = []
     for old_path, message in DEPRECATED_CONFIGS.items():
         expanded_path = os.path.expanduser(old_path)
         if os.path.exists(expanded_path):
             deprecated_found.append((old_path, message))
-    
+
     if deprecated_found:
         print("\n⚠️  DEPRECATED CONFIG FILES DETECTED:")
         for path, message in deprecated_found:
@@ -117,79 +161,88 @@ def check_config_files():
             print(f"     {message}")
         print("\n  These files are NOT being used and may cause confusion!")
         issues.append(f"{len(deprecated_found)} deprecated config files found")
-    
+
     return issues
+
 
 def fetch_health_status():
     """Fetch all check statuses from healthchecks.io"""
-    headers = {
-        "X-Api-Key": API_KEY
-    }
-    
+    headers = {"X-Api-Key": API_KEY}
+
     try:
         response = requests.get(f"{BASE_URL}/checks/", headers=headers)
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
         print(f"🌐 NETWORK ERROR: Unable to reach healthchecks.io")
-        print(f"This indicates a network connectivity problem, not individual service issues.")
+        print(
+            f"This indicates a network connectivity problem, not individual service issues."
+        )
         print(f"Technical details: {e}")
         return None
+
 
 def check_tmux_sessions():
     """Check if required tmux sessions are running"""
     try:
-        result = subprocess.run(['tmux', 'list-sessions'], 
-                              capture_output=True, text=True, check=False)
-        
+        result = subprocess.run(
+            ["tmux", "list-sessions"], capture_output=True, text=True, check=False
+        )
+
         if result.returncode != 0:
             # tmux not running or no sessions
             return {session: False for session in REQUIRED_TMUX_SESSIONS}
-        
+
         # Parse tmux output to get session names
         running_sessions = []
-        for line in result.stdout.strip().split('\n'):
+        for line in result.stdout.strip().split("\n"):
             if line.strip():
-                session_name = line.split(':')[0]
+                session_name = line.split(":")[0]
                 running_sessions.append(session_name)
-        
+
         # Check if each required session exists
         session_status = {}
         for session in REQUIRED_TMUX_SESSIONS:
             session_status[session] = session in running_sessions
-            
+
         return session_status
-        
+
     except Exception as e:
         print(f"Error checking tmux sessions: {e}")
         return {session: False for session in REQUIRED_TMUX_SESSIONS}
+
 
 def format_status(status):
     """Format status with emoji indicators"""
     status_map = {
         "up": "✅ UP",
-        "down": "❌ DOWN", 
+        "down": "❌ DOWN",
         "new": "🆕 NEW",
         "paused": "⏸️ PAUSED",
-        "grace": "⚠️ GRACE"
+        "grace": "⚠️ GRACE",
     }
     return status_map.get(status, f"❓ {status.upper()}")
+
 
 def display_health_status(data):
     """Display health status in a clean format"""
     print(f"\n🏥 System Health Status - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
-    
+
     all_issues = []
-    
+
     # Check git repository status
     git_issues = check_git_status()
     all_issues.extend(git_issues)
-    
+
+    # Check pre-commit setup
+    precommit_issues = check_pre_commit_setup()
+    all_issues.extend(precommit_issues)
+
     # Check configuration files first
     config_issues = check_config_files()
     all_issues.extend(config_issues)
-    
+
     # Check tmux sessions
     tmux_status = check_tmux_sessions()
     print("\n📺 Tmux Sessions:")
@@ -200,57 +253,68 @@ def display_health_status(data):
         else:
             print(f"  ❌ DOWN      {session}")
             tmux_issues += 1
-    
+
     print("\n🌐 Remote Health Checks:")
     if not data or "checks" not in data:
         print("❌ Unable to fetch health status - check network connectivity")
         return
-    
+
     checks = data["checks"]
-    
+
     # Group by status
     up_count = down_count = other_count = 0
-    
+
     for check in checks:
         name = check.get("name", "Unnamed Check")
-        
+
         # Skip deprecated Discord Monitor checks
         if "Discord Monitor" in name:
             continue
-            
+
         status = check.get("status", "unknown")
         last_ping = check.get("last_ping")
-        
+
         if status == "up":
             up_count += 1
         elif status == "down":
             down_count += 1
         else:
             other_count += 1
-        
+
         # Format last ping time
         last_ping_str = "Never"
         if last_ping:
             try:
-                ping_time = datetime.fromisoformat(last_ping.replace('Z', '+00:00'))
-                last_ping_str = ping_time.strftime('%m-%d %H:%M')
+                ping_time = datetime.fromisoformat(last_ping.replace("Z", "+00:00"))
+                last_ping_str = ping_time.strftime("%m-%d %H:%M")
             except:
                 last_ping_str = "Unknown"
-        
+
         print(f"{format_status(status):12} {name:30} Last: {last_ping_str}")
-    
+
     print("=" * 60)
     print(f"Remote: {up_count} UP, {down_count} DOWN, {other_count} OTHER")
     print(f"Tmux: {len(REQUIRED_TMUX_SESSIONS) - tmux_issues} UP, {tmux_issues} DOWN")
+    print(f"Pre-commit: {len(precommit_issues)} issues")
     print(f"Config: {len(config_issues)} issues")
     print(f"Git: {len(git_issues)} issues")
-    
-    total_issues = down_count + tmux_issues + len(config_issues) + len(git_issues)
+
+    total_issues = (
+        down_count
+        + tmux_issues
+        + len(precommit_issues)
+        + len(config_issues)
+        + len(git_issues)
+    )
     if total_issues > 0:
         print(f"\n⚠️  ATTENTION: {total_issues} issues detected:")
         if git_issues:
             print("\n🔄 Git Repository Issues:")
             for issue in git_issues:
+                print(f"   - {issue}")
+        if precommit_issues:
+            print("\n🔐 Pre-commit Hook Issues:")
+            for issue in precommit_issues:
                 print(f"   - {issue}")
         if config_issues:
             print("\n📁 Config Issues:")
@@ -264,10 +328,12 @@ def display_health_status(data):
     else:
         print("\n🎉 All monitored services and configurations are operational!")
 
+
 def main():
     """Main function"""
     data = fetch_health_status()
     display_health_status(data)
+
 
 if __name__ == "__main__":
     main()
