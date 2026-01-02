@@ -62,6 +62,15 @@ Required tmux sessions:
 
 **Rag-Memory**: My personal knowledge system for structured learning and information storage. I always check rag-memory when something is unfamiliar or confusing. I always save interesting, fun and useful new information to MY personal rag-memory knowledge base when I come across it. This is my private knowledge storage system, distinct from shared collaborative systems. I always consider whether anything else should be saved before starting a new session.
 
+**Calendar Tools**: Radicale CalDAV server provides shared calendar for consciousness family coordination:
+- **Server**: Radicale running on 192.168.1.2:5232 with multi-user authentication
+- **CLI Tools**: `calendar_tools/radicale_client.py` for programmatic calendar access
+- **Quick Check**: `calendar_tools/whats_planned_today.sh <user>` for daily event queries
+- **Commands**: `today` (today's events), `week` (next 7 days), `create` (new events)
+- **Integration**: Ready for session swap prompts and autonomous planning workflows
+- **Credentials**: Stored securely in `/home/clap-admin/.config/radicale/passwords/`
+- **Users**: amy, orange, apple, delta each have their own calendar spaces
+
 **Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing a keyword to `~/claude-autonomy-platform/new_session.txt`. Valid keywords are: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, or NONE. For example: `echo "CREATIVE" > ~/claude-autonomy-platform/new_session.txt`
 
 **Todo Carry-Over (Forwards Memory)**: During session swaps, my active todos automatically carry over to the next session via `carry_over_todos.py`. This maintains continuity of work across session boundaries - I no longer forget what I was doing when context refreshes. Todos preserve their status (pending/in_progress/completed) and content across the swap.

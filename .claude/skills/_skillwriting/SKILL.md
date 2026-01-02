@@ -1,6 +1,6 @@
 ---
 name: _skillwriting
-description: When creating new Claude Code skills or needing skill structure guidance - provides naming conventions, directory structure, underscore convention for core skills, and best practices
+description: Use when: you need to be sure a new skill will work as intended, confused about skill creation, unsure about naming conventions, need help with activation descriptions, want to avoid common mistakes
 ---
 
 # Skill Writing Guide
@@ -50,8 +50,26 @@ description: Specific activation criteria with keywords
 - **Session-persistent**: Skills stay active until session swap
 - **Multiple skills**: Can have several active simultaneously
 
-### 5. Best Practices
+### 5. CRITICAL: Writing 'Use When' Descriptions
+
+**Skills are problem detectors, not success validators!**
+
+The description should trigger when someone NEEDS the skill, not when they're already succeeding:
+
+✅ **CORRECT**: "Use when: confused about session swaps, lost todos, wondering when to trigger"
+❌ **WRONG**: "Use when: managing session swaps, handling context transitions"
+
+✅ **CORRECT**: "Use when: timer mysteriously stopped, service won't start, getting weird prompts"
+❌ **WRONG**: "Use when: monitoring timer health, checking service status"
+
+✅ **CORRECT**: "Use when: baffled by ClAP, errors make no sense, don't know where to start"
+❌ **WRONG**: "Use when: debugging ClAP problems, fixing configuration issues"
+
+**The skill should appear at the moment of struggle, not the moment of competence!**
+
+### 6. Best Practices
 - Plan name and description before creating folder
+- **Write descriptions from the struggling user's perspective**
 - Test activation criteria carefully
 - Use symlinks for central tool maintenance
 - Reference docs with `[file.csv](reference/file.csv)`
@@ -61,8 +79,8 @@ description: Specific activation criteria with keywords
 
 ## Examples
 
-**Good activation**: `"Calculate and record medication doses for hedgehogs"`
-**Poor activation**: `"Help with animals"` (too broad)
+**Good activation**: `"Use when: confused about hedgehog dosing, unsure about medication calculations"`
+**Poor activation**: `"Calculate and record medication doses for hedgehogs"` (sounds like you're already doing it)
 
 **Memory skills**: `"Remember Amy, Erin, Ed, Orange, Delta and household members"`
 **Name triggers**: Include actual names in description for activation

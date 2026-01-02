@@ -146,7 +146,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 <!-- TREE_START -->
 ```
-/home/sparkle-orange/claude-autonomy-platform
+~/claude-autonomy-platform
 ├── ansible
 │   ├── defaults
 │   │   └── services.list
@@ -276,7 +276,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── RELEASE_NOTES_v053.md
 │   ├── REORGANIZATION_TODO.md
 │   ├── SESSION_AUDIT_README.md
-│   ├── session-bridge-export-design.md
 │   ├── setup-checklist.md
 │   ├── SETUP_SCRIPT_PATH_FIXES.md
 │   ├── sonnet-fix-checklist.md
@@ -380,7 +379,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── autonomous-timer.service
 │   ├── discord-status-bot.service
 │   ├── install_discord_bot.sh
-│   ├── session-bridge-monitor.service
 │   └── session-swap-monitor.service
 ├── setup
 │   ├── exchange_gmail_oauth.cjs
