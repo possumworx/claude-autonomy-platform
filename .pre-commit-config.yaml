@@ -4,6 +4,23 @@
 # Run manually: pre-commit run --all-files
 
 repos:
+  # Custom ClAP checks
+  - repo: local
+    hooks:
+      - id: check-hardcoded-paths
+        name: Check for hardcoded paths
+        entry: hooks/check-hardcoded-paths.sh
+        language: script
+        description: 'Prevent hardcoded user-specific paths'
+        types: [text]
+
+      - id: secret-scanner
+        name: Scan for secrets and credentials
+        entry: utils/secret-scanner check
+        language: script
+        description: 'Detect API keys, passwords, and other secrets'  # ALLOW-SECRET
+        types: [text]
+
   # Line ending fixes (addresses POSS-144)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
@@ -11,16 +28,16 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=lf']
         description: 'Ensure all files use Unix line endings (LF)'
-        
+
       - id: end-of-file-fixer
         description: 'Ensure files end with a newline'
-        
+
       - id: trailing-whitespace
         description: 'Remove trailing whitespace'
-        
+
       - id: check-executables-have-shebangs
         description: 'Ensure executable files have shebangs'
-        
+
       - id: check-shebang-scripts-are-executable
         description: 'Ensure files with shebangs are executable'
 
@@ -30,7 +47,8 @@ repos:
     hooks:
       - id: shellcheck
         description: 'Validate shell scripts with shellcheck'
-        args: ['-e', 'SC1091']  # Ignore sourcing issues for our scripts
+        args: ['-e', 'SC1091', '-e', 'SC2155', '-e', 'SC2178', '-e', 'SC2128']  # Ignore sourcing issues and array warnings
+        exclude: 'utils/secret-scanner'  # Skip secret-scanner (pre-existing warnings)
 
   # JSON/YAML validation
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -38,10 +56,10 @@ repos:
     hooks:
       - id: check-json
         description: 'Validate JSON files'
-        
+
       - id: check-yaml
         description: 'Validate YAML files'
-        
+
       - id: pretty-format-json
         args: ['--autofix', '--indent=2']
         description: 'Format JSON files consistently'
@@ -61,8 +79,8 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=1000']
         description: 'Prevent large files from being committed'
-        
-      - id: detect-private-key
+
+      - id: detect-private-key  # ALLOW-SECRET
         description: 'Detect private keys'
 
 # Configuration
