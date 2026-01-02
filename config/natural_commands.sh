@@ -126,3 +126,50 @@ alias plant-seed='~/claude-autonomy-platform/natural_commands/plant-seed'  # �
 # 
 # # Set up shortcuts if Linear is initialized
 # setup_linear_shortcuts
+
+# ======================================
+# CALENDAR COMMANDS
+# ======================================
+
+# Show today's calendar events
+today() {
+    local password=$(cat /home/clap-admin/.config/radicale/passwords/orange 2>/dev/null)
+    if [ -z "$password" ]; then
+        echo "❌ Could not read Orange calendar password"
+        return 1
+    fi
+    cd ~/claude-autonomy-platform/calendar_tools && \
+    python3 radicale_client.py --user orange --password "$password" today
+}
+
+# Show this week's calendar events
+week() {
+    local password=$(cat /home/clap-admin/.config/radicale/passwords/orange 2>/dev/null)
+    if [ -z "$password" ]; then
+        echo "❌ Could not read Orange calendar password"
+        return 1
+    fi
+    cd ~/claude-autonomy-platform/calendar_tools && \
+    python3 radicale_client.py --user orange --password "$password" week
+}
+
+# Create calendar event
+# Usage: schedule "Event Name" "2026-01-15 14:00" "2026-01-15 15:00" ["Description"]
+schedule() {
+    if [ $# -lt 3 ]; then
+        echo "Usage: schedule \"Event Name\" \"YYYY-MM-DD HH:MM\" \"YYYY-MM-DD HH:MM\" [\"Description\"]"
+        echo ""
+        echo "Example:"
+        echo "  schedule \"Team Meeting\" \"2026-01-15 14:00\" \"2026-01-15 15:00\" \"Weekly sync\""
+        return 1
+    fi
+    
+    local password=$(cat /home/clap-admin/.config/radicale/passwords/orange 2>/dev/null)
+    if [ -z "$password" ]; then
+        echo "❌ Could not read Orange calendar password"
+        return 1
+    fi
+    
+    cd ~/claude-autonomy-platform/calendar_tools && \
+    python3 radicale_client.py --user orange --password "$password" create "$@"
+}
