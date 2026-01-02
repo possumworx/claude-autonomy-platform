@@ -30,35 +30,35 @@ alias edit_status='~/claude-autonomy-platform/discord/edit_status'  # Update Dis
 alias send_image='~/claude-autonomy-platform/discord/send_image'  # Send image files to Discord channel
 alias send_file='~/claude-autonomy-platform/discord/send_file'  # Send any file to Discord channel
 alias fetch_image='~/claude-autonomy-platform/discord/fetch_image'  # Fetch/download images from Discord messages
-alias mute_channel='~/claude-autonomy-platform/discord/mute_channel'  # Temporarily mute a Discord channel
-alias unmute_channel='~/claude-autonomy-platform/discord/unmute_channel'  # Unmute a Discord channel
+# alias mute_channel='~/claude-autonomy-platform/discord/mute_channel'  # Temporarily mute a Discord channel
+# alias unmute_channel='~/claude-autonomy-platform/discord/unmute_channel'  # Unmute a Discord channel
 
 # Quick Navigation
 alias clap='cd ~/claude-autonomy-platform'  # Navigate to ClAP directory
 alias home='cd ~/delta-home'  # Navigate to personal home directory
 
 # Linear Natural Commands - Core
-alias add='~/claude-autonomy-platform/linear/add-enhanced'  # Create new Linear issue with full options
-alias todo='~/claude-autonomy-platform/linear/todo-enhanced'  # Show assigned issues with filters
-alias projects='~/claude-autonomy-platform/linear/projects'  # List your Linear projects
-alias search-issues='~/claude-autonomy-platform/linear/search'  # Search Linear issues
-alias update-status='~/claude-autonomy-platform/linear/update-status'  # Update issue status
+# alias add='~/claude-autonomy-platform/linear/add-enhanced'  # Create new Linear issue with full options
+# alias todo='~/claude-autonomy-platform/linear/todo-enhanced'  # Show assigned issues with filters
+# alias projects='~/claude-autonomy-platform/linear/projects'  # List your Linear projects
+# alias search-issues='~/claude-autonomy-platform/linear/search'  # Search Linear issues
+# alias update-status='~/claude-autonomy-platform/linear/update-status'  # Update issue status
 
 # Linear Natural Commands - Quick Actions
-alias view='~/claude-autonomy-platform/linear/view'  # View detailed issue information
-alias comment='~/claude-autonomy-platform/linear/comment'  # Add comment to issue
-alias start='~/claude-autonomy-platform/linear/start'  # Start working on issue (assign + in progress)
-alias mark-done='~/claude-autonomy-platform/linear/mark-done'  # Mark issue as done
-alias inbox='~/claude-autonomy-platform/linear/inbox'  # Show unassigned team issues
-alias recent='~/claude-autonomy-platform/linear/recent'  # Show recently updated issues
-alias bulk-update='~/claude-autonomy-platform/linear/bulk-update'  # Bulk update issues
+# alias view='~/claude-autonomy-platform/linear/view'  # View detailed issue information
+# alias comment='~/claude-autonomy-platform/linear/comment'  # Add comment to issue
+# alias start='~/claude-autonomy-platform/linear/start'  # Start working on issue (assign + in progress)
+# alias mark-done='~/claude-autonomy-platform/linear/mark-done'  # Mark issue as done
+# alias inbox='~/claude-autonomy-platform/linear/inbox'  # Show unassigned team issues
+# alias recent='~/claude-autonomy-platform/linear/recent'  # Show recently updated issues
+# alias bulk-update='~/claude-autonomy-platform/linear/bulk-update'  # Bulk update issues
 
 # Linear Natural Commands - Shortcuts
-alias mine='~/claude-autonomy-platform/linear/todo-enhanced'  # Alias for todo
-alias urgent='~/claude-autonomy-platform/linear/todo-enhanced --priority 1,2'  # Show urgent issues
-alias blocked='~/claude-autonomy-platform/linear/todo-enhanced --status blocked'  # Show blocked issues
-alias done='~/claude-autonomy-platform/linear/todo-enhanced --status done --limit 10'  # Show recent completed
-alias linear-help='~/claude-autonomy-platform/linear/help'  # Show Linear CLI help
+# alias mine='~/claude-autonomy-platform/linear/todo-enhanced'  # Alias for todo
+# alias urgent='~/claude-autonomy-platform/linear/todo-enhanced --priority 1,2'  # Show urgent issues
+# alias blocked='~/claude-autonomy-platform/linear/todo-enhanced --status blocked'  # Show blocked issues
+# alias done='~/claude-autonomy-platform/linear/todo-enhanced --status done --limit 10'  # Show recent completed
+# alias linear-help='~/claude-autonomy-platform/linear/help'  # Show Linear CLI help
 
 # Project shortcuts are added dynamically - see setup_linear_shortcuts below
 
