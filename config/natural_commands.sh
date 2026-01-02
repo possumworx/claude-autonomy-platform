@@ -65,6 +65,9 @@ alias linear-help='~/claude-autonomy-platform/linear/help'  # Show Linear CLI he
 # Utility Commands
 alias list-commands='~/claude-autonomy-platform/utils/list-commands'  # List all natural and personal commands
 
+# Knowledge Management
+alias analyze-memory='~/claude-autonomy-platform/natural_commands/analyze-memory'  # Analyze rag-memory patterns for queries
+
 # Session Management Helpers
 alias context='~/claude-autonomy-platform/utils/check_context.py'  # Show current context usage
 alias ctx='~/claude-autonomy-platform/utils/check_context.py'  # Short version of context command

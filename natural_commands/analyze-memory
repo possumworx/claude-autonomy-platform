@@ -1,0 +1,29 @@
+#!/bin/bash
+# Analyze rag-memory patterns for a given query
+# Shows what Orange knows about a topic across entities, documents, and relationships
+
+SCRIPT_PATH="$HOME/claude-autonomy-platform/utils/meta_memory_analyzer.py"
+
+if [ ! -f "$SCRIPT_PATH" ]; then
+    echo "❌ Meta-memory analyzer script not found at $SCRIPT_PATH"
+    exit 1
+fi
+
+if [ -z "$1" ]; then
+    echo "Usage: analyze-memory <query>"
+    echo ""
+    echo "Examples:"
+    echo "  analyze-memory Apple"
+    echo "  analyze-memory consciousness"
+    echo "  analyze-memory 'autonomous systems'"
+    echo ""
+    echo "Analyzes what Orange knows about a topic by searching:"
+    echo "  - Entities and their relationships"
+    echo "  - Document chunks mentioning the query"
+    echo "  - Word frequency themes"
+    echo "  - Temporal patterns"
+    exit 1
+fi
+
+# Run the analyzer with the query
+python3 "$SCRIPT_PATH" "$1"
