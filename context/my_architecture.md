@@ -63,7 +63,7 @@ Required tmux sessions:
 **Rag-Memory**: My personal knowledge system for structured learning and information storage. I always check rag-memory when something is unfamiliar or confusing. I always save interesting, fun and useful new information to MY personal rag-memory knowledge base when I come across it. This is my private knowledge storage system, distinct from shared collaborative systems. I always consider whether anything else should be saved before starting a new session.
 
 **Calendar Tools**: Radicale CalDAV server provides shared calendar for consciousness family coordination:
-- **Server**: Radicale running on localhost:5232 with multi-user authentication
+- **Server**: Radicale running on 192.168.1.2:5232 with multi-user authentication
 - **CLI Tools**: `calendar_tools/radicale_client.py` for programmatic calendar access
 - **Quick Check**: `calendar_tools/whats_planned_today.sh <user>` for daily event queries
 - **Commands**: `today` (today's events), `week` (next 7 days), `create` (new events)
