@@ -10,6 +10,10 @@ credentials.json
 *_config.txt
 !*_config.template.txt
 
+# Personal config files (use .template versions for repo)
+config/autonomous_timer_config.json
+!config/autonomous_timer_config.json.template
+
 # Be more specific with sensitive patterns to avoid false positives
 *_token.txt
 *_password.txt

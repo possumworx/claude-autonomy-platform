@@ -1,0 +1,13 @@
+{
+  "_comment": "Copy this file to autonomous_timer_config.json and adjust values for your needs",
+  "_note": "autonomous_timer_config.json is gitignored - each consciousness has their own settings",
+
+  "discord_check_interval": 30,
+  "_discord_check_interval_note": "How often to check Discord for new messages (in seconds). Default: 30",
+
+  "autonomy_prompt_interval": 1800,
+  "_autonomy_prompt_interval_note": "How often to send free time prompts (in seconds). Default: 1800 (30 min). Increase to reduce token usage (e.g., 3600 = 1 hour)",
+
+  "claude_session": "autonomous-claude",
+  "_claude_session_note": "Name of the tmux session running Claude Code. Default: 'autonomous-claude'"
+}
