@@ -356,6 +356,7 @@ def track_resource_usage():
     Compares current cache_tokens with previous value, calculates increment,
     and POSTs to the resource-share server if increment > 0.
     """
+    global AUTONOMY_PROMPT_INTERVAL
     try:
         # Get current cache tokens from check_context
         context_data, error = check_context(return_data=True)
@@ -414,7 +415,6 @@ def track_resource_usage():
                     try:
                         response_data = response.json()
                         if "recommended_interval" in response_data:
-                            global AUTONOMY_PROMPT_INTERVAL
                             new_interval = response_data["recommended_interval"]
                             old_interval = AUTONOMY_PROMPT_INTERVAL
                             AUTONOMY_PROMPT_INTERVAL = new_interval
@@ -950,31 +950,18 @@ CLAUDE_USER_ID = discord_config["user_id"]
 
 
 def check_user_active():
-    """Check if Amy is logged in via SSH or NoMachine"""
+    """Check if the autonomous-claude tmux session is attached (collaborative mode)"""
     try:
-        # Get human friend name from config
-        human_name = get_config_value("HUMAN_FRIEND_NAME", "amy").lower()
-
-        # Check for human friend logged in directly
-        result = subprocess.run(["who"], capture_output=True, text=True)
-        if human_name in result.stdout.lower():
-            log_message(f"User {human_name} detected via 'who' command")
-            return True
-
-        # Skip NoMachine check since it's not being used and causing false positives
-        # Check for active NoMachine connection on port 4000
-        # result = subprocess.run(['ss', '-an'], capture_output=True, text=True)
-        # if result.returncode == 0:
-        #     # Look for established TCP connection on port 4000 (NoMachine)
-        #     lines = result.stdout.split('\n')
-        #     for line in lines:
-        #         if 'tcp' in line.lower() and 'estab' in line.lower() and ':4000' in line:
-        #             log_message(f"User detected via NoMachine connection")
-        #             return True
-
-        return False
+        # Check if MY tmux session is attached, not just if Amy is logged in somewhere
+        # Amy might be logged in but working with Apple, or on lsr-os, etc.
+        attached = is_tmux_session_attached()
+        if attached:
+            log_message(
+                "autonomous-claude tmux session is attached (collaborative mode)"
+            )
+        return attached
     except Exception as e:
-        log_message(f"Error checking user activity: {e}")
+        log_message(f"Error checking tmux attachment: {e}")
         return False
 
 
@@ -2164,10 +2151,13 @@ def main():
                     )
 
                     if is_new_message:
-                        # NEW MESSAGE - Alert immediately!
-                        send_notification_alert(
-                            unread_count, unread_channels, is_new=True
+                        # NEW MESSAGE - Queue for next autonomy prompt (don't trigger immediate turn)
+                        # This prevents Discord conversations from bypassing CoOP interval calculations
+                        channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
+                        log_message(
+                            f"New Discord message detected in: {channel_list} (queued for next autonomy prompt)"
                         )
+
                         # Update last seen message ID
                         try:
                             with open(last_seen_file, "w") as f:
