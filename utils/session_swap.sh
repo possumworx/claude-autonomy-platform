@@ -94,7 +94,7 @@ if [[ -f "$full_path" ]]; then
     current_time=$(date +%s)
     file_mtime=$(stat -c %Y "$full_path" 2>/dev/null || echo 0)
     time_diff=$((current_time - file_mtime))
-    
+
     if [[ $time_diff -le 30 ]]; then
         file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
         file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
@@ -147,7 +147,7 @@ else
     echo "[SESSION_SWAP] Sending quota info to Claude..."
     send_to_claude "$QUOTA_OUTPUT"
     sleep 2  # Give Claude a moment to process
-    
+
     # Also log the status
     if [ $exit_code -eq 2 ]; then
         echo "[SESSION_SWAP] WARNING: Opus quota is critical - consider deferring non-essential work"
@@ -182,7 +182,7 @@ if tmux list-panes -t autonomous-claude -F '#{pane_pid}' 2>/dev/null | xargs -I 
     echo "[SESSION_SWAP] WARNING: Claude still running, retrying /exit..."
     send_to_claude "/exit"
     sleep 10
-    
+
     # Final check - Claude might have been busy with something
     if tmux list-panes -t autonomous-claude -F '#{pane_pid}' 2>/dev/null | xargs -I {} pgrep -P {} claude > /dev/null 2>&1; then
         echo "[SESSION_SWAP] WARNING: Claude still running after retry - will force kill"
@@ -213,7 +213,7 @@ if [[ -f "$CLAP_DIR/data/current_session.log" ]]; then
     timestamp=$(date '+%Y%m%d_%H%M%S')
     mv "$CLAP_DIR/data/current_session.log" "$CLAP_DIR/data/session_ended_${timestamp}.log"
     echo "[SESSION_SWAP] Rotated current session log to session_ended_${timestamp}.log"
-    
+
     # Clean up old session logs (keep only 10 most recent)
     cd "$CLAP_DIR/data"
     ls -t session_ended_*.log 2>/dev/null | tail -n +11 | xargs -r rm -f
@@ -251,6 +251,10 @@ sleep 2
 
 # Clear any stray keypresses before starting Claude
 tmux send-keys -t autonomous-claude Enter
+
+# Source bashrc to ensure environment variables like LINUX_USER are exported
+tmux send-keys -t autonomous-claude "source ~/.bashrc" Enter
+sleep 1
 
 # Start Claude in the new session
 tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" Enter
