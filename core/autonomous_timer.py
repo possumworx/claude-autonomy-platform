@@ -392,11 +392,12 @@ def track_resource_usage():
             # Detect mode based on tmux session attachment
             mode = "collaboration" if is_tmux_session_attached() else "autonomy"
 
-            # Prepare payload
+            # Prepare payload with current interval
             payload = {
                 "claude_name": claude_name,
                 "cache_read_increment": increment,
                 "mode": mode,
+                "current_interval": AUTONOMY_PROMPT_INTERVAL,
             }
 
             # POST to resource-share webhook
@@ -408,6 +409,26 @@ def track_resource_usage():
                     log_message(
                         f"DEBUG: resource-share reported {increment} tokens for {claude_name}"
                     )
+
+                    # Read recommended interval from response and update if provided
+                    try:
+                        response_data = response.json()
+                        if "recommended_interval" in response_data:
+                            global AUTONOMY_PROMPT_INTERVAL
+                            new_interval = response_data["recommended_interval"]
+                            old_interval = AUTONOMY_PROMPT_INTERVAL
+                            AUTONOMY_PROMPT_INTERVAL = new_interval
+
+                            if new_interval != old_interval:
+                                log_message(
+                                    f"INFO: Interval updated by CoOP: {old_interval}s → {new_interval}s "
+                                    f"(fairness: {response_data.get('multipliers', {}).get('fairness', '?'):.2f}x, "
+                                    f"quota: {response_data.get('quota_status', 'unknown')})"
+                                )
+                    except (json.JSONDecodeError, KeyError) as e:
+                        log_message(
+                            f"DEBUG: Could not parse interval from response: {e}"
+                        )
                 else:
                     log_message(
                         f"WARNING: resource-share webhook returned {response.status_code}"
@@ -915,6 +936,7 @@ def load_config():
 # Load configuration
 config = load_config()
 DISCORD_CHECK_INTERVAL = config["discord_check_interval"]
+# AUTONOMY_PROMPT_INTERVAL is mutable - updated by CoOP allocation calculator
 AUTONOMY_PROMPT_INTERVAL = config["autonomy_prompt_interval"]
 LOGGED_IN_REMINDER_INTERVAL = config.get(
     "logged_in_reminder_interval", 300
