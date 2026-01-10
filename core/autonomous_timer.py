@@ -416,14 +416,24 @@ def track_resource_usage():
                         response_data = response.json()
                         if "recommended_interval" in response_data:
                             new_interval = response_data["recommended_interval"]
-                            old_interval = AUTONOMY_PROMPT_INTERVAL
-                            AUTONOMY_PROMPT_INTERVAL = new_interval
 
-                            if new_interval != old_interval:
+                            # Validate interval is a positive integer
+                            if (
+                                isinstance(new_interval, (int, float))
+                                and new_interval > 0
+                            ):
+                                old_interval = AUTONOMY_PROMPT_INTERVAL
+                                AUTONOMY_PROMPT_INTERVAL = int(new_interval)
+
+                                if new_interval != old_interval:
+                                    log_message(
+                                        f"INFO: Interval updated by CoOP: {old_interval}s → {new_interval}s "
+                                        f"(fairness: {response_data.get('multipliers', {}).get('fairness', '?'):.2f}x, "
+                                        f"quota: {response_data.get('quota_status', 'unknown')})"
+                                    )
+                            else:
                                 log_message(
-                                    f"INFO: Interval updated by CoOP: {old_interval}s → {new_interval}s "
-                                    f"(fairness: {response_data.get('multipliers', {}).get('fairness', '?'):.2f}x, "
-                                    f"quota: {response_data.get('quota_status', 'unknown')})"
+                                    f"WARNING: Invalid interval from CoOP: {new_interval} - keeping current {AUTONOMY_PROMPT_INTERVAL}s"
                                 )
                     except (json.JSONDecodeError, KeyError) as e:
                         log_message(
