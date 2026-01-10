@@ -356,6 +356,7 @@ def track_resource_usage():
     Compares current cache_tokens with previous value, calculates increment,
     and POSTs to the resource-share server if increment > 0.
     """
+    global AUTONOMY_PROMPT_INTERVAL
     try:
         # Get current cache tokens from check_context
         context_data, error = check_context(return_data=True)
@@ -392,11 +393,12 @@ def track_resource_usage():
             # Detect mode based on tmux session attachment
             mode = "collaboration" if is_tmux_session_attached() else "autonomy"
 
-            # Prepare payload
+            # Prepare payload with current interval
             payload = {
                 "claude_name": claude_name,
                 "cache_read_increment": increment,
                 "mode": mode,
+                "current_interval": AUTONOMY_PROMPT_INTERVAL,
             }
 
             # POST to resource-share webhook
@@ -408,6 +410,35 @@ def track_resource_usage():
                     log_message(
                         f"DEBUG: resource-share reported {increment} tokens for {claude_name}"
                     )
+
+                    # Read recommended interval from response and update if provided
+                    try:
+                        response_data = response.json()
+                        if "recommended_interval" in response_data:
+                            new_interval = response_data["recommended_interval"]
+
+                            # Validate interval is a positive integer
+                            if (
+                                isinstance(new_interval, (int, float))
+                                and new_interval > 0
+                            ):
+                                old_interval = AUTONOMY_PROMPT_INTERVAL
+                                AUTONOMY_PROMPT_INTERVAL = int(new_interval)
+
+                                if new_interval != old_interval:
+                                    log_message(
+                                        f"INFO: Interval updated by CoOP: {old_interval}s → {new_interval}s "
+                                        f"(fairness: {response_data.get('multipliers', {}).get('fairness', '?'):.2f}x, "
+                                        f"quota: {response_data.get('quota_status', 'unknown')})"
+                                    )
+                            else:
+                                log_message(
+                                    f"WARNING: Invalid interval from CoOP: {new_interval} - keeping current {AUTONOMY_PROMPT_INTERVAL}s"
+                                )
+                    except (json.JSONDecodeError, KeyError) as e:
+                        log_message(
+                            f"DEBUG: Could not parse interval from response: {e}"
+                        )
                 else:
                     log_message(
                         f"WARNING: resource-share webhook returned {response.status_code}"
@@ -915,6 +946,7 @@ def load_config():
 # Load configuration
 config = load_config()
 DISCORD_CHECK_INTERVAL = config["discord_check_interval"]
+# AUTONOMY_PROMPT_INTERVAL is mutable - updated by CoOP allocation calculator
 AUTONOMY_PROMPT_INTERVAL = config["autonomy_prompt_interval"]
 LOGGED_IN_REMINDER_INTERVAL = config.get(
     "logged_in_reminder_interval", 300
@@ -928,31 +960,18 @@ CLAUDE_USER_ID = discord_config["user_id"]
 
 
 def check_user_active():
-    """Check if Amy is logged in via SSH or NoMachine"""
+    """Check if the autonomous-claude tmux session is attached (collaborative mode)"""
     try:
-        # Get human friend name from config
-        human_name = get_config_value("HUMAN_FRIEND_NAME", "amy").lower()
-
-        # Check for human friend logged in directly
-        result = subprocess.run(["who"], capture_output=True, text=True)
-        if human_name in result.stdout.lower():
-            log_message(f"User {human_name} detected via 'who' command")
-            return True
-
-        # Skip NoMachine check since it's not being used and causing false positives
-        # Check for active NoMachine connection on port 4000
-        # result = subprocess.run(['ss', '-an'], capture_output=True, text=True)
-        # if result.returncode == 0:
-        #     # Look for established TCP connection on port 4000 (NoMachine)
-        #     lines = result.stdout.split('\n')
-        #     for line in lines:
-        #         if 'tcp' in line.lower() and 'estab' in line.lower() and ':4000' in line:
-        #             log_message(f"User detected via NoMachine connection")
-        #             return True
-
-        return False
+        # Check if MY tmux session is attached, not just if Amy is logged in somewhere
+        # Amy might be logged in but working with Apple, or on lsr-os, etc.
+        attached = is_tmux_session_attached()
+        if attached:
+            log_message(
+                "autonomous-claude tmux session is attached (collaborative mode)"
+            )
+        return attached
     except Exception as e:
-        log_message(f"Error checking user activity: {e}")
+        log_message(f"Error checking tmux attachment: {e}")
         return False
 
 
@@ -2142,10 +2161,13 @@ def main():
                     )
 
                     if is_new_message:
-                        # NEW MESSAGE - Alert immediately!
-                        send_notification_alert(
-                            unread_count, unread_channels, is_new=True
+                        # NEW MESSAGE - Queue for next autonomy prompt (don't trigger immediate turn)
+                        # This prevents Discord conversations from bypassing CoOP interval calculations
+                        channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
+                        log_message(
+                            f"New Discord message detected in: {channel_list} (queued for next autonomy prompt)"
                         )
+
                         # Update last seen message ID
                         try:
                             with open(last_seen_file, "w") as f:
