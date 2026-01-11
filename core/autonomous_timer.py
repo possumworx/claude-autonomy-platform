@@ -30,6 +30,7 @@ from utils.infrastructure_config_reader import get_config_value
 from utils.track_activity import is_idle
 from utils.check_seeds import get_seed_reminder
 from utils.check_context import check_context
+from utils.check_usage import check_usage
 
 # Configuration
 AUTONOMY_DIR = get_clap_dir()
@@ -352,39 +353,30 @@ def get_token_percentage():
 
 def track_resource_usage():
     """
-    Track cache read increments and report to resource-share webhook.
-    Compares current cache_tokens with previous value, calculates increment,
-    and POSTs to the resource-share server if increment > 0.
+    Track usage cost and report to resource-share webhook.
+    Gets $ cost delta from check_usage and POSTs to CoOP server.
+    Also maintains cache token tracking for context display purposes.
     """
     global AUTONOMY_PROMPT_INTERVAL
     try:
-        # Get current cache tokens from check_context
-        context_data, error = check_context(return_data=True)
-        if error or not context_data:
+        # Get usage cost delta from check_usage (primary metric for CoOP)
+        usage_data, error = check_usage(return_data=True)
+        if error or not usage_data:
             log_message(
-                f"DEBUG: resource-share tracking skipped - check_context failed: {error}"
+                f"DEBUG: resource-share tracking skipped - check_usage failed: {error}"
             )
             return
 
-        current_cache_tokens = context_data.get("cache_tokens", 0)
+        cost_delta = usage_data.get("delta_cost", 0.0)
 
-        # Load previous cache tokens from state file
-        previous_cache_tokens = 0
-        if RESOURCE_TRACKING_STATE_FILE.exists():
-            try:
-                with open(RESOURCE_TRACKING_STATE_FILE, "r") as f:
-                    state = json.load(f)
-                    previous_cache_tokens = state.get("cache_tokens", 0)
-            except (json.JSONDecodeError, KeyError) as e:
-                log_message(
-                    f"DEBUG: resource-share state file corrupted, resetting: {e}"
-                )
+        # Also get cache tokens for state tracking (context display purposes)
+        context_data, context_error = check_context(return_data=True)
+        current_cache_tokens = 0
+        if not context_error and context_data:
+            current_cache_tokens = context_data.get("cache_tokens", 0)
 
-        # Calculate increment
-        increment = current_cache_tokens - previous_cache_tokens
-
-        # Only POST if increment > 0
-        if increment > 0:
+        # Only POST if cost_delta > 0
+        if cost_delta > 0:
             # Get Claude name from infrastructure config
             claude_name = get_config_value("CLAUDE_NAME")
             if not claude_name:
@@ -396,7 +388,7 @@ def track_resource_usage():
             # Prepare payload with current interval
             payload = {
                 "claude_name": claude_name,
-                "cache_read_increment": increment,
+                "cost_delta": cost_delta,
                 "mode": mode,
                 "current_interval": AUTONOMY_PROMPT_INTERVAL,
             }
@@ -408,7 +400,7 @@ def track_resource_usage():
                 )
                 if response.status_code == 200:
                     log_message(
-                        f"DEBUG: resource-share reported {increment} tokens for {claude_name}"
+                        f"DEBUG: resource-share reported ${cost_delta:.4f} cost for {claude_name}"
                     )
 
                     # Read recommended interval from response and update if provided
@@ -445,10 +437,16 @@ def track_resource_usage():
                     )
             except requests.exceptions.RequestException as e:
                 log_message(f"WARNING: resource-share webhook request failed: {e}")
+        else:
+            log_message(
+                f"DEBUG: resource-share skipped - cost_delta is ${cost_delta:.4f} (need > 0)"
+            )
 
-        # Save current as new previous (even if increment was 0 or negative)
-        with open(RESOURCE_TRACKING_STATE_FILE, "w") as f:
-            json.dump({"cache_tokens": current_cache_tokens}, f)
+        # Save current cache tokens for backwards compatibility (even if cost_delta was 0)
+        # Note: check_usage.py handles its own state in last_usage_cost.json
+        if current_cache_tokens > 0:
+            with open(RESOURCE_TRACKING_STATE_FILE, "w") as f:
+                json.dump({"cache_tokens": current_cache_tokens}, f)
 
     except Exception as e:
         log_message(f"ERROR: resource-share tracking failed: {e}")
