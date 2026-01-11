@@ -59,7 +59,7 @@ log_info "SESSION_SWAP" "Using model: $CLAUDE_MODEL"
 
 # Git backup removed - handled by separate service for reliability
 # Return to CLAP directory for session operations
-cd "$CLAP_DIR"
+cd "$CLAP_DIR" || exit
 
 echo "[SESSION_SWAP] Exporting current conversation..."
 
@@ -161,6 +161,9 @@ else
     fi
 fi
 
+echo "[SESSION_SWAP] Capturing final usage reading from old session..."
+python3 "$CLAP_DIR/utils/check_usage.py" > /dev/null 2>&1 || echo "[SESSION_SWAP] Warning: Final usage capture failed"
+
 echo "[SESSION_SWAP] Updating context with keyword: $KEYWORD"
 # Keyword is already in new_session.txt from trigger - context builder will use it
 python3 "$CLAP_DIR/context/project_session_context_builder.py"
@@ -215,9 +218,9 @@ if [[ -f "$CLAP_DIR/data/current_session.log" ]]; then
     echo "[SESSION_SWAP] Rotated current session log to session_ended_${timestamp}.log"
 
     # Clean up old session logs (keep only 10 most recent)
-    cd "$CLAP_DIR/data"
+    cd "$CLAP_DIR/data" || exit
     ls -t session_ended_*.log 2>/dev/null | tail -n +11 | xargs -r rm -f
-    cd "$CLAP_DIR"
+    cd "$CLAP_DIR" || exit
 fi
 
 # Start logging new session
@@ -281,7 +284,7 @@ log_info "SESSION_SWAP" "Session swap completed successfully"
 
 # Ping healthchecks.io for successful swap
 SESSION_SWAP_PING=$(read_config "SESSION_SWAP_PING")
-if [[ ! -z "$SESSION_SWAP_PING" ]]; then
+if [[ -n "$SESSION_SWAP_PING" ]]; then
     curl -m 10 --retry 2 "$SESSION_SWAP_PING" > /dev/null 2>&1
     echo "[SESSION_SWAP] Sent healthcheck ping"
 fi
@@ -296,6 +299,18 @@ if ! python3 "$SCRIPT_DIR/track_current_session.py" 2>&1 | tee -a "$CLAP_DIR/log
     log_error "SESSION_SWAP" "Failed to update session tracking"
     # Don't send warning yet - wait until after completion message
 fi
+
+# Reset usage tracking for new session (CoOP)
+echo "[SESSION_SWAP] Resetting usage tracking for new session..."
+python3 -c "
+import json
+from pathlib import Path
+storage_file = Path('$CLAP_DIR/data/last_usage_cost.json')
+data = {'total_cost': 0.0, 'session_id': 'reset', 'timestamp': '$(date -Iseconds)'}
+storage_file.write_text(json.dumps(data, indent=2))
+print('✓ Usage cost tracking reset to 0 for new session')
+" 2>&1 | tee -a "$CLAP_DIR/logs/session_swap.log"
+log_info "SESSION_SWAP" "Usage cost tracking reset to 0 for new session"
 
 # Now send completion message (no interference with session tracking)
 # Load prompts config
