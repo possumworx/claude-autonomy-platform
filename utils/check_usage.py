@@ -1,123 +1,210 @@
 #!/usr/bin/env python3
 """
-check_usage.py - Parse total cost from Claude Code usage output
+Check current Claude session usage cost by running ccusage and extracting
+the total $ spend, then comparing with the previous stored value to get
+the delta ($ spent this turn).
 
-This utility extracts the total cost field from usage output,
-ensuring we parse the correct field (not Cache Read).
+This is used by CoOP for accurate usage tracking (not cache read proxy).
 """
 
-import sys
-import re
+import subprocess
 import json
-from typing import Optional, Dict, Any
+import re
+from pathlib import Path
+from datetime import datetime
 
 
-def parse_usage_output(usage_text: str) -> Optional[Dict[str, Any]]:
+def get_current_session_id():
+    """Read the current session ID from tracking file"""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent  # utils/ -> claude-autonomy-platform/
+    session_file = repo_root / "data" / "current_session_id"
+
+    if not session_file.exists():
+        return None
+
+    try:
+        with open(session_file, "r") as f:
+            data = json.load(f)
+            return data.get("session_id")
+    except:
+        # Try reading as plain text for backwards compatibility
+        try:
+            with open(session_file, "r") as f:
+                return f.read().strip()
+        except:
+            return None
+
+
+def run_ccusage(session_id):
+    """Run ccusage to get usage summary for session"""
+    cmd = ["npx", "ccusage", "session", "--id", session_id]
+
+    try:
+        # Set Claude config dir
+        env = subprocess.os.environ.copy()
+        env["CLAUDE_CONFIG_DIR"] = str(Path.home() / ".config/Claude")
+
+        # Run ccusage and pipe to head to get just the summary
+        ccusage_proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            env=env,
+            cwd=Path.home(),
+        )
+
+        # Get just the first 15 lines which contain the summary
+        head_proc = subprocess.Popen(
+            ["head", "-n", "15"],
+            stdin=ccusage_proc.stdout,
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+
+        ccusage_proc.stdout.close()
+        output, _ = head_proc.communicate()
+
+        return output
+    except Exception as e:
+        print(f"❌ Error running ccusage: {e}")
+        return None
+
+
+def parse_total_cost(output):
+    """Parse total cost from ccusage summary output
+
+    Expected format:
+    Total Cost: $15.22
     """
-    Parse usage output and extract key metrics.
+    if not output:
+        return None
 
-    Expected format might include:
-    - Cache Read: <value>
-    - Total Cost: <value>
-    - Other fields...
+    # Remove ANSI color codes
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    clean_output = ansi_escape.sub("", output)
 
-    Returns dict with parsed values or None if parsing fails.
-    """
-    result = {}
+    # Look for "Total Cost: $X.XX"
+    pattern = r"Total Cost:\s*\$([0-9]+\.[0-9]{2})"
+    match = re.search(pattern, clean_output)
 
-    # Try to parse common patterns
-    patterns = {
-        'total_cost': [
-            r'Total Cost:\s*\$?([\d.]+)',
-            r'total cost:\s*\$?([\d.]+)',
-            r'Cost:\s*\$?([\d.]+)',
-            r'"total_cost":\s*"?\$?([\d.]+)"?',
-        ],
-        'cache_read': [
-            r'Cache Read:\s*\$?([\d.]+)',
-            r'cache read:\s*\$?([\d.]+)',
-            r'"cache_read":\s*"?\$?([\d.]+)"?',
-        ],
-        'tokens': [
-            r'Tokens:\s*([\d,]+)',
-            r'tokens:\s*([\d,]+)',
-            r'Total Tokens:\s*([\d,]+)',
-            r'"tokens":\s*"?([\d,]+)"?',
-        ]
+    if match:
+        return float(match.group(1))
+
+    return None
+
+
+def get_stored_cost():
+    """Get previously stored total cost"""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent
+    storage_file = repo_root / "data" / "last_usage_cost.json"
+
+    if not storage_file.exists():
+        return None
+
+    try:
+        with open(storage_file, "r") as f:
+            data = json.load(f)
+            return data.get("total_cost")
+    except Exception as e:
+        print(f"⚠️ Could not read stored cost: {e}")
+        return None
+
+
+def store_cost(total_cost, session_id):
+    """Store current total cost for next comparison"""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent
+    storage_file = repo_root / "data" / "last_usage_cost.json"
+
+    # Ensure data directory exists
+    storage_file.parent.mkdir(parents=True, exist_ok=True)
+
+    data = {
+        "total_cost": total_cost,
+        "session_id": session_id,
+        "timestamp": datetime.now().isoformat(),
     }
 
-    for field, field_patterns in patterns.items():
-        for pattern in field_patterns:
-            match = re.search(pattern, usage_text, re.IGNORECASE)
-            if match:
-                value = match.group(1).replace(',', '')
-                try:
-                    result[field] = float(value)
-                except ValueError:
-                    result[field] = value
-                break
+    try:
+        with open(storage_file, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"⚠️ Could not store cost: {e}")
 
-    # Also try to parse as JSON if it looks like JSON
-    if usage_text.strip().startswith('{'):
-        try:
-            json_data = json.loads(usage_text)
-            # Look for relevant fields in JSON
-            for key in ['total_cost', 'totalCost', 'cost']:
-                if key in json_data:
-                    result['total_cost'] = float(str(json_data[key]).replace('$', ''))
-            for key in ['cache_read', 'cacheRead']:
-                if key in json_data:
-                    result['cache_read'] = float(str(json_data[key]).replace('$', ''))
-        except json.JSONDecodeError:
-            pass
 
-    return result if result else None
+def check_usage(return_data=False):
+    """Main function to check usage delta
+
+    Returns the $ spent since last check (delta)
+    """
+
+    # Get current session ID
+    session_id = get_current_session_id()
+    if not session_id:
+        error_msg = "❌ No current session ID found. Run track_current_session.py first."
+        if return_data:
+            return None, error_msg
+        print(error_msg)
+        return None
+
+    # Run ccusage
+    output = run_ccusage(session_id)
+    if not output:
+        error_msg = "❌ Failed to get ccusage output"
+        if return_data:
+            return None, error_msg
+        print(error_msg)
+        return None
+
+    # Parse total cost
+    current_cost = parse_total_cost(output)
+    if current_cost is None:
+        error_msg = "❌ Could not parse total cost from ccusage"
+        if return_data:
+            return None, error_msg
+        print(error_msg)
+        return None
+
+    # Get previous cost
+    previous_cost = get_stored_cost()
+
+    # Calculate delta
+    if previous_cost is None:
+        # First run - no delta yet
+        delta = 0.0
+        print(f"📊 First usage check - total cost: ${current_cost:.2f}")
+    else:
+        delta = current_cost - previous_cost
+        if delta < 0:
+            # Session must have reset - treat as first run
+            delta = 0.0
+            print(f"⚠️ Total cost decreased (session reset?) - resetting baseline")
+        else:
+            print(
+                f"💰 Usage delta: ${delta:.4f} (${previous_cost:.2f} → ${current_cost:.2f})"
+            )
+
+    # Store current cost for next time
+    store_cost(current_cost, session_id)
+
+    if return_data:
+        return {
+            "session_id": session_id,
+            "current_total_cost": current_cost,
+            "previous_total_cost": previous_cost,
+            "delta_cost": delta,
+            "timestamp": datetime.now().isoformat(),
+        }, None
+
+    return delta
 
 
 def main():
-    """Main function to read usage data and extract total cost."""
-    if len(sys.argv) > 1:
-        # Read from file if provided
-        try:
-            with open(sys.argv[1], 'r') as f:
-                usage_text = f.read()
-        except FileNotFoundError:
-            print(f"Error: File '{sys.argv[1]}' not found", file=sys.stderr)
-            sys.exit(1)
-    else:
-        # Read from stdin
-        usage_text = sys.stdin.read()
-
-    if not usage_text.strip():
-        print("Error: No usage data provided", file=sys.stderr)
-        sys.exit(1)
-
-    # Parse the usage data
-    parsed = parse_usage_output(usage_text)
-
-    if not parsed:
-        print("Error: Could not parse usage data", file=sys.stderr)
-        print("Input text:", file=sys.stderr)
-        print(usage_text[:500], file=sys.stderr)
-        sys.exit(1)
-
-    # Output results
-    print(f"Parsed Usage Data:")
-    for key, value in parsed.items():
-        print(f"  {key}: {value}")
-
-    # Specific check for total_cost vs cache_read
-    if 'total_cost' in parsed:
-        print(f"\n✓ Total Cost: ${parsed['total_cost']:.2f}")
-    else:
-        print("\n⚠️  Warning: Total cost not found in usage data")
-
-    if 'cache_read' in parsed:
-        print(f"  Cache Read: ${parsed['cache_read']:.2f} (not the total cost!)")
-
-    # Output just the total cost for easy parsing by other scripts
-    if 'total_cost' in parsed:
-        print(f"\nTOTAL_COST={parsed['total_cost']}")
+    """Run usage check"""
+    check_usage()
 
 
 if __name__ == "__main__":
