@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""
+Start working on a task - creates a new task assigned to you in Forward Memory
+This is simplified since the API doesn't easily support status updates
+Usage: start "Task description"
+"""
+import sys
+import os
+
+# Just delegate to add with description
+if len(sys.argv) < 2:
+    print("Usage: start \"Task description\"")
+    print("Creates a new task assigned to you in Forward Memory")
+    sys.exit(1)
+
+task = ' '.join(sys.argv[1:])
+
+# Call add command
+script_dir = os.path.dirname(os.path.abspath(__file__))
+add_script = os.path.join(script_dir, 'add')
+
+print(f"🚀 Starting work on: {task}")
+os.system(f'python "{add_script}" "{task}"')

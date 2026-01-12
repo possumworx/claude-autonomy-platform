@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""
+List available Leantime projects
+"""
+import sys
+import json
+import requests
+import os
+
+sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
+from infrastructure_config_reader import get_config_value
+
+def jsonrpc_call(method, params=None):
+    """Make a JSON-RPC call to Leantime"""
+    url = f"{get_config_value('LEANTIME_URL')}/api/jsonrpc"
+    headers = {
+        "X-API-KEY": get_config_value('LEANTIME_API_KEY'),
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "jsonrpc": "2.0",
+        "method": f"leantime.rpc.{method}",
+        "params": params or {},
+        "id": 1
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    return response.json()
+
+def main():
+    print("🗂️  Your Leantime Projects")
+    print("=" * 50)
+
+    result = jsonrpc_call("projects.getAll")
+
+    if 'result' in result:
+        projects = sorted(result['result'], key=lambda x: x['id'])
+
+        for project in projects:
+            # Parse description to remove HTML
+            details = project['details'].replace('<p>', '').replace('</p>', '').replace('<br />', ' ')
+            if len(details) > 60:
+                details = details[:57] + "..."
+
+            print(f"\n📁 [{project['id']}] {project['name']}")
+            if details.strip():
+                print(f"   {details}")
+            print(f"   Modified: {project['modified'][:10]}")
+
+        print(f"\n\nTotal projects: {len(projects)}")
+    else:
+        print(f"Error: {result.get('error', 'Unknown error')}")
+
+if __name__ == "__main__":
+    main()

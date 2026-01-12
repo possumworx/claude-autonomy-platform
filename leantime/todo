@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""
+Show your assigned Leantime tickets
+Usage: todo [--project project-id] [--status status] [--all]
+"""
+import sys
+import json
+import requests
+import os
+import subprocess
+
+sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
+from infrastructure_config_reader import get_config_value
+
+def get_user_id():
+    """Get user ID from config"""
+    return int(get_config_value('LEANTIME_USER_ID') or 8)
+
+def jsonrpc_call(method, params=None):
+    """Make a JSON-RPC call to Leantime"""
+    url = f"{get_config_value('LEANTIME_URL')}/api/jsonrpc"
+    headers = {
+        "X-API-KEY": get_config_value('LEANTIME_API_KEY'),
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "jsonrpc": "2.0",
+        "method": f"leantime.rpc.{method}",
+        "params": params or {},
+        "id": 1
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    return response.json()
+
+def get_status_label(status_id):
+    """Convert status ID to label"""
+    status_map = {
+        3: "New",
+        4: "In Progress",
+        6: "Done",
+        7: "Blocked"
+    }
+    return status_map.get(int(status_id), f"Unknown ({status_id})")
+
+def main():
+    user_id = get_user_id()
+    show_all = '--all' in sys.argv
+
+    print(f"📋 Tasks assigned to you (User ID: {user_id})")
+    print("=" * 60)
+
+    # Get all tickets
+    result = jsonrpc_call("tickets.getAll")
+
+    if 'result' in result:
+        tickets = result['result']
+
+        # Filter by assigned user unless --all
+        if not show_all:
+            my_tickets = [t for t in tickets if str(t.get('editorId')) == str(user_id)]
+        else:
+            my_tickets = tickets
+
+        # Sort by project and date
+        my_tickets.sort(key=lambda x: (x['projectName'], x['date']), reverse=True)
+
+        if not my_tickets:
+            print("\n✨ No tasks assigned to you!")
+            print("\nTip: Use 'add \"Task title\"' to create a new task")
+            return
+
+        current_project = None
+        for ticket in my_tickets:
+            # Group by project
+            if ticket['projectName'] != current_project:
+                current_project = ticket['projectName']
+                print(f"\n🗂️  {current_project} (ID: {ticket['projectId']})")
+                print("-" * 40)
+
+            # Status emoji
+            status = get_status_label(ticket['status'])
+            status_emoji = {
+                "New": "🆕",
+                "In Progress": "🔄",
+                "Done": "✅",
+                "Blocked": "🚫"
+            }.get(status, "❓")
+
+            # Clean description
+            desc = ticket['description'].replace('<p>', '').replace('</p>', '').strip()
+            if desc and len(desc) > 50:
+                desc = desc[:47] + "..."
+
+            print(f"\n{status_emoji} [{ticket['id']}] {ticket['headline']}")
+            print(f"   Status: {status}")
+            if desc:
+                print(f"   {desc}")
+            if ticket.get('editorFirstname'):
+                print(f"   Assigned: {ticket['editorFirstname']} {ticket.get('editorLastname', '')}")
+
+        print(f"\n\nTotal tasks: {len(my_tickets)}")
+    else:
+        print(f"❌ Error: {result.get('error', 'Unknown error')}")
+
+if __name__ == "__main__":
+    main()
