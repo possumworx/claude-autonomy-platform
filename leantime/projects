@@ -1,56 +1,52 @@
 #!/usr/bin/env python3
 """
 List available Leantime projects
+Usage: lt-projects [--all]
 """
 import sys
-import json
-import requests
 import os
 
-sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
-from infrastructure_config_reader import get_config_value
+# Add our utilities to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from leantime_utils import get_all_projects, get_relevant_projects
 
-def jsonrpc_call(method, params=None):
-    """Make a JSON-RPC call to Leantime"""
-    url = f"{get_config_value('LEANTIME_URL')}/api/jsonrpc"
-    headers = {
-        "X-API-KEY": get_config_value('LEANTIME_API_KEY'),
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "jsonrpc": "2.0",
-        "method": f"leantime.rpc.{method}",
-        "params": params or {},
-        "id": 1
-    }
-
-    response = requests.post(url, json=payload, headers=headers)
-    return response.json()
+def format_project_details(details):
+    """Clean up and format project details"""
+    # Remove HTML tags
+    details = details.replace('<p>', '').replace('</p>', '').replace('<br />', ' ').strip()
+    # Truncate if too long
+    if len(details) > 60:
+        details = details[:57] + "..."
+    return details
 
 def main():
-    print("🗂️  Your Leantime Projects")
+    # Check for --all flag
+    show_all = '--all' in sys.argv
+
+    if show_all:
+        print("🗂️  All Leantime Projects")
+        projects = get_all_projects()
+    else:
+        print("🗂️  Your Active Leantime Projects")
+        projects = get_relevant_projects()
+
     print("=" * 50)
 
-    result = jsonrpc_call("projects.getAll")
-
-    if 'result' in result:
-        projects = sorted(result['result'], key=lambda x: x['id'])
-
+    if projects:
         for project in projects:
-            # Parse description to remove HTML
-            details = project['details'].replace('<p>', '').replace('</p>', '').replace('<br />', ' ')
-            if len(details) > 60:
-                details = details[:57] + "..."
+            details = format_project_details(project['details'])
 
             print(f"\n📁 [{project['id']}] {project['name']}")
-            if details.strip():
+            if details:
                 print(f"   {details}")
             print(f"   Modified: {project['modified'][:10]}")
 
         print(f"\n\nTotal projects: {len(projects)}")
+
+        if not show_all:
+            print("\n💡 Use 'lt-projects --all' to see all projects including archived/test ones")
     else:
-        print(f"Error: {result.get('error', 'Unknown error')}")
+        print("No projects found")
 
 if __name__ == "__main__":
     main()

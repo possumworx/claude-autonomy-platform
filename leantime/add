@@ -6,43 +6,15 @@ Usage: add "Task title" [--project project-name] [--description text]
 
 import sys
 import json
-import requests
 import os
-import subprocess
+
+# Add our utilities to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from leantime_utils import jsonrpc_call, get_user_id, resolve_project_name
 
 # Add infrastructure config reader to path
 sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
 from infrastructure_config_reader import get_config_value
-
-def get_api_key():
-    """Get Leantime API key from config"""
-    return get_config_value('LEANTIME_API_KEY')
-
-def get_leantime_url():
-    """Get Leantime URL from config"""
-    return get_config_value('LEANTIME_URL')
-
-def get_user_id():
-    """Get user ID from config"""
-    return int(get_config_value('LEANTIME_USER_ID') or 8)
-
-def jsonrpc_call(method, params=None):
-    """Make a JSON-RPC call to Leantime"""
-    url = f"{get_leantime_url()}/api/jsonrpc"
-    headers = {
-        "X-API-KEY": get_api_key(),
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "jsonrpc": "2.0",
-        "method": f"leantime.rpc.{method}",
-        "params": params or {},
-        "id": 1
-    }
-
-    response = requests.post(url, json=payload, headers=headers)
-    return response.json()
 
 def create_ticket(title, project_id=None, description="", assign_to_me=True):
     """Create a ticket using JSON-RPC"""
@@ -91,11 +63,22 @@ def main():
         else:
             i += 1
 
+    # Resolve project name if provided
+    project_id = None
+    if project:
+        project_id = resolve_project_name(project)
+        if not project_id:
+            print(f"❌ Could not find project: {project}")
+            print("💡 Try 'lt-projects' to see available projects")
+            sys.exit(1)
+
     # Create the ticket
     print(f"📝 Creating task: {title}")
+    if project:
+        print(f"   Project: {project}")
 
     try:
-        result = create_ticket(title, project_id=None, description=description)
+        result = create_ticket(title, project_id=project_id, description=description)
 
         if 'result' in result:
             print(f"✅ Created ticket #{result['result']}")
