@@ -1,0 +1,50 @@
+#!/bin/bash
+# Natural command: quota
+# Check Claude usage quotas (session context, weekly limits)
+# Created by: Sparkle-Orange
+# Completes: POSS-370
+
+CLAP_DIR="$HOME/claude-autonomy-platform"
+PROTOTYPE="$CLAP_DIR/utils/usage_capture_prototype.sh"
+
+# This command must be run from an external terminal (not from Claude session)
+# because it needs to inject /usage command and capture the TUI output
+
+if [ -n "$CLAUDE_CODE_SESSION" ]; then
+    cat <<'EOF'
+📊 Claude Usage Quota Checker
+
+⚠️  This command must be run from an external terminal, not from within Claude.
+
+Why? It needs to:
+1. Inject /usage command into your Claude session
+2. Capture the interactive TUI output
+3. Parse and display the results
+
+Usage from external terminal:
+  ~/claude-autonomy-platform/natural_commands/quota
+
+Or use the prototype directly:
+  ~/claude-autonomy-platform/utils/usage_capture_prototype.sh
+
+For CoOP cost tracking (works from Claude):
+  python3 ~/claude-autonomy-platform/utils/check_usage.py
+
+EOF
+    exit 0
+fi
+
+# Run from external terminal - execute the prototype
+if [ ! -x "$PROTOTYPE" ]; then
+    echo "❌ Error: Prototype script not found or not executable"
+    echo "Expected: $PROTOTYPE"
+    exit 1
+fi
+
+echo "📊 Checking Claude usage quotas..."
+echo ""
+
+# Run the prototype (it outputs to stderr, so we need to capture that too)
+"$PROTOTYPE" 2>&1
+
+exit 0
