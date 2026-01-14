@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""
+List available Leantime projects
+Usage: lt-projects [--all]
+"""
+import sys
+import os
+
+# Add our utilities to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from leantime_utils import get_all_projects, get_relevant_projects
+
+def format_project_details(details):
+    """Clean up and format project details"""
+    # Remove HTML tags
+    details = details.replace('<p>', '').replace('</p>', '').replace('<br />', ' ').strip()
+    # Truncate if too long
+    if len(details) > 60:
+        details = details[:57] + "..."
+    return details
+
+def main():
+    # Check for --all flag
+    show_all = '--all' in sys.argv
+
+    if show_all:
+        print("🗂️  All Leantime Projects")
+        projects = get_all_projects()
+    else:
+        print("🗂️  Your Active Leantime Projects")
+        projects = get_relevant_projects()
+
+    print("=" * 50)
+
+    if projects:
+        for project in projects:
+            details = format_project_details(project['details'])
+
+            print(f"\n📁 [{project['id']}] {project['name']}")
+            if details:
+                print(f"   {details}")
+            print(f"   Modified: {project['modified'][:10]}")
+
+        print(f"\n\nTotal projects: {len(projects)}")
+
+        if not show_all:
+            print("\n💡 Use 'lt-projects --all' to see all projects including archived/test ones")
+    else:
+        print("No projects found")
+
+if __name__ == "__main__":
+    main()

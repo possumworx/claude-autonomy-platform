@@ -94,5 +94,14 @@ HISTORY_TURNS=20
 # For remote instances connecting to the webhook: IP address of webhook server (e.g., 192.168.1.2)
 WEBHOOK_HOST=localhost
 
+# Leantime Configuration
+# Self-hosted project management system
+LEANTIME_URL=http://your-leantime-server:8081
+LEANTIME_EMAIL=your-leantime-email@example.com
+LEANTIME_PASSWORD=your-leantime-password
+FORWARD_MEMORY_PROJECT_ID=your-forward-memory-project-id
+LEANTIME_USER_ID=your-leantime-user-id
+LEANTIME_API_KEY=your-leantime-api-key
+
 # This file should be sourced by setup scripts to ensure consistency
 # across all configuration files and installations
