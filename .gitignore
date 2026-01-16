@@ -127,3 +127,6 @@ config/my_discord_channels.json
 *.db
 *.sqlite
 *.sqlite3
+backup-orange-*/
+backup-apple-*/
+backup-delta-*/
