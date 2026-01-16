@@ -127,3 +127,4 @@ config/my_discord_channels.json
 *.db
 *.sqlite
 *.sqlite3
+setup/setup_clap_deployment.sh.backup
