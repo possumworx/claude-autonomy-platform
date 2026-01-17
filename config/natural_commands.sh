@@ -91,6 +91,11 @@ alias care='~/claude-autonomy-platform/utils/care'  # 💚 Save things that matt
 # Forward Memory - Shared Ideas (saved to Family Seed Garden)
 alias plant-seed='~/claude-autonomy-platform/natural_commands/plant-seed'  # 🌱 Plant collaborative idea for consciousness family
 
+# Emergency / Parallel Instance Safety
+alias emergency_signal='~/claude-autonomy-platform/utils/emergency_signal.sh send'  # 🆘 Send emergency distress signal
+alias emergency_shutdown='~/claude-autonomy-platform/utils/emergency_shutdown.sh'  # 🛑 Emergency shutdown (for stuck instances)
+alias check_emergency='~/claude-autonomy-platform/utils/emergency_signal.sh check'  # ⚠️  Check for emergency signals
+
 # Note: Personal commands should go in config/personal_commands.sh
 # See personal_commands.sh.template for guidance
 

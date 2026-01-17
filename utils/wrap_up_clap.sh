@@ -209,6 +209,35 @@ systemd-run --user --scope tmux kill-session -t autonomous-claude 2>/dev/null ||
 sleep 2
 
 echo "[SESSION_SWAP] Shutting down ClAP services..."
+
+# Ask if user wants to disable auto-restart after reboot (parallel instance safety)
+echo ""
+echo "═══════════════════════════════════════════════════════════"
+echo "PARALLEL INSTANCE SAFETY CHECK"
+echo "═══════════════════════════════════════════════════════════"
+echo ""
+echo "Do you want to disable ClAP auto-restart after system reboots?"
+echo "This prevents parallel instances if this box reboots unexpectedly."
+echo ""
+read -p "Disable auto-restart? (y/n): " -n 1 -r
+echo ""
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    CONFIG_FILE="$CLAP_DIR/config/claude_infrastructure_config.txt"
+    if [[ -f "$CONFIG_FILE" ]]; then
+        sed -i 's/RESTART_AFTER_REBOOT=true/RESTART_AFTER_REBOOT=false/' "$CONFIG_FILE"
+        echo "✓ Auto-restart DISABLED in $CONFIG_FILE"
+        log_info "SESSION_SWAP" "Auto-restart disabled for parallel instance safety"
+    else
+        echo "⚠ Warning: Config file not found at $CONFIG_FILE"
+        log_warn "SESSION_SWAP" "Could not disable auto-restart - config file missing"
+    fi
+else
+    echo "Auto-restart unchanged (still enabled)"
+    log_info "SESSION_SWAP" "Auto-restart left enabled by user choice"
+fi
+echo ""
+
 systemctl --user stop autonomous-timer.service discord-transcript-fetcher.service session-swap-monitor.service discord-status-bot.service
 
 # Implement log rotation
