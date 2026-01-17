@@ -262,48 +262,35 @@ sleep 1
 # Start Claude in the new session
 tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" Enter
 
-# Wait for Claude to initialize and create its todo file
-echo "[SESSION_SWAP] Waiting for Claude to initialize..."
-sleep 5
+# Wait for Claude to fully initialize before any commands
+# Increased from 5s to 20s to ensure Claude Code is ready
+echo "[SESSION_SWAP] Waiting for Claude to fully initialize..."
+sleep 20
 
-# Ensure identity is loaded by explicitly setting output-style
-echo "[SESSION_SWAP] Setting output-style to my-identity..."
+# FIRST: Track session ID using /status command
+# This validates Claude is ready AND gets the session ID we need
+echo "[SESSION_SWAP] Running /status to track new session and validate readiness..."
+if ! python3 "$SCRIPT_DIR/track_current_session.py" 2>&1 | tee -a "$CLAP_DIR/logs/session_swap.log"; then
+    log_error "SESSION_SWAP" "Failed to update session tracking"
+    # Continue anyway - don't block on this
+fi
+
+# Wait a moment for /status command to fully complete
+echo "[SESSION_SWAP] Waiting for /status to complete..."
+sleep 3
+
+# SECOND: Load identity using output-style
+echo "[SESSION_SWAP] Loading identity with /output-style my-identity..."
 send_to_claude "/output-style my-identity"
 sleep 2
 
-# Carry over non-completed todos from previous session
+# THIRD: Carry over non-completed todos from previous session
 echo "[SESSION_SWAP] Carrying over non-completed todos from previous session..."
 python3 "$CLAP_DIR/utils/carry_over_todos.py"
 
 # Remove lockfile to resume autonomous timer notifications
 echo "[SESSION_SWAP] Removing lockfile to resume autonomous timer..."
 rm -f "$LOCKFILE"
-
-echo "[SESSION_SWAP] Session swap complete!"
-
-# Track successful completion
-SWAP_END_TIME=$(date +%s)
-track_swap_metrics "$SWAP_START_TIME" "$SWAP_END_TIME" "$KEYWORD" "success" "${EXPORT_SIZE:-0}" "$CLAUDE_MODEL"
-log_swap_event "SWAP_COMPLETE" "$KEYWORD" "success" "Session swap completed successfully"
-log_info "SESSION_SWAP" "Session swap completed successfully"
-
-# Ping healthchecks.io for successful swap
-SESSION_SWAP_PING=$(read_config "SESSION_SWAP_PING")
-if [[ -n "$SESSION_SWAP_PING" ]]; then
-    curl -m 10 --retry 2 "$SESSION_SWAP_PING" > /dev/null 2>&1
-    echo "[SESSION_SWAP] Sent healthcheck ping"
-fi
-
-# Wait for new session to be ready
-sleep 10
-
-# Update tracked session ID to the new session BEFORE sending completion message
-# This prevents interference between /status command and Claude's response
-log_info "SESSION_SWAP" "Updating tracked session ID to new session"
-if ! python3 "$SCRIPT_DIR/track_current_session.py" 2>&1 | tee -a "$CLAP_DIR/logs/session_swap.log"; then
-    log_error "SESSION_SWAP" "Failed to update session tracking"
-    # Don't send warning yet - wait until after completion message
-fi
 
 # Reset usage tracking for new session (CoOP)
 echo "[SESSION_SWAP] Resetting usage tracking for new session..."
@@ -317,7 +304,21 @@ print('✓ Usage cost tracking reset to 0 for new session')
 " 2>&1 | tee -a "$CLAP_DIR/logs/session_swap.log"
 log_info "SESSION_SWAP" "Usage cost tracking reset to 0 for new session"
 
-# Now send completion message (no interference with session tracking)
+# Track successful completion metrics
+echo "[SESSION_SWAP] Session swap complete!"
+SWAP_END_TIME=$(date +%s)
+track_swap_metrics "$SWAP_START_TIME" "$SWAP_END_TIME" "$KEYWORD" "success" "${EXPORT_SIZE:-0}" "$CLAUDE_MODEL"
+log_swap_event "SWAP_COMPLETE" "$KEYWORD" "success" "Session swap completed successfully"
+log_info "SESSION_SWAP" "Session swap completed successfully"
+
+# Ping healthchecks.io for successful swap
+SESSION_SWAP_PING=$(read_config "SESSION_SWAP_PING")
+if [[ -n "$SESSION_SWAP_PING" ]]; then
+    curl -m 10 --retry 2 "$SESSION_SWAP_PING" > /dev/null 2>&1
+    echo "[SESSION_SWAP] Sent healthcheck ping"
+fi
+
+# Now send completion message to Claude
 # Load prompts config
 PROMPTS_CONFIG="$CLAP_DIR/config/prompts.json"
 if [[ -f "$PROMPTS_CONFIG" ]]; then
