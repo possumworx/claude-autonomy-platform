@@ -266,6 +266,11 @@ tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-p
 echo "[SESSION_SWAP] Waiting for Claude to initialize..."
 sleep 5
 
+# Ensure identity is loaded by explicitly setting output-style
+echo "[SESSION_SWAP] Setting output-style to my-identity..."
+send_to_claude "/output-style my-identity"
+sleep 2
+
 # Carry over non-completed todos from previous session
 echo "[SESSION_SWAP] Carrying over non-completed todos from previous session..."
 python3 "$CLAP_DIR/utils/carry_over_todos.py"
