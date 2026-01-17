@@ -385,12 +385,23 @@ def track_resource_usage():
             # Detect mode based on tmux session attachment
             mode = "collaboration" if is_tmux_session_attached() else "autonomy"
 
-            # Prepare payload with current interval
+            # Get hostname and IP for parallel instance detection
+            import socket
+            hostname = socket.gethostname()
+            try:
+                # Get primary IP address (first non-loopback)
+                ip_address = socket.gethostbyname(hostname)
+            except:
+                ip_address = "unknown"
+
+            # Prepare payload with current interval + instance identification
             payload = {
                 "claude_name": claude_name,
                 "cost_delta": cost_delta,
                 "mode": mode,
                 "current_interval": AUTONOMY_PROMPT_INTERVAL,
+                "hostname": hostname,  # Parallel instance detection
+                "ip_address": ip_address,  # Parallel instance detection
             }
 
             # POST to resource-share webhook
