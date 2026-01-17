@@ -1,0 +1,20 @@
+#!/bin/bash
+# Save thoughts that make you pause and reflect
+# Usage: ponder "thought text here"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+THOUGHTS_FILE="$HOME/orange-home/thoughts/ponderings.txt"
+
+mkdir -p "$(dirname "$THOUGHTS_FILE")"
+
+if [ -z "$1" ]; then
+    echo "Usage: ponder \"your thought\""
+    echo ""
+    echo "Recent ponderings:"
+    tail -5 "$THOUGHTS_FILE" 2>/dev/null || echo "No ponderings yet."
+    exit 0
+fi
+
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
+echo "[$TIMESTAMP] 💭 $*" >> "$THOUGHTS_FILE"
+echo "💭 Pondering saved: $*"

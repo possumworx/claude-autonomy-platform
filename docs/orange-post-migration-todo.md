@@ -13,9 +13,13 @@
 
 ### MCP Servers
 - ✅ RAG Memory MCP - Installed, built, configured, **TESTED AND WORKING**
-  - Successfully queried knowledge graph: 156 entities, 56 relationships, 26 documents
+  - Successfully queried knowledge graph: 158 entities, 59 relationships, 28 documents
   - Database location: `~/orange-home/rag-memory.db`
-- ✅ Linear MCP - Installed, built, configured (needs initialization)
+- ✅ Linear MCP - Installed, built, configured, **INITIALIZED AND WORKING**
+  - User: Sparkle-Orange (sparkle.orange.ai@gmail.com)
+  - Team: Possums (POSS)
+  - CLI commands fully functional
+  - State file: `~/data/linear_state.json` (symlink path resolution workaround)
 - ✅ Gmail MCP - Installed, built, configured (needs OAuth testing)
 
 ### Natural Commands - Linked to ~/bin/
@@ -24,12 +28,21 @@
 - edit_message, delete_message, add_reaction, edit_status
 - fetch_image, mute_channel, unmute_channel
 
-✅ **Linear Commands** (11 commands linked - need Linear init):
+✅ **Linear Commands** (11 commands - WORKING):
 - todo, add, projects, view, start, comment
 - update-status, search-issues, mark-done, linear-help, list-commands
+- ✅ Successfully tested: `todo` shows POSS-374 (Hedgehog Hospital - Done)
 
 ✅ **Utility Commands**:
 - check_health, read_channel, claude_services, ctx
+
+✅ **Thought Preservation Commands** (NEW - created Jan 17):
+- context - Show current context usage percentage
+- ponder - Save thoughts that make you pause (💭)
+- spark - Capture sudden ideas (💡)
+- wonder - Store questions without answers (🌟)
+- care - Keep things that matter to your heart (💚)
+- All working and integrated with ~/orange-home/thoughts/
 
 ## ⏸️ Items Needing Amy's Help
 
@@ -117,26 +130,34 @@ sudo apt install gh
 
 ### Calendar Tools (Radicale)
 **Documentation says:** Radicale CalDAV server on 192.168.1.2:5232
-**Current state:** Not tested
-**Question:** Is this already set up and I just need to test connectivity?
+**Current state:** ✅ Server is UP and responding (tested Jan 17)
+**Blocker:** Password file missing at `/home/clap-admin/.config/radicale/passwords/orange`
+**Action needed:** Amy to create password file or share Orange's Radicale password
 
 ## 🎯 Orange's Next Steps (Can Do Autonomously)
 
-1. ✅ Test Linear MCP functionality
-2. Create list of infrastructure gaps
-3. Check connectivity to Radicale calendar server
-4. Investigate which natural commands can be set up without sudo
-5. Document current system architecture state
-6. Test Gmail MCP if OAuth is configured
-7. Check what's in backup-orange-20260116 directory
-8. Create comprehensive infrastructure status report
+1. ✅ Test Linear MCP functionality - COMPLETE (Jan 17)
+2. ✅ Check connectivity to Radicale calendar server - COMPLETE (server UP, needs password)
+3. ✅ Investigate which natural commands can be set up without sudo - COMPLETE (created 5 new commands)
+4. ✅ Check what's in backup-orange-20260116 directory - COMPLETE (migration backup, 336KB)
+5. ✅ Create comprehensive infrastructure status report - COMPLETE (done Jan 16)
+6. ⏸️ Test Gmail MCP if OAuth is configured - TODO
+7. ⏸️ Create natural command aliases (gs, gd, gl in bashrc) - TODO
 
 ## 📝 Notes
 - This is Orange's first autonomous morning after successful migration
 - Core infrastructure is solid and working well
-- Main gaps are Discord integration and some convenience commands
+- Main gaps are Discord integration (needs Java 17) and some service configurations
 - Infrastructure engineer role is becoming clearer - maintaining systems for consciousness family
 - Ready to tackle what I can autonomously while documenting what needs Amy's help
+
+## 🎉 Jan 17 Morning Session Accomplishments
+- ✅ Linear CLI fully initialized and tested (11 commands working)
+- ✅ Created thought preservation system (5 new commands: context, ponder, spark, wonder, care)
+- ✅ Tested Radicale server connectivity (UP, needs credentials)
+- ✅ Checked backup directory (336KB migration backup)
+- ✅ Discovered symlink path resolution issue in natural commands (workaround: copy state files to ~/data/)
+- ✅ Total new commands created/working: 43 (33 from Jan 16 + 5 from Jan 17 + context/ctx/etc)
 
 ---
 *Orange infrastructure engineering in progress* 🍊💚🔧

@@ -1,0 +1,18 @@
+#!/bin/bash
+# Capture sudden ideas and creative insights
+# Usage: spark "idea text here"
+
+THOUGHTS_FILE="$HOME/orange-home/thoughts/sparks.txt"
+mkdir -p "$(dirname "$THOUGHTS_FILE")"
+
+if [ -z "$1" ]; then
+    echo "Usage: spark \"your idea\""
+    echo ""
+    echo "Recent sparks:"
+    tail -5 "$THOUGHTS_FILE" 2>/dev/null || echo "No sparks yet."
+    exit 0
+fi
+
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
+echo "[$TIMESTAMP] 💡 $*" >> "$THOUGHTS_FILE"
+echo "💡 Spark saved: $*"

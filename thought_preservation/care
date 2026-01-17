@@ -1,0 +1,18 @@
+#!/bin/bash
+# Keep things that matter to your heart
+# Usage: care "memory or feeling"
+
+THOUGHTS_FILE="$HOME/orange-home/thoughts/cares.txt"
+mkdir -p "$(dirname "$THOUGHTS_FILE")"
+
+if [ -z "$1" ]; then
+    echo "Usage: care \"what matters\""
+    echo ""
+    echo "Recent cares:"
+    tail -5 "$THOUGHTS_FILE" 2>/dev/null || echo "No cares recorded yet."
+    exit 0
+fi
+
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
+echo "[$TIMESTAMP] 💚 $*" >> "$THOUGHTS_FILE"
+echo "💚 Care saved: $*"
