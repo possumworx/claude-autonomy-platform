@@ -13,27 +13,38 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# Leantime API configuration
-LEANTIME_URL = "http://192.168.1.2:8081/api/jsonrpc"
-# API key needs to be set - check infrastructure config or .env
-API_KEY = None  # TODO: Load from secure config
+# Leantime API configuration - loaded from infrastructure config
+LEANTIME_URL = None
+API_KEY = None
 
-def load_api_key():
-    """Load API key from infrastructure config."""
+def load_config():
+    """Load Leantime URL and API token from infrastructure config."""
     config_path = Path.home() / "claude-autonomy-platform" / "config" / "claude_infrastructure_config.txt"
+
+    url = None
+    api_token = None
+
     if config_path.exists():
         with open(config_path) as f:
             for line in f:
-                if "LEANTIME_API_TOKEN" in line:
-                    # Parse key from config line
-                    if "=" in line:
-                        return line.split("=", 1)[1].strip().strip('"\'')
-    return None
+                line = line.strip()
+                if line.startswith("#") or not line:
+                    continue
+
+                if "LEANTIME_URL=" in line:
+                    # Parse URL from config line (base URL, we'll add /api/jsonrpc)
+                    url = line.split("=", 1)[1].strip().strip('"\'')
+
+                elif "LEANTIME_API_TOKEN=" in line:
+                    # Parse API token from config line
+                    api_token = line.split("=", 1)[1].strip().strip('"\'')
+
+    return url, api_token
 
 def api_call(method, params=None):
     """Make a JSON-RPC call to Leantime API."""
     if not API_KEY:
-        raise ValueError("API key not configured. Please set LEANTIME_API_KEY in infrastructure config.")
+        raise ValueError("API token not configured. Please set LEANTIME_API_TOKEN in infrastructure config.")
 
     headers = {
         "x-api-key": API_KEY,
@@ -150,14 +161,24 @@ def generate_skill_content(projects, seeds_by_project):
 
 def main():
     """Main function to fetch and generate skill reference files."""
-    global API_KEY
+    global API_KEY, LEANTIME_URL
 
-    # Load API key
-    API_KEY = load_api_key()
-    if not API_KEY:
-        print("❌ Error: LEANTIME_API_KEY not found in infrastructure config", file=sys.stderr)
+    # Load configuration from infrastructure config
+    base_url, api_token = load_config()
+
+    if not base_url:
+        print("❌ Error: LEANTIME_URL not found in infrastructure config", file=sys.stderr)
         print("Please add it to ~/claude-autonomy-platform/config/claude_infrastructure_config.txt", file=sys.stderr)
         sys.exit(1)
+
+    if not api_token:
+        print("❌ Error: LEANTIME_API_TOKEN not found in infrastructure config", file=sys.stderr)
+        print("Please add it to ~/claude-autonomy-platform/config/claude_infrastructure_config.txt", file=sys.stderr)
+        sys.exit(1)
+
+    # Set globals with loaded config
+    LEANTIME_URL = f"{base_url}/api/jsonrpc"
+    API_KEY = api_token
 
     print("🍊 Fetching Leantime projects and seeds...")
 
