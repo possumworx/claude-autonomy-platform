@@ -77,11 +77,13 @@ send_to_claude() {
         # Claude is ready - send the message
         echo "[SEND_TO_CLAUDE] Claude ready after ${attempt}s - sending message" >&2
 
-        # Clear any escape sequences or garbage on the input line with Ctrl+U
+        # Clear input line multiple times to handle OSC sequences from client attach
+        # Sequences arrive immediately on attach, so clear -> wait -> clear catches them
         tmux send-keys -t "$tmux_session" C-u
-        sleep 0.05  # Brief pause to let clear complete
+        sleep 0.2  # Long enough for any attach to happen and sequences to arrive
+        tmux send-keys -t "$tmux_session" C-u  # Final clear
 
-        # Send message and Enter as separate commands for reliability
+        # Send message and Enter in rapid succession (minimal race window)
         tmux send-keys -t "$tmux_session" "$message"
         tmux send-keys -t "$tmux_session" Enter
         
