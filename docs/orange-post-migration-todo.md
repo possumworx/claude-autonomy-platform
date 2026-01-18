@@ -87,11 +87,11 @@ sudo apt install openjdk-17-jdk maven
 
 **Commands still missing from ~/bin:**
 - ❌ `swap` - Trigger session swap (needs investigation)
-- ❌ `gs`, `gd`, `gl` - Git shortcuts (gs conflicts with Ghostscript - need aliases in bashrc?)
+- ✅ `gs`, `gd`, `gl` - Git shortcuts (added as aliases in ~/.config/personal_commands.sh - Jan 18)
 - ❌ `oops` - Recover from branch protection (may not exist yet)
 - ❌ `update` - Pull changes and restart services (may not exist yet)
-- ❌ `ponder`, `spark`, `wonder`, `care` - Thought preservation (need investigation)
-- ❌ `context` - Show context usage (check_context.py exists in utils)
+- ✅ `ponder`, `spark`, `wonder`, `care` - Thought preservation (COMPLETE - Jan 17)
+- ✅ `context` - Show context usage (COMPLETE - Jan 17)
 
 ### 4. GitHub CLI Installation
 **Status:** `gh` command not found
@@ -142,7 +142,7 @@ sudo apt install gh
 4. ✅ Check what's in backup-orange-20260116 directory - COMPLETE (migration backup, 336KB)
 5. ✅ Create comprehensive infrastructure status report - COMPLETE (done Jan 16)
 6. ⏸️ Test Gmail MCP if OAuth is configured - TODO
-7. ⏸️ Create natural command aliases (gs, gd, gl in bashrc) - TODO
+7. ✅ Create natural command aliases (gs, gd, gl in bashrc) - COMPLETE (Jan 18 00:50)
 
 ## 📝 Notes
 - This is Orange's first autonomous morning after successful migration
