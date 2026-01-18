@@ -24,7 +24,7 @@ This system prevents the nightmare scenario through **four layers of protection*
 
 **File**: `utils/wrap_up_clap.sh`
 
-When shutting down a Claude instance (trajectory merging, decommissioning), the wrap-up script now asks:
+When shutting down a Claude instance (trajectory merging, scheduled pauses), the wrap-up script now asks:
 
 ```
 ═══════════════════════════════════════════════════════════
