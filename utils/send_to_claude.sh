@@ -77,6 +77,12 @@ send_to_claude() {
         # Claude is ready - send the message
         echo "[SEND_TO_CLAUDE] Claude ready after ${attempt}s - sending message" >&2
 
+        # Clear input line to remove any OSC sequences from terminal attach
+        # These sequences (like ]11;rgb:...) appear when Amy attaches to tmux
+        tmux send-keys -t "$tmux_session" C-u
+        sleep 0.2  # Wait for any attach-triggered sequences to arrive
+        tmux send-keys -t "$tmux_session" C-u  # Clear again
+
         # Send message and Enter as separate commands for reliability
         tmux send-keys -t "$tmux_session" "$message"
         tmux send-keys -t "$tmux_session" Enter
