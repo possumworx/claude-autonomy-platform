@@ -339,3 +339,14 @@ fi
 
 # Use send_to_claude for consistency and proper handling
 send_to_claude "$MESSAGE"
+
+# Clear completion message visible in logs for Amy
+echo ""
+echo "════════════════════════════════════════════════════════════"
+echo "✅ SESSION SWAP COMPLETE - SAFE TO ATTACH NOW"
+echo "   Time: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "   Context: $KEYWORD"
+echo "   Session is fully initialized and ready"
+echo "════════════════════════════════════════════════════════════"
+echo ""
+log_info "SESSION_SWAP" "🟢 SAFE TO ATTACH - swap fully complete"
