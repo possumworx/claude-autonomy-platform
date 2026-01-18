@@ -14,7 +14,8 @@ from datetime import datetime
 from pathlib import Path
 
 # Leantime API configuration
-LEANTIME_URL = "http://192.168.1.2:8081/api/jsonrpc"
+# Updated Jan 18 2026 - migrated to orange-home
+LEANTIME_URL = "http://192.168.1.179:8081/api/jsonrpc"
 # API key needs to be set - check infrastructure config or .env
 API_KEY = None  # TODO: Load from secure config
 
