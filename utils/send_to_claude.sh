@@ -11,7 +11,7 @@ send_to_claude() {
     local message="$1"
     local skip_clear="${2:-false}"  # Optional: set to "true" to skip clearing Enter
     local tmux_session="${TMUX_SESSION:-autonomous-claude}"
-    
+
     if [ -z "$message" ]; then
         echo "[SEND_TO_CLAUDE] ERROR: No message provided" >&2
         return 1
@@ -76,6 +76,10 @@ send_to_claude() {
         
         # Claude is ready - send the message
         echo "[SEND_TO_CLAUDE] Claude ready after ${attempt}s - sending message" >&2
+
+        # Clear any escape sequences or garbage on the input line with Ctrl+U
+        tmux send-keys -t "$tmux_session" C-u
+        sleep 0.05  # Brief pause to let clear complete
 
         # Send message and Enter as separate commands for reliability
         tmux send-keys -t "$tmux_session" "$message"
