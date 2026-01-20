@@ -1,0 +1,3 @@
+#!/bin/bash
+# Recover from branch protection block by creating a new branch
+git checkout -b "fix/$(date +%s)" && git push -u origin HEAD
