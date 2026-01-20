@@ -95,6 +95,7 @@ CLAUDE.md
 context/temp-export.txt
 context/session_*.txt
 exportcontext/
+context/current_export.txt
 
 # Session audit files
 *_audit.csv
@@ -110,7 +111,8 @@ discord_downloads/*
 # Output styles identity files (personal to each Claude)
 .claude/output-styles/identity-prompt.md
 .claude/output-styles/*-identity.md
-context/current_export.txt
+
+
 
 # Linear project shortcuts (user-specific)
 linear/clap
@@ -121,7 +123,9 @@ linear/observatory
 linear/pattern
 linear/poss
 linear/*/TEST_RESULTS.md
+
 config/my_discord_channels.json
+discord/discord_dm_config.txt
 
 # Database files
 *.db

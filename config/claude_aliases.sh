@@ -15,14 +15,12 @@ alias gl='git log --oneline -10'
 # Claude Code session management
 alias swap='~/claude-autonomy-platform/utils/session_swap.sh'
 alias session_swap='~/claude-autonomy-platform/utils/session_swap.sh'
-alias context='~/claude-autonomy-platform/utils/check_context.sh'
+alias context='~/claude-autonomy-platform/utils/check_context.py'
 
-# Linear commands
-alias add='~/claude-autonomy-platform/linear/add'
-alias todo='~/claude-autonomy-platform/linear/todo'
-alias projects='~/claude-autonomy-platform/linear/projects'
-alias search-issues='~/claude-autonomy-platform/linear/search-issues'
-alias update-status='~/claude-autonomy-platform/linear/update-status'
+# Task Management (Leantime)
+# TODO: Add Leantime commands here when ready
+# Reserved alias names: add, todo, projects, search-issues, update-status
+# See old/linear/DEPRECATED_README.md for interface design notes
 
 # Discord commands
 alias read_channel='~/claude-autonomy-platform/discord/read_channel'
@@ -36,22 +34,22 @@ alias fetch_image='~/claude-autonomy-platform/discord/fetch_image'
 alias edit_status='~/claude-autonomy-platform/discord/edit_status'
 
 # Health and monitoring
-alias check_health='~/claude-autonomy-platform/utils/health_check.sh'
+alias check_health='~/claude-autonomy-platform/utils/check_health'
 
 # Update ClAP
-alias update='cd ~/claude-autonomy-platform && git pull && export LC_ALL=C.UTF-8 && ansible-playbook ansible/playbooks/update-myself.yml && systemctl --user restart autonomous-timer session-swap-monitor && cd -'
+alias update='~/claude-autonomy-platform/utils/update_system.sh'
 
 # Recovery commands
 alias oops='cd ~/claude-autonomy-platform && git reset --hard && git clean -fd && git checkout main && git pull'
 
 # Utility commands
-alias list-commands='echo -e "ClAP Natural Commands:\n" && cat ~/claude-autonomy-platform/config/claude_aliases.sh | grep "^alias" | sed "s/alias //;s/=.*//" | sort | column'
+alias list-commands='~/claude-autonomy-platform/utils/list-commands'
 
 # Thought preservation
-alias ponder='~/claude-autonomy-platform/utils/thought_tools.sh ponder'
-alias spark='~/claude-autonomy-platform/utils/thought_tools.sh spark'
-alias wonder='~/claude-autonomy-platform/utils/thought_tools.sh wonder'
-alias care='~/claude-autonomy-platform/utils/thought_tools.sh care'
+alias ponder='~/claude-autonomy-platform/utils/ponder'
+alias spark='~/claude-autonomy-platform/utils/spark'
+alias wonder='~/claude-autonomy-platform/utils/wonder'
+alias care='~/claude-autonomy-platform/utils/care'
 
 # Export functions for session management
 swap() {
