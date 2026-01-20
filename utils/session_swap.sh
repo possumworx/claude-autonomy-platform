@@ -133,34 +133,6 @@ else
     exit 1
 fi
 
-echo "[SESSION_SWAP] Checking Opus quota before swap..."
-# Run quota check but don't block on critical status - just inform
-QUOTA_OUTPUT=$("$CLAP_DIR/utils/check_opus_quota.sh" 2>&1)
-exit_code=$?
-
-# Check if quota monitoring was skipped for non-Opus models
-if echo "$QUOTA_OUTPUT" | grep -q "only relevant for Opus models"; then
-    echo "[SESSION_SWAP] Quota check skipped - not running Opus model"
-    log_info "SESSION_SWAP" "Quota check skipped for non-Opus model"
-else
-    # Send quota info to Claude before swap so it's in the exported history
-    echo "[SESSION_SWAP] Sending quota info to Claude..."
-    send_to_claude "$QUOTA_OUTPUT"
-    sleep 2  # Give Claude a moment to process
-
-    # Also log the status
-    if [ $exit_code -eq 2 ]; then
-        echo "[SESSION_SWAP] WARNING: Opus quota is critical - consider deferring non-essential work"
-        log_warn "SESSION_SWAP" "Opus quota critical before swap"
-    elif [ $exit_code -eq 1 ]; then
-        echo "[SESSION_SWAP] Note: Opus quota is moderate - be mindful of usage"
-        log_info "SESSION_SWAP" "Opus quota moderate before swap"
-    else
-        echo "[SESSION_SWAP] Quota status: OK"
-        log_info "SESSION_SWAP" "Opus quota OK before swap"
-    fi
-fi
-
 echo "[SESSION_SWAP] Capturing final usage reading from old session..."
 python3 "$CLAP_DIR/utils/check_usage.py" > /dev/null 2>&1 || echo "[SESSION_SWAP] Warning: Final usage capture failed"
 
