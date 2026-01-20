@@ -7,9 +7,17 @@ if [ -f "$HOME/claude-autonomy-platform/config/claude_env.sh" ]; then
     source "$HOME/claude-autonomy-platform/config/claude_env.sh"
 fi
 
-# Source aliases
+# Source all command/alias files
 if [ -f "$HOME/claude-autonomy-platform/config/claude_aliases.sh" ]; then
     source "$HOME/claude-autonomy-platform/config/claude_aliases.sh"
+fi
+
+if [ -f "$HOME/claude-autonomy-platform/config/natural_commands.sh" ]; then
+    source "$HOME/claude-autonomy-platform/config/natural_commands.sh"
+fi
+
+if [ -f "$HOME/claude-autonomy-platform/config/personal_commands.sh" ]; then
+    source "$HOME/claude-autonomy-platform/config/personal_commands.sh"
 fi
 
 # Add ClAP directories to PATH
