@@ -38,6 +38,10 @@ else
     echo "   ✅ Pre-commit already configured"
 fi
 
+# Update command symlinks to reflect any new/removed commands
+echo "🔗 Updating command symlinks..."
+bash ~/claude-autonomy-platform/utils/setup_natural_command_symlinks.sh > /dev/null 2>&1 || echo "⚠️  Symlink update failed (non-critical)"
+
 # Source the updated natural commands
 echo "🔧 Reloading natural commands..."
 # shellcheck source=/dev/null
@@ -75,6 +79,7 @@ cd "$ORIGINAL_DIR" || exit
 echo ""
 echo "🎉 System update complete!"
 echo "   - Latest code pulled from GitHub"
+echo "   - Command symlinks updated"
 echo "   - Natural commands reloaded"
 echo "   - Services restarted"
 echo ""
