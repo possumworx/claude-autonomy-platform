@@ -10,8 +10,13 @@ Usage:
 import json
 import requests
 import sys
+import os
 from datetime import datetime
 from pathlib import Path
+
+# Add utils directory to path for infrastructure_config_reader
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from infrastructure_config_reader import get_config_value
 
 # Leantime API configuration - loaded from infrastructure config
 LEANTIME_URL = None
@@ -19,26 +24,8 @@ API_KEY = None
 
 def load_config():
     """Load Leantime URL and API token from infrastructure config."""
-    config_path = Path.home() / "claude-autonomy-platform" / "config" / "claude_infrastructure_config.txt"
-
-    url = None
-    api_token = None
-
-    if config_path.exists():
-        with open(config_path) as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("#") or not line:
-                    continue
-
-                if "LEANTIME_URL=" in line:
-                    # Parse URL from config line (base URL, we'll add /api/jsonrpc)
-                    url = line.split("=", 1)[1].strip().strip('"\'')
-
-                elif "LEANTIME_API_TOKEN=" in line:
-                    # Parse API token from config line
-                    api_token = line.split("=", 1)[1].strip().strip('"\'')
-
+    url = get_config_value('LEANTIME_URL')
+    api_token = get_config_value('LEANTIME_API_TOKEN')
     return url, api_token
 
 def api_call(method, params=None):
