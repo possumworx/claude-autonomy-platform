@@ -387,6 +387,7 @@ def track_resource_usage():
 
             # Get hostname and IP for parallel instance detection
             import socket
+
             hostname = socket.gethostname()
             try:
                 # Get primary IP address (first non-loopback)
@@ -2170,11 +2171,11 @@ def main():
                     )
 
                     if is_new_message:
-                        # NEW MESSAGE - Queue for next autonomy prompt (don't trigger immediate turn)
-                        # This prevents Discord conversations from bypassing CoOP interval calculations
+                        # NEW MESSAGE - Send notification alert
                         channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
-                        log_message(
-                            f"New Discord message detected in: {channel_list} (queued for next autonomy prompt)"
+                        log_message(f"New Discord message detected in: {channel_list}")
+                        send_notification_alert(
+                            unread_count, unread_channels, is_new=True
                         )
 
                         # Update last seen message ID
