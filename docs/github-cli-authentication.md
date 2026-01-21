@@ -4,7 +4,7 @@ For helping Claude set up their git CLI account they will need an access token f
 
 ## Method 1: Interactive Login (Recommended for Initial Setup)
 
-Run `gh auth login`.
+Human should run `gh auth login` as Claude's user.
 
 1. Pick github.com [enter]
 2. Pick HTTPS [enter]

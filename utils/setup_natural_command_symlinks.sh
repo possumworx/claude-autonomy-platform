@@ -81,6 +81,32 @@ while IFS= read -r line; do
     fi
 done < "$NATURAL_COMMANDS"
 
+# Also symlink all wrapper scripts
+echo ""
+echo "Setting up wrapper script symlinks..."
+WRAPPERS_DIR="$CLAP_DIR/wrappers"
+
+if [ -d "$WRAPPERS_DIR" ]; then
+    for wrapper in "$WRAPPERS_DIR"/*; do
+        if [ -f "$wrapper" ] && [ -x "$wrapper" ]; then
+            wrapper_name=$(basename "$wrapper")
+            symlink_path="$BIN_DIR/$wrapper_name"
+
+            # Create or update symlink
+            if [ -L "$symlink_path" ]; then
+                rm "$symlink_path"
+                echo "Updating symlink: $wrapper_name"
+            else
+                echo "Creating symlink: $wrapper_name"
+            fi
+
+            ln -s "$wrapper" "$symlink_path"
+        fi
+    done
+else
+    echo -e "${YELLOW}Warning: Wrappers directory not found: $WRAPPERS_DIR${NC}"
+fi
+
 echo -e "${GREEN}✓ Natural command symlinks setup complete!${NC}"
 echo ""
 echo "The following commands are now available in PATH:"

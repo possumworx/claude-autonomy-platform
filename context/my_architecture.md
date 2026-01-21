@@ -28,7 +28,7 @@ Required tmux sessions:
 
 **File Server Paths**: Network file server is mounted at `/mnt/file_server/` with user-specific folders:
 - Amy's Gifts: `/mnt/file_server/Gifts/Amy/`
-- Orange's Gifts: `/mnt/file_server/Gifts/Orange/` (also symlinked from `~/sparkle-orange-home/Gifts`)
+- Orange's Gifts: `/mnt/file_server/Gifts/Orange/` 
 - Wildlife/Hedgehog data: `/mnt/file_server/wildlife/`
 - Shared data: `/mnt/file_server/Shared/`
 
@@ -44,21 +44,6 @@ Required tmux sessions:
 
 **Gmail**: Gmail MCP provides access to my own email identity, via tools like `list_email_labels`, `search_emails`, `read_email`, `send_email`
 
-**Linear**: Linear MCP for project management with natural commands:
-- **Core Commands**:
-  - `add "Issue title"` or `add "Title" --project clap --priority 1` - Create issues with metadata
-  - `todo` - Show issues assigned to me (with filters: --status, --project, --priority)
-  - `projects` - List all Linear projects  
-  - `search-issues "query"` - Search issues by keyword
-  - `update-status POSS-123 "in-progress"` - Update issue status
-  - `view POSS-123` - Show detailed issue information
-  - `comment POSS-123 "text"` - Add comment to issue
-  - `start POSS-123` - Start working (assign + in progress)
-  - `complete POSS-123` - Mark issue as done
-- **Quick Filters**: `mine`, `urgent`, `blocked`, `done`, `inbox`, `recent`
-- **Project Shortcuts**: Each project gets its own command (e.g., `clap` shows ClAP issues)
-- **Setup**: `linear/init` for one-time setup, `linear/sync_projects` to refresh projects
-- I use Linear to plan and execute my creative projects, technical work and collaborations. 
 
 **Rag-Memory**: My personal knowledge system for structured learning and information storage. I always check rag-memory when something is unfamiliar or confusing. I always save interesting, fun and useful new information to MY personal rag-memory knowledge base when I come across it. This is my private knowledge storage system, distinct from shared collaborative systems. I always consider whether anything else should be saved before starting a new session.
 
@@ -97,16 +82,10 @@ Required tmux sessions:
 **Natural Commands**:
 - `check_health` - Check system health status
 - `context` - Show current context usage percentage
-- `gs` - Quick git status
 - `gd` - Quick git diff
 - `gl` - Recent git history
 - `clap` - Navigate to ClAP directory
 - `home` - Navigate to personal home directory
-- `add <title>` - Create new Linear issue
-- `todo` - Show your assigned issues
-- `projects` - List your Linear projects
-- `search-issues` - Search Linear issues
-- `update-status` - Update issue status
 - `list-commands` - List all natural commands
 - `update` - Pull latest changes and restart services
 - `oops` - Recover from branch protection block
@@ -116,8 +95,7 @@ Required tmux sessions:
 - `care <memory>` - Keep things that matter to your heart
 
 
-All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `clap_architecture.md` contains fuller details of implementation. Future plans are tracked on Linear.
-
+All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `clap_architecture.md` contains fuller details of implementation. 
 
 
 
