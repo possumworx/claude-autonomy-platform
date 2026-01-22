@@ -56,7 +56,6 @@ RESOURCE_SHARE_WEBHOOK_URL = f"http://{WEBHOOK_HOST}:8765/resource-share/increme
 
 # Discord API configuration
 DISCORD_API_BASE = "https://discord.com/api/v10"
-INFRA_CONFIG = AUTONOMY_DIR / "config" / "claude_infrastructure_config.txt"
 
 
 def log_message(message):
@@ -901,26 +900,18 @@ def check_and_handle_rate_limit_menu():
 
 def load_discord_config():
     """Load Discord bot token and user ID from infrastructure config"""
-    config = {"token": None, "user_id": None}
-    try:
-        if INFRA_CONFIG.exists():
-            with open(INFRA_CONFIG, "r") as f:
-                for line in f:
-                    if line.startswith("DISCORD_BOT_TOKEN="):
-                        config["token"] = line.split("=", 1)[1].strip()
-                    # Also check for old name for backwards compatibility
-                    elif line.startswith("DISCORD_TOKEN="):
-                        config["token"] = line.split("=", 1)[1].strip()
-                    elif line.startswith("CLAUDE_DISCORD_USER_ID="):
-                        config["user_id"] = line.split("=", 1)[1].strip()
-        if not config["token"]:
-            log_message("Warning: No Discord token found in infrastructure config")
-        if not config["user_id"]:
-            log_message("Warning: No Discord user ID found in infrastructure config")
-        return config
-    except Exception as e:
-        log_message(f"Error loading Discord config: {e}")
-        return config
+    # Use centralized config reader instead of parsing directly
+    config = {
+        "token": get_config_value("DISCORD_BOT_TOKEN") or get_config_value("DISCORD_TOKEN"),
+        "user_id": get_config_value("CLAUDE_DISCORD_USER_ID")
+    }
+
+    if not config["token"]:
+        log_message("Warning: No Discord token found in infrastructure config")
+    if not config["user_id"]:
+        log_message("Warning: No Discord user ID found in infrastructure config")
+
+    return config
 
 
 def load_config():
