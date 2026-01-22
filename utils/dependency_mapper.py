@@ -9,6 +9,7 @@ Analyzes the codebase to find all dependencies between files.
 Traces:
 - Python imports (standard and relative)
 - Python subprocess/os.system calls to scripts
+- Python file reads (json/yaml/txt config files)
 - Shell source/dot commands
 - Shell direct script invocations
 - Symlinks
@@ -223,6 +224,39 @@ class DependencyMapper:
                 resolved = self.resolve_path_or_track(rel_path, command, 'subprocess')
                 if resolved:
                     self.add_dependency(rel_path, resolved, 'subprocess')
+        
+        # Track file reads (data dependencies)
+        self._parse_python_file_reads(rel_path, content)
+    
+    def _parse_python_file_reads(self, from_file: str, content: str):
+        """Parse Python file for data file reads (json.load, open, Path.read_text, etc.)"""
+        # Pattern 1: String literals that look like config/data file paths
+        # Matches: "config/something.json", 'data/file.txt', etc.
+        path_patterns = [
+            r'["\']((config|data|context)/[^"\'/]+\.(json|txt|yaml|yml))["\']',
+        ]
+        
+        for pattern in path_patterns:
+            for match in re.finditer(pattern, content):
+                ref = match.group(1)
+                # Skip format strings
+                if '{' in ref:
+                    continue
+                resolved = self.resolve_path(from_file, ref)
+                if resolved:
+                    self.add_dependency(from_file, resolved, 'reads')
+        
+        # Pattern 2: Path / operator ending in data files
+        # Matches: SOMETHING / "file.json" patterns
+        div_pattern = r'/\s*["\']([^"\'/]+\.(json|txt|yaml|yml))["\']'
+        for match in re.finditer(div_pattern, content):
+            filename = match.group(1)
+            # Try common data directories
+            for dir_name in ['config', 'data', 'context']:
+                resolved = self.resolve_path(from_file, f"{dir_name}/{filename}")
+                if resolved:
+                    self.add_dependency(from_file, resolved, 'reads')
+                    break
     
     def _handle_python_import(self, from_file: str, module_name: str):
         stdlib_prefixes = {'os', 'sys', 'json', 're', 'ast', 'pathlib', 'collections', 
@@ -499,6 +533,7 @@ class DependencyMapper:
             'import': 'color=blue', 'subprocess': 'color=red', 'source': 'color=green',
             'invokes': 'color=orange', 'symlink': 'color=purple, style=dashed',
             'config_ref': 'color=gray, style=dotted', 'service_exec': 'color=brown, penwidth=2',
+            'reads': 'color=cyan, style=dashed',
         }
         added_edges = set()
         for from_file, to_files in sorted(self.dependencies.items()):
