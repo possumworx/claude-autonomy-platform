@@ -25,9 +25,12 @@ if ! git diff-index --quiet HEAD --; then
     exit 1
 fi
 
-# Pull latest changes
-echo "📥 Pulling latest changes from GitHub..."
-git pull origin main || exit 1
+# Pull latest changes and sync deletions
+echo "📥 Fetching latest changes from GitHub..."
+git fetch --all || exit 1
+
+echo "🧹 Syncing local with remote (including deletions)..."
+git reset --hard origin/main || exit 1
 
 # Ensure pre-commit hooks are set up
 echo "🔐 Checking pre-commit setup..."
