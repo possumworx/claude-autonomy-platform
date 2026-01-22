@@ -430,9 +430,13 @@ def track_resource_usage():
                                 AUTONOMY_PROMPT_INTERVAL = int(new_interval)
 
                                 if new_interval != old_interval:
+                                    # Format fairness value safely (may be missing or non-numeric)
+                                    fairness = response_data.get('multipliers', {}).get('fairness')
+                                    fairness_str = f"{fairness:.2f}" if isinstance(fairness, (int, float)) else "?"
+
                                     log_message(
                                         f"INFO: Interval updated by CoOP: {old_interval}s → {new_interval}s "
-                                        f"(fairness: {response_data.get('multipliers', {}).get('fairness', '?'):.2f}x, "
+                                        f"(fairness: {fairness_str}x, "
                                         f"quota: {response_data.get('quota_status', 'unknown')})"
                                     )
                             else:
