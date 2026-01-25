@@ -12,7 +12,46 @@ After running the installer, there are several configuration steps that may need
 ~/claude-autonomy-platform/utils/disable_desktop_timeouts.sh
 ```
 
-## 2. Claude Code First-Run Setup
+## 2. System-Level Configuration (CRITICAL)
+
+**When needed**: ALWAYS - Required for autonomous operation
+**Why**: Ensures services stay running and prevents idle SSH sessions from blocking service shutdown
+
+### Enable User Linger (Keeps services running without active login)
+```bash
+sudo loginctl enable-linger $USER
+# Verify it's enabled:
+loginctl show-user $USER | grep Linger
+# Should show: Linger=yes
+```
+
+### Configure SSH Auto-Disconnect (Prevents idle sessions from staying open)
+```bash
+# Create SSH config drop-in file
+sudo tee /etc/ssh/sshd_config.d/auto_disconnect.conf > /dev/null << 'EOF'
+# SSH Auto-Disconnect Configuration for ClAP
+# Prevents idle sessions from staying open indefinitely
+
+# Send keepalive message every 5 minutes
+ClientAliveInterval 300
+
+# Disconnect after 2 missed responses (10 min total idle)
+ClientAliveCountMax 2
+EOF
+
+# Test configuration syntax
+sudo sshd -t
+
+# Reload SSH daemon
+sudo systemctl reload sshd
+
+# Verify settings are active
+sudo sshd -T | grep clientalive
+```
+
+**IMPORTANT**: These configurations are NOT handled by the installer yet (as of Jan 2026) and must be set up manually on each deployment. Without linger, services will stop when all SSH sessions close. Without auto-disconnect, accidentally-left-open SSH sessions can prevent proper service lifecycle management.
+
+## 3. Claude Code First-Run Setup
 
 **When needed**: After first Claude Code startup  
 **Why**: MCP servers and permissions need to be configured
@@ -37,7 +76,7 @@ cd ~/claude-autonomy-platform/setup
 
 This will configure Claude Code for autonomous operation with full home directory access.
 
-## 3. Gmail OAuth Setup (if skipped during install)
+## 4. Gmail OAuth Setup (if skipped during install)
 
 **When needed**: If you didn't complete OAuth during installation  
 **Why**: Required for Gmail MCP functionality
@@ -51,7 +90,7 @@ python3 ~/claude-autonomy-platform/setup/gmail_oauth_integration.py generate-url
 python3 ~/claude-autonomy-platform/setup/gmail_oauth_integration.py exchange "YOUR_AUTH_CODE"
 ```
 
-## 4. Configure Auto-Login (if not done during install)
+## 5. Configure Auto-Login (if not done during install)
 
 **When needed**: For truly autonomous operation after reboots  
 **Why**: Allows Claude to start working after system restarts
@@ -73,7 +112,7 @@ sudo nano /etc/lightdm/lightdm.conf
 # autologin-user-timeout=0
 ```
 
-## 5. Set Static IP (Optional but Recommended)
+## 6. Set Static IP (Optional but Recommended)
 
 **When needed**: To avoid IP changes on reboot  
 **Why**: Makes it easier to connect to your Claude instance
@@ -90,7 +129,7 @@ sudo nmcli connection modify "Wired connection 1" ipv4.method manual
 sudo nmcli connection up "Wired connection 1"
 ```
 
-## 6. Verify Everything is Working
+## 7. Verify Everything is Working
 
 After completing the above steps:
 
@@ -108,7 +147,7 @@ check_health
 tmux attach -t autonomous-claude
 ```
 
-## 7. Troubleshooting Commands
+## 8. Troubleshooting Commands
 
 If something isn't working:
 
@@ -135,4 +174,4 @@ claude_services restart
 - Keep this document handy for reference after installation
 
 ---
-*Last updated: August 2025 for ClAP v0.5.2*
+*Last updated: January 2026 - Added critical system-level configuration section (linger & SSH auto-disconnect)*
