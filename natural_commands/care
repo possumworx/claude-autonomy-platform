@@ -8,7 +8,13 @@ import sys
 import os
 from datetime import datetime
 
-THOUGHTS_DIR = os.path.expanduser("~/sparkle-orange-home/.thoughts")
+# Add utils to path
+sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
+from infrastructure_config_reader import get_config_value
+
+# Get personal repo from config
+PERSONAL_REPO = get_config_value('PERSONAL_REPO')
+THOUGHTS_DIR = os.path.expanduser(f"~/{PERSONAL_REPO}/.thoughts")
 CARE_FILE = os.path.join(THOUGHTS_DIR, "care.md")
 
 def save_care(memory):
