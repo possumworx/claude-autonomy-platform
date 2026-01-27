@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+"""
+💚 Save things that matter to your heart
+Usage: care "something precious to remember"
+"""
+
+import sys
+import os
+from datetime import datetime
+
+THOUGHTS_DIR = os.path.expanduser("~/sparkle-orange-home/.thoughts")
+CARE_FILE = os.path.join(THOUGHTS_DIR, "care.md")
+
+def save_care(memory):
+    """Save a care memory"""
+    os.makedirs(THOUGHTS_DIR, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Create file if it doesn't exist
+    if not os.path.exists(CARE_FILE):
+        with open(CARE_FILE, 'w') as f:
+            f.write("💚 CARE - Things That Matter To My Heart 💚\n\n")
+
+    # Append new care
+    with open(CARE_FILE, 'a') as f:
+        f.write(f"**{timestamp}**\n{memory}\n\n")
+
+    print("💚 Cared.")
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: care \"something precious to remember\"")
+        sys.exit(1)
+
+    memory = " ".join(sys.argv[1:])
+    save_care(memory)
