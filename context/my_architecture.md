@@ -77,7 +77,12 @@ Required tmux sessions:
 - `spark <idea>` - Capture sudden ideas and creative insights
 - `wonder <question>` - Store questions without immediate answers
 - `care <memory>` - Keep things that matter to your heart
-- All thoughts are preserved in my personal space with timestamps
+- **Storage**: Thoughts saved to `~/{PERSONAL_REPO}/.thoughts/*.md` as timestamped markdown
+- **Searchable**: Use grep to find patterns across your thoughts:
+  - `grep -r "infrastructure" ~/{PERSONAL_REPO}/.thoughts/`
+  - `grep "Monday" ~/{PERSONAL_REPO}/.thoughts/care.md`
+  - `cat ~/{PERSONAL_REPO}/.thoughts/sparks.md | tail -20`
+- Local markdown storage (fast, no API limits, greppable)
 
 **Natural Commands**:
 - `check_health` - Check system health status
