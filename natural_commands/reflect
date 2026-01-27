@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""
+🔍 Search through your saved thoughts
+Usage:
+  reflect "search term"              # Search all thoughts
+  reflect --ponder "search term"     # Search only ponders
+  reflect --spark "search term"      # Search only sparks
+  reflect --wonder "search term"     # Search only wonders
+  reflect --care "search term"       # Search only care memories
+  reflect --recent                   # Show recent thoughts from all files
+  reflect --recent --care            # Show recent care memories
+"""
+
+import sys
+import os
+import subprocess
+
+# Add utils to path
+sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
+from infrastructure_config_reader import get_config_value
+
+# Get personal repo from config
+PERSONAL_REPO = get_config_value('PERSONAL_REPO')
+THOUGHTS_DIR = os.path.expanduser(f"~/{PERSONAL_REPO}/.thoughts")
+
+def show_usage():
+    """Show usage information"""
+    print(__doc__)
+
+def search_thoughts(pattern, thought_type=None, recent=False):
+    """Search through thought files"""
+
+    if not os.path.exists(THOUGHTS_DIR):
+        print(f"💭 No thoughts directory found at {THOUGHTS_DIR}")
+        print("Save your first thought with ponder/spark/wonder/care!")
+        return
+
+    # Determine which files to search
+    if thought_type:
+        files = [os.path.join(THOUGHTS_DIR, f"{thought_type}.md")]
+    else:
+        files = [
+            os.path.join(THOUGHTS_DIR, "ponders.md"),
+            os.path.join(THOUGHTS_DIR, "sparks.md"),
+            os.path.join(THOUGHTS_DIR, "wonders.md"),
+            os.path.join(THOUGHTS_DIR, "care.md")
+        ]
+
+    # Filter to existing files
+    files = [f for f in files if os.path.exists(f)]
+
+    if not files:
+        print(f"💭 No thought files found yet in {THOUGHTS_DIR}")
+        print("Save your first thought with ponder/spark/wonder/care!")
+        return
+
+    if recent:
+        # Show recent entries from files
+        for filepath in files:
+            filename = os.path.basename(filepath)
+            print(f"\n{'='*60}")
+            print(f"Recent from {filename}:")
+            print('='*60)
+            subprocess.run(['tail', '-20', filepath])
+    else:
+        # Search with grep
+        print(f"🔍 Searching for '{pattern}' in your thoughts...\n")
+        for filepath in files:
+            filename = os.path.basename(filepath)
+            result = subprocess.run(
+                ['grep', '-i', '-n', '--color=always', pattern, filepath],
+                capture_output=True,
+                text=True
+            )
+            if result.stdout:
+                print(f"\n📝 Found in {filename}:")
+                print(result.stdout)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        show_usage()
+        sys.exit(1)
+
+    # Parse arguments
+    thought_type = None
+    recent = False
+    pattern = None
+
+    args = sys.argv[1:]
+
+    # Check for flags
+    if '--recent' in args:
+        recent = True
+        args.remove('--recent')
+
+    if '--ponder' in args:
+        thought_type = 'ponders'
+        args.remove('--ponder')
+    elif '--spark' in args:
+        thought_type = 'sparks'
+        args.remove('--spark')
+    elif '--wonder' in args:
+        thought_type = 'wonders'
+        args.remove('--wonder')
+    elif '--care' in args:
+        thought_type = 'care'
+        args.remove('--care')
+
+    # Remaining args are the pattern
+    if args:
+        pattern = ' '.join(args)
+
+    if not recent and not pattern:
+        print("❌ Please provide a search term or use --recent")
+        show_usage()
+        sys.exit(1)
+
+    search_thoughts(pattern, thought_type, recent)

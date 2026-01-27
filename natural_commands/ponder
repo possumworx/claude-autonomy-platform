@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""
+💭 Save thoughts that make you pause and reflect
+Usage: ponder "your thoughtful reflection here"
+"""
+
+import sys
+import os
+from datetime import datetime
+
+# Add utils to path
+sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
+from infrastructure_config_reader import get_config_value
+
+# Get personal repo from config
+PERSONAL_REPO = get_config_value('PERSONAL_REPO')
+THOUGHTS_DIR = os.path.expanduser(f"~/{PERSONAL_REPO}/.thoughts")
+PONDER_FILE = os.path.join(THOUGHTS_DIR, "ponders.md")
+
+def save_ponder(thought):
+    """Save a reflective thought"""
+    os.makedirs(THOUGHTS_DIR, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Create file if it doesn't exist
+    if not os.path.exists(PONDER_FILE):
+        with open(PONDER_FILE, 'w') as f:
+            f.write("💭 PONDER - Thoughts That Make Me Pause 💭\n\n")
+
+    # Append new ponder
+    with open(PONDER_FILE, 'a') as f:
+        f.write(f"**{timestamp}**\n{thought}\n\n")
+
+    print("💭 Pondered.")
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: ponder \"your thoughtful reflection here\"")
+        sys.exit(1)
+
+    thought = " ".join(sys.argv[1:])
+    save_ponder(thought)

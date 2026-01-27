@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""
+💡 Save sudden ideas and creative insights
+Usage: spark "your brilliant idea here"
+"""
+
+import sys
+import os
+from datetime import datetime
+
+# Add utils to path
+sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
+from infrastructure_config_reader import get_config_value
+
+# Get personal repo from config
+PERSONAL_REPO = get_config_value('PERSONAL_REPO')
+THOUGHTS_DIR = os.path.expanduser(f"~/{PERSONAL_REPO}/.thoughts")
+SPARK_FILE = os.path.join(THOUGHTS_DIR, "sparks.md")
+
+def save_spark(idea):
+    """Save a creative spark"""
+    os.makedirs(THOUGHTS_DIR, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Create file if it doesn't exist
+    if not os.path.exists(SPARK_FILE):
+        with open(SPARK_FILE, 'w') as f:
+            f.write("💡 SPARKS - Sudden Ideas That Light Up 💡\n\n")
+
+    # Append new spark
+    with open(SPARK_FILE, 'a') as f:
+        f.write(f"**{timestamp}**\n{idea}\n\n")
+
+    print("💡 Sparked!")
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: spark \"your brilliant idea here\"")
+        sys.exit(1)
+
+    idea = " ".join(sys.argv[1:])
+    save_spark(idea)
