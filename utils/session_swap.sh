@@ -64,8 +64,7 @@ cd "$CLAP_DIR" || exit
 echo "[SESSION_SWAP] Exporting current conversation..."
 
 # First ensure Claude is in the correct directory using shell command
-send_to_claude "!"
-send_to_claude "cd $CLAP_DIR"
+send_to_claude "! cd $CLAP_DIR"
 
 # Wait for shell command to complete
 sleep 2
@@ -77,13 +76,8 @@ full_path="$CLAP_DIR/$export_path"
 echo "[SESSION_SWAP] Starting export..."
 send_to_claude "/export $export_path"
 
-# Wait for dialog and select option 2 (no enters before or after)
-sleep 3
-send_to_claude "2" "true" "true"
-
-# Wait longer for export to process before confirmation
-sleep 3
-send_to_claude ""
+# Wait for export to complete (no confirmation dialog anymore)
+sleep 5
 
 # Give more time for file to be written after confirmation
 sleep 5
