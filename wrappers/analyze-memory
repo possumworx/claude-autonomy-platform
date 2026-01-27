@@ -1,0 +1,3 @@
+#!/bin/bash
+# Analyze rag-memory patterns for queries
+~/claude-autonomy-platform/natural_commands/analyze-memory "$@"

@@ -1,0 +1,3 @@
+#!/bin/bash
+# 🛑 Emergency shutdown (for stuck instances)
+~/claude-autonomy-platform/utils/emergency_shutdown.sh "$@"

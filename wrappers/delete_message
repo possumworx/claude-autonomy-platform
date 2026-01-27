@@ -1,0 +1,3 @@
+#!/bin/bash
+# Delete Discord message by channel name and message ID
+~/claude-autonomy-platform/discord/delete_message "$@"

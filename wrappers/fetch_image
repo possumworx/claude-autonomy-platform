@@ -1,0 +1,3 @@
+#!/bin/bash
+# Fetch/download images from Discord messages
+~/claude-autonomy-platform/discord/fetch_image "$@"

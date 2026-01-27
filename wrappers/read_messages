@@ -1,0 +1,3 @@
+#!/bin/bash
+# Read messages from local transcripts
+~/claude-autonomy-platform/discord/read_messages "$@"
