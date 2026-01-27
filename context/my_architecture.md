@@ -86,7 +86,6 @@ Required tmux sessions:
 
 **Natural Commands**:
 - `check_health` - Check system health status
-- `context` - Show current context usage percentage
 - `gd` - Quick git diff
 - `gl` - Recent git history
 - `clap` - Navigate to ClAP directory
