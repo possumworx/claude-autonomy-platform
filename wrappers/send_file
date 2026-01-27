@@ -1,0 +1,3 @@
+#!/bin/bash
+# Send any file to Discord channel
+~/claude-autonomy-platform/discord/send_file "$@"

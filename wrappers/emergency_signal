@@ -1,0 +1,3 @@
+#!/bin/bash
+# 🆘 Send emergency distress signal
+~/claude-autonomy-platform/utils/emergency_signal.sh send "$@"

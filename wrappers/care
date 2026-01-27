@@ -1,0 +1,3 @@
+#!/bin/bash
+# 💚 Save things that matter to your heart
+~/claude-autonomy-platform/utils/care "$@"

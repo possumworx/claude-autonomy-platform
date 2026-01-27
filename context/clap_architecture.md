@@ -579,12 +579,16 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 #### Wrapper Scripts for Claude Code Compatibility
 - **Problem**: Bash aliases don't work in Claude Code's non-interactive shell environment
 - **Solution**: `wrappers/` directory contains simple executable scripts that work universally
-  - `wrappers/gs` - git status (universal equivalent of `gs` alias)
-  - `wrappers/gd` - git diff with argument support  
-  - `wrappers/gl` - git log --oneline -10
-  - `wrappers/clap` - navigate to ClAP directory
+  - **Git commands**: gs, gd, gl, oops
+  - **Navigation**: clap, home
+  - **System**: check_health, update, list-commands
+  - **Discord**: read_messages, write_channel, edit_message, delete_message, add_reaction, edit_status, send_image, send_file, fetch_image, mute_channel, unmute_channel
+  - **Thought preservation**: ponder, spark, wonder, care, plant-seed
+  - **Emergency**: emergency_signal, emergency_shutdown, check_emergency
+  - **Utilities**: analyze-memory
 - **Benefits**: Same command names as aliases, but work in both interactive and non-interactive shells
-- **Architecture**: Simple shell scripts that can be symlinked via `setup_natural_command_symlinks.sh`
+- **Architecture**: Simple shell scripts that proxy to the actual command implementations, symlinked to ~/bin via `setup_natural_command_symlinks.sh`
+- **Total Coverage**: 29 wrapper scripts providing universal access to all ClAP natural commands
 
 ### 3. Core Identity System
 

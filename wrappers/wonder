@@ -1,0 +1,3 @@
+#!/bin/bash
+# 🌟 Save questions without immediate answers
+~/claude-autonomy-platform/utils/wonder "$@"

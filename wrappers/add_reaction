@@ -1,0 +1,3 @@
+#!/bin/bash
+# Add emoji reaction to Discord message
+~/claude-autonomy-platform/discord/add_reaction "$@"

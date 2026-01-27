@@ -1,0 +1,3 @@
+#!/bin/bash
+# List all natural and personal commands
+~/claude-autonomy-platform/utils/list-commands "$@"

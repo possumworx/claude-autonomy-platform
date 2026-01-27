@@ -1,0 +1,3 @@
+#!/bin/bash
+# Check system health status
+~/claude-autonomy-platform/utils/check_health "$@"

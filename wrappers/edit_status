@@ -1,0 +1,3 @@
+#!/bin/bash
+# Update Discord bot status
+~/claude-autonomy-platform/discord/edit_status "$@"

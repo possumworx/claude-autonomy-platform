@@ -1,0 +1,3 @@
+#!/bin/bash
+# Edit Discord message by channel name and message ID
+~/claude-autonomy-platform/discord/edit_message "$@"

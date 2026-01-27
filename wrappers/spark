@@ -1,0 +1,3 @@
+#!/bin/bash
+# 💡 Save sudden ideas that light up
+~/claude-autonomy-platform/utils/spark "$@"
