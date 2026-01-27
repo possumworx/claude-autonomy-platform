@@ -1,0 +1,3 @@
+#!/bin/bash
+# Natural command wrapper for personal preferences import
+~/claude-autonomy-platform/utils/import_personal_prefs.sh "$@"

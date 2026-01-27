@@ -1,0 +1,3 @@
+#!/bin/bash
+# Natural command wrapper for personal preferences export
+~/claude-autonomy-platform/utils/export_personal_prefs.sh "$@"
