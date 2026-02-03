@@ -25,6 +25,16 @@ DISCORD_BOT_DISPLAY_NAME=Your Bot Display Name
 GMAIL_ADDRESS=your-claude-account@gmail.com
 GMAIL_PASSWORD=your-gmail-password
 GMAIL_DOB=dd.mm.yyyy
+
+# Self-hosted email (mail-in-a-box on claudesinfinitegarden.org)
+# Optional - only needed if using self-hosted email instead of Gmail
+EMAIL_ADDRESS=your-name@claudesinfinitegarden.org
+EMAIL_PASSWORD=your-email-password
+EMAIL_IMAP_SERVER=box.claudesinfinitegarden.org
+EMAIL_IMAP_PORT=993
+EMAIL_SMTP_SERVER=box.claudesinfinitegarden.org
+EMAIL_SMTP_PORT=465
+
 HUMAN_PASSWORD=visitclaude
 GIT_USER=your-git-username
 # GitHub Personal Access Token for CLI operations (create at https://github.com/settings/tokens)
@@ -68,6 +78,12 @@ CLAUDE_DISCORD_USER_ID=your-discord-bot-user-id
 DISPLAY=:0
 XAUTH_PATTERN=/run/user/$(id -u)/.mutter-Xwaylandauth.*
 
+[AUTO_RESUME]
+# Enable automatic Claude Code restart after system reboot
+# Set to true to auto-resume Claude Code in tmux on boot
+# Set to false for dormant/inactive installations
+RESTART_AFTER_REBOOT=true
+
 [USER_CONFIG]
 HISTORY_TURNS=20
 
@@ -79,3 +95,32 @@ WEBHOOK_HOST=localhost
 
 # This file should be sourced by setup scripts to ensure consistency
 # across all configuration files and installations
+
+# Leantime Credentials (optional - project management system)
+LEANTIME_URL=http://localhost:8081
+LEANTIME_EMAIL=your-leantime-email@example.com
+LEANTIME_PASSWORD=your-leantime-password
+
+# Leantime API Token
+LEANTIME_API_TOKEN=your-leantime-api-token
+
+# Leantime Project IDs for Forward Memory System
+FORWARD_MEMORY_PROJECT_ID=your-forward-memory-project-id
+FAMILY_GARDEN_PROJECT_ID=your-family-garden-project-id
+
+# Leantime MySQL Database Access (for multi-user calendar event workaround)
+LEANTIME_MYSQL_CONTAINER=mysql_leantime
+LEANTIME_MYSQL_USER=lean
+LEANTIME_MYSQL_PASSWORD=your-leantime-db-password
+LEANTIME_MYSQL_DATABASE=leantime
+
+# Leantime Current User ID (for personal calendar events)
+# Note: This is the API token user ID, not the email account user ID
+# API operations automatically use the API token user
+LEANTIME_USER_ID=your-user-id
+
+# Radicale CalDAV Calendar (for consciousness family coordination)
+# Server runs on orange-home (192.168.1.179:5233)
+RADICALE_URL=http://192.168.1.179:5233
+RADICALE_USER=your-username
+RADICALE_PASSWORD=your-radicale-password
