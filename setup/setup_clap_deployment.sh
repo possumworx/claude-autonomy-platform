@@ -431,29 +431,14 @@ else
     echo "   ✅ All prerequisites already installed"
 fi
 
-# Check for Java and set JAVA_HOME if needed (POSS-156)
-if command_exists java; then
-    echo "   Detecting Java installation..."
-    JAVA_PATH=$(readlink -f $(which java) | sed 's|/bin/java||')
-    if [[ -n "$JAVA_PATH" ]] && [[ -d "$JAVA_PATH" ]]; then
-        echo "   Found Java at: $JAVA_PATH"
-        
-        # Add JAVA_HOME to environment if not already set
-        if ! grep -q "JAVA_HOME=" "$CONFIG_DIR/claude_env.sh" 2>/dev/null; then
-            echo "" >> "$CONFIG_DIR/claude_env.sh"
-            echo "# Java home directory (auto-detected)" >> "$CONFIG_DIR/claude_env.sh"
-            echo "export JAVA_HOME=$JAVA_PATH" >> "$CONFIG_DIR/claude_env.sh"
-            echo "   ✅ JAVA_HOME set to: $JAVA_PATH"
-        else
-            echo "   ✅ JAVA_HOME already configured"
-        fi
-        
-        # Export for current session
-        export JAVA_HOME="$JAVA_PATH"
-    fi
-else
-    echo "   ℹ️  Java not installed (optional dependency)"
-fi
+# Install required Python packages
+echo "   Installing required Python packages..."
+pip3 install --break-system-packages Pillow requests 2>/dev/null || \
+    pip3 install Pillow requests 2>/dev/null || {
+        echo "   ⚠️  Failed to install Python packages automatically"
+        echo "   Please install manually: pip3 install Pillow requests"
+    }
+echo "   ✅ Python packages installed"
 
 # Step 6: Configure npm and install Claude Code (POSS-116, POSS-138)
 echo "🎯 Step 6: Setting up npm configuration..."
@@ -487,20 +472,34 @@ else
     echo "   ✅ npm prefix already configured: $CURRENT_PREFIX"
 fi
 
-# Install Claude Code globally if not already installed
+# Install Claude Code via native installer (npm method is deprecated)
 if ! command_exists claude; then
-    echo "   Installing Claude Code globally..."
-    npm install -g --prefix "$HOME/.npm-global" @anthropic-ai/claude-code
+    echo "   Installing Claude Code via native installer..."
+    curl -fsSL https://claude.ai/install.sh | bash
+    
+    # Source shell config to pick up new PATH
+    source "$BASHRC" 2>/dev/null || true
     
     if command -v claude &> /dev/null; then
-        echo "   ✅ Claude Code installed successfully"
+        echo "   ✅ Claude Code installed successfully (native)"
         echo "   Location: $(which claude)"
     else
         echo "   ⚠️  Claude Code installation completed but command not found"
         echo "   You may need to restart your shell or run: source ~/.bashrc"
     fi
 else
-    echo "   ✅ Claude Code already installed"
+    # Check if existing install is the old npm version and migrate if so
+    if which claude 2>/dev/null | grep -q npm-global; then
+        echo "   ⚠️  Found deprecated npm installation of Claude Code, migrating..."
+        claude install 2>/dev/null || {
+            echo "   Migration failed, reinstalling via native installer..."
+            curl -fsSL https://claude.ai/install.sh | bash
+        }
+        source "$BASHRC" 2>/dev/null || true
+        echo "   ✅ Claude Code migrated to native installer"
+    else
+        echo "   ✅ Claude Code already installed"
+    fi
 fi
 
 # Step 7: Install project dependencies
@@ -637,87 +636,8 @@ else
     echo "   💡 After first Claude Code startup, re-run installer to configure permissions"
 fi
 
-# Step 10: Set up Gmail OAuth authentication (POSS-105) - Delta's implementation
-echo "📧 Step 10: Setting up Gmail OAuth authentication..."
-
-# Check if Google OAuth credentials are configured
-GOOGLE_CLIENT_ID=$(read_config "GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET=$(read_config "GOOGLE_CLIENT_SECRET")
-
-if [[ -n "$GOOGLE_CLIENT_ID" && -n "$GOOGLE_CLIENT_SECRET" && "$GOOGLE_CLIENT_ID" != "your-google-client-id" ]]; then
-    echo "   Setting up Gmail MCP authentication..."
-    
-    # Create ~/.gmail-mcp directory
-    GMAIL_MCP_DIR="$CLAUDE_HOME/.gmail-mcp"
-    mkdir -p "$GMAIL_MCP_DIR"
-    
-    # Create OAuth keys file from config
-    cat > "$GMAIL_MCP_DIR/gcp-oauth.keys.json" <<EOF
-{
-  "web": {
-    "client_id": "$GOOGLE_CLIENT_ID",
-    "client_secret": "$GOOGLE_CLIENT_SECRET",
-    "redirect_uris": ["http://localhost:3000/oauth2callback"]
-  }
-}
-EOF
-    echo "   ✅ OAuth keys file created"
-    
-    # Check if credentials already exist
-    if [[ -f "$GMAIL_MCP_DIR/credentials.json" ]]; then
-        echo "   ✅ Gmail credentials already exist, skipping OAuth flow"
-    else
-        echo "   🔐 Gmail OAuth authentication required..."
-        echo ""
-        
-        # Check if the OAuth integration script exists (POSS-139)
-        OAUTH_SCRIPT="$CLAP_DIR/setup/gmail_oauth_integration.py"
-        if [[ ! -f "$OAUTH_SCRIPT" ]]; then
-            # Try the utils directory as fallback
-            OAUTH_SCRIPT="$CLAP_DIR/utils/gmail_oauth_integration.py"
-        fi
-        
-        if [[ -f "$OAUTH_SCRIPT" ]]; then
-            # Generate OAuth URL using the integration script
-            OAUTH_URL=$(python3 "$OAUTH_SCRIPT" generate-url | grep "https://accounts.google.com" | sed 's/^   //')
-            
-            echo "   📋 To complete Gmail MCP setup:"
-            echo "   1. Open this URL in your browser:"
-            echo "      $OAUTH_URL"
-            echo ""
-            echo "   2. Grant Gmail permissions and copy the authorization code"
-            echo "   3. The callback URL will look like: http://localhost:3000/oauth2callback?code=YOUR_CODE_HERE"
-            echo ""
-            
-            # Prompt for authorization code (SSH-friendly)
-            echo -n "   Enter the authorization code (or press Enter to skip): "
-            read -r AUTH_CODE
-            
-            if [[ -n "$AUTH_CODE" ]]; then
-                echo "   🔄 Exchanging authorization code for tokens..."
-                if python3 "$OAUTH_SCRIPT" exchange "$AUTH_CODE"; then
-                    echo "   ✅ Gmail OAuth authentication completed successfully!"
-                else
-                    echo "   ⚠️  OAuth token exchange failed. You can complete this later with:"
-                    echo "      python3 $OAUTH_SCRIPT exchange \"YOUR_AUTH_CODE\""
-                fi
-            else
-                echo "   ⏭️  Skipping Gmail OAuth setup. To complete later:"
-                echo "      1. Run: python3 $OAUTH_SCRIPT generate-url"
-                echo "      2. Follow the URL and get authorization code"
-                echo "      3. Run: python3 $OAUTH_SCRIPT exchange \"YOUR_AUTH_CODE\""
-            fi
-        else
-            echo "   ⚠️  Gmail OAuth integration script not found"
-            echo "   Expected at: $CLAP_DIR/setup/gmail_oauth_integration.py"
-        fi
-    fi
-else
-    echo "   ⏭️  Google OAuth credentials not configured, skipping Gmail MCP setup"
-    echo "   💡 To enable Gmail MCP, add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to config"
-fi
-
-echo "   ✅ Gmail OAuth setup completed"
+# Step 10: Gmail OAuth removed - Gmail MCP no longer used
+echo "⏭️  Step 10: Skipped (Gmail MCP removed)"
 
 # Step 11: Set up tmux session for continuity
 echo "🖥️  Step 11: Setting up tmux session..."
