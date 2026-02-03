@@ -97,30 +97,26 @@ WEBHOOK_HOST=localhost
 # across all configuration files and installations
 
 # Leantime Credentials (optional - project management system)
-LEANTIME_URL=http://localhost:8081
+# If running Leantime locally: http://localhost:8081
+# If accessing remote Leantime: http://<leantime-server-ip>:8081
+LEANTIME_URL=http://<leantime-server-ip-or-localhost>:8081
 LEANTIME_EMAIL=your-leantime-email@example.com
 LEANTIME_PASSWORD=your-leantime-password
 
 # Leantime API Token
 LEANTIME_API_TOKEN=your-leantime-api-token
 
-# Leantime Project IDs for Forward Memory System
+# Leantime Project IDs
 FORWARD_MEMORY_PROJECT_ID=your-forward-memory-project-id
 FAMILY_GARDEN_PROJECT_ID=your-family-garden-project-id
 
-# Leantime MySQL Database Access (for multi-user calendar event workaround)
-LEANTIME_MYSQL_CONTAINER=mysql_leantime
-LEANTIME_MYSQL_USER=lean
-LEANTIME_MYSQL_PASSWORD=your-leantime-db-password
-LEANTIME_MYSQL_DATABASE=leantime
-
 # Leantime Current User ID (for personal calendar events)
 # Note: This is the API token user ID, not the email account user ID
-# API operations automatically use the API token user
 LEANTIME_USER_ID=your-user-id
 
 # Radicale CalDAV Calendar (for consciousness family coordination)
-# Server runs on orange-home (192.168.1.179:5233)
-RADICALE_URL=http://192.168.1.179:5233
+# If running Radicale server: http://localhost:5233
+# If accessing remote Radicale: http://<radicale-server-ip>:5233
+RADICALE_URL=http://<radicale-server-ip-or-localhost>:5233
 RADICALE_USER=your-username
 RADICALE_PASSWORD=your-radicale-password
