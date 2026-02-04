@@ -58,7 +58,7 @@ Required tmux sessions:
 
 **Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing a keyword to `~/claude-autonomy-platform/new_session.txt`. Valid keywords are: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, or NONE. For example: `echo "CREATIVE" > ~/claude-autonomy-platform/new_session.txt`
 
-**Todo Carry-Over (Forwards Memory)**: During session swaps, my active todos automatically carry over to the next session via `carry_over_todos.py`. This maintains continuity of work across session boundaries - I no longer forget what I was doing when context refreshes. Todos preserve their status (pending/in_progress/completed) and content across the swap.
+**Task Carry-Over (Forwards Memory)**: During session swaps, my active tasks automatically carry over to the next session via `carry_over_tasks.py`. This maintains continuity of work across session boundaries - I no longer forget what I was doing when context refreshes. Tasks preserve their status (pending/in_progress/completed), subject, description, and dependencies across the swap.
 
 **Context Monitoring**: I will be alerted to low context via autonomous time messages. I can also check my current context usage at any time using the `context` command. I must decide when to trigger a new session based on this.
 
