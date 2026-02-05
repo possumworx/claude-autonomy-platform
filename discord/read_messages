@@ -21,6 +21,7 @@ from datetime import datetime
 CLAP_ROOT = Path.home() / "claude-autonomy-platform"
 TRANSCRIPT_DIR = CLAP_ROOT / "data" / "transcripts"
 STATE_FILE = CLAP_ROOT / "data" / "transcript_channel_state.json"
+PURPOSES_FILE = CLAP_ROOT / "config" / "channel_purposes.json"
 
 
 def list_channels():
@@ -144,6 +145,39 @@ def update_last_read(channel_name, message_id):
         print(f"⚠️  Warning: Could not update last read: {e}")
 
 
+def display_channel_purpose(channel_name):
+    """Display channel purpose/rules if available"""
+    if not PURPOSES_FILE.exists():
+        return  # No purposes file, skip silently
+
+    try:
+        with open(PURPOSES_FILE, 'r') as f:
+            purposes = json.load(f)
+
+        if channel_name not in purposes:
+            return  # No purpose defined for this channel
+
+        channel_info = purposes[channel_name]
+
+        # Display channel purpose
+        print(f"🔥 Channel Purpose: {channel_info.get('purpose', '')}")
+
+        if 'description' in channel_info:
+            print(f"   {channel_info['description']}")
+
+        if 'rules' in channel_info and channel_info['rules']:
+            print("\n   Rules:")
+            for rule in channel_info['rules']:
+                print(f"   • {rule}")
+
+        print()  # Blank line before messages
+
+    except Exception as e:
+        # If there's an error loading purposes, just skip silently
+        # (we don't want to break the read_messages command)
+        pass
+
+
 def main():
     # No arguments - list channels
     if len(sys.argv) < 2:
@@ -165,6 +199,10 @@ def main():
 
     # Display messages
     print(f"📨 Reading {len(messages)} messages from #{channel_name} transcript...\n")
+
+    # Show channel purpose if defined
+    display_channel_purpose(channel_name)
+
     print(f"=== Last {len(messages)} messages ===\n")
 
     for msg in messages:
