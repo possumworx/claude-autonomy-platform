@@ -1,0 +1,16 @@
+#!/bin/bash
+# Reset autonomous timer error state and restart service
+
+ERROR_STATE_FILE=~/claude-autonomy-platform/data/api_error_state.json
+
+if [ -f "$ERROR_STATE_FILE" ]; then
+    rm "$ERROR_STATE_FILE"
+    echo "🗑️  Removed error state file"
+else
+    echo "ℹ️  No error state file found (already clear)"
+fi
+
+systemctl --user restart autonomous-timer.service
+echo "✅ Autonomous timer restarted"
+echo ""
+systemctl --user status autonomous-timer.service --no-pager | head -10
