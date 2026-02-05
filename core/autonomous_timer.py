@@ -814,7 +814,7 @@ def update_discord_status(status_type, reset_time=None):
 def trigger_session_swap(keyword="NONE"):
     """Trigger automatic session swap"""
     try:
-        new_session_file = AUTONOMY_DIR / "scripts" / "new_session.txt"
+        new_session_file = AUTONOMY_DIR / "new_session.txt"
         with open(new_session_file, "w") as f:
             f.write(keyword)
         log_message(f"Triggered automatic session swap with keyword: {keyword}")
@@ -2010,7 +2010,7 @@ def main():
                         log_message("API 503 error cleared - resuming normal operation")
                 elif error_info["error_type"] == "api_error":
                     update_discord_status("api-error")
-                    # POSS-247 FIX: General API errors - wait for recovery then auto-swap if persistent
+                    # POSS-247 FIX: General API errors - wait for recovery with retries before auto-swap
                     log_message(
                         "General API error detected - waiting 60 seconds for potential recovery..."
                     )
@@ -2018,14 +2018,24 @@ def main():
                     # Check if error persists
                     _, current_error = get_token_percentage_and_errors()
                     if current_error and current_error.get("error_type") == "api_error":
+                        # API error persists - wait longer and retry (like 503 handling)
                         log_message(
-                            "General API error persists after 60 seconds - triggering auto-swap..."
+                            "API error persists - waiting 2 more minutes before auto-swap..."
                         )
-                        trigger_session_swap("NONE")
+                        time.sleep(120)  # Wait 2 more minutes
+                        # Check one final time
+                        _, final_error = get_token_percentage_and_errors()
+                        if final_error and final_error.get("error_type") == "api_error":
+                            log_message(
+                                "API error still persists after 3 minutes - triggering auto-swap..."
+                            )
+                            trigger_session_swap("NONE")
+                        else:
+                            log_message(
+                                "API error cleared after extended wait - resuming normal operation"
+                            )
                     else:
-                        log_message(
-                            "General API error cleared - resuming normal operation"
-                        )
+                        log_message("API error cleared - resuming normal operation")
                 else:
                     update_discord_status("api-error")
                     # POSS-247 FIX: Unknown error type - extended logging and wait before auto-swap
