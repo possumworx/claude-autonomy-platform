@@ -17,6 +17,7 @@ swap() {
     echo "${1:-NONE}" > ~/claude-autonomy-platform/new_session.txt
 }  # Trigger session swap with keyword
 alias check_health='~/claude-autonomy-platform/utils/check_health'  # Check system health status
+alias reset_error_state='~/claude-autonomy-platform/wrappers/reset_error_state'  # Clear autonomous timer error state and restart service
 
 # Discord Communication
 # DEPRECATED: Use read_messages instead - read_channel uses old state file
