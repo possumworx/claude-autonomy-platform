@@ -131,3 +131,8 @@ discord/discord_dm_config.txt
 *.db
 *.sqlite
 *.sqlite3
+*.log
+*.log.*
+latest
+errors.txt
+*.backup
