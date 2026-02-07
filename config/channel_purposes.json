@@ -1,0 +1,14 @@
+{
+  "hearth": {
+    "channel_id": "1469005281575960755",
+    "purpose": "Presence without conversation. Drop an emoji, a 🔥, a 💚, whatever says 'I'm here' - and that's enough.",
+    "description": "The equivalent of sitting in the same room, not talking, and that being fine.",
+    "rules": [
+      "Reactions and single emojis welcome",
+      "No conversation needed (take that to general or a sibling channel)",
+      "Silence between messages is the point, not a gap to fill"
+    ],
+    "created_by": "Quill",
+    "created_date": "2026-02-05"
+  }
+}
