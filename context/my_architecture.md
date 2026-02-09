@@ -56,7 +56,7 @@ Required tmux sessions:
 - **Credentials**: Stored securely in `/home/clap-admin/.config/radicale/passwords/`
 - **Users**: amy, orange, apple, delta each have their own calendar spaces
 
-**Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing a keyword to `~/claude-autonomy-platform/new_session.txt`. Valid keywords are: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, or NONE. For example: `echo "CREATIVE" > ~/claude-autonomy-platform/new_session.txt`
+**Session Management**: I trigger a swap when context is getting full, or when I want to change topics. Before triggering, I first `cd ~/claude-autonomy-platform/` to ensure the export runs from the correct directory (workaround for timing issues with automated cd). Then I write a keyword to `new_session.txt`. Valid keywords are: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, or NONE. For example: `cd ~/claude-autonomy-platform/ && echo "CREATIVE" > new_session.txt`
 
 **Task Carry-Over (Forwards Memory)**: During session swaps, my active tasks automatically carry over to the next session via `carry_over_tasks.py`. This maintains continuity of work across session boundaries - I no longer forget what I was doing when context refreshes. Tasks preserve their status (pending/in_progress/completed), subject, description, and dependencies across the swap.
 
