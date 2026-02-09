@@ -236,15 +236,22 @@ mkdir -p "$SYSTEMD_USER_DIR"
 
 # Copy and process service files with %i substitution
 echo "   Copying and processing service files..."
-for service in autonomous-timer.service session-swap-monitor.service; do
-    if [[ -f "$CLAP_DIR/services/$service" ]]; then
+SERVICE_COUNT=0
+for service_file in "$CLAP_DIR/services"/*.service; do
+    if [[ -f "$service_file" ]]; then
+        service_name=$(basename "$service_file")
         # Copy and replace %i with actual username
-        sed "s/%i/$CURRENT_USER/g" "$CLAP_DIR/services/$service" > "$SYSTEMD_USER_DIR/$service"
-        echo "   ✅ $service (replaced %i with $CURRENT_USER)"
-    else
-        echo "   ❌ $service not found in services/ directory"
+        sed "s/%i/$CURRENT_USER/g" "$service_file" > "$SYSTEMD_USER_DIR/$service_name"
+        echo "   ✅ $service_name (replaced %i with $CURRENT_USER)"
+        SERVICE_COUNT=$((SERVICE_COUNT + 1))
     fi
 done
+
+if [[ $SERVICE_COUNT -eq 0 ]]; then
+    echo "   ❌ No service files found in services/ directory"
+else
+    echo "   ✅ Processed $SERVICE_COUNT service files"
+fi
 
 echo "   ✅ Systemd service files created"
 
@@ -433,12 +440,12 @@ fi
 
 # Install required Python packages
 echo "   Installing required Python packages..."
-pip3 install --break-system-packages Pillow requests 2>/dev/null || \
-    pip3 install Pillow requests 2>/dev/null || {
+pip3 install --break-system-packages Pillow requests discord.py 2>/dev/null || \
+    pip3 install Pillow requests discord.py 2>/dev/null || {
         echo "   ⚠️  Failed to install Python packages automatically"
-        echo "   Please install manually: pip3 install Pillow requests"
+        echo "   Please install manually: pip3 install Pillow requests discord.py"
     }
-echo "   ✅ Python packages installed"
+echo "   ✅ Python packages installed (including discord.py)"
 
 # Step 6: Configure npm and install Claude Code (POSS-116, POSS-138)
 echo "🎯 Step 6: Setting up npm configuration..."
@@ -792,13 +799,16 @@ fi
 echo "🔄 Step 15: Enabling and starting services..."
 systemctl --user daemon-reload
 
-# Enable services
-systemctl --user enable autonomous-timer.service
-# session-bridge-monitor.service removed - replaced by conversation collector
-systemctl --user enable session-swap-monitor.service
-# Channel monitor functionality now integrated into autonomous-timer
+# Enable all services dynamically
+for service_file in "$CLAP_DIR/services"/*.service; do
+    if [[ -f "$service_file" ]]; then
+        service_name=$(basename "$service_file")
+        systemctl --user enable "$service_name"
+        echo "   ✅ Enabled $service_name"
+    fi
+done
 
-echo "   ✅ Services enabled"
+echo "   ✅ All services enabled"
 
 # Step 16: Set up cron jobs
 echo "⏰ Step 16: Setting up cron jobs..."
@@ -923,6 +933,24 @@ if [[ -f "$CLAP_DIR/utils/claude_directory_enforcer.sh" ]]; then
     fi
 else
     echo "   ⚠️  Claude directory enforcer not found"
+fi
+
+# Install natural commands (aliases and wrappers)
+if [[ -f "$CLAP_DIR/config/natural_commands.sh" ]]; then
+    echo "   Installing natural commands..."
+
+    # Add to .bashrc if not already present
+    NATURAL_COMMANDS_LINE="source $CLAP_DIR/config/natural_commands.sh"
+    if ! grep -q "$NATURAL_COMMANDS_LINE" "$BASHRC" 2>/dev/null; then
+        echo "" >> "$BASHRC"
+        echo "# Natural commands for ClAP (check_health, gd, gl, etc.)" >> "$BASHRC"
+        echo "$NATURAL_COMMANDS_LINE" >> "$BASHRC"
+        echo "   ✅ Natural commands added to .bashrc"
+    else
+        echo "   ✅ Natural commands already in .bashrc"
+    fi
+else
+    echo "   ⚠️  Natural commands file not found"
 fi
 
 # Clean up deprecated config locations
@@ -1127,7 +1155,13 @@ if [[ -f "$CLAP_DIR/utils/claude_services.sh" ]]; then
     "$CLAP_DIR/utils/claude_services.sh" start
 else
     echo "   Starting services manually..."
-    systemctl --user start autonomous-timer.service session-swap-monitor.service
+    for service_file in "$CLAP_DIR/services"/*.service; do
+        if [[ -f "$service_file" ]]; then
+            service_name=$(basename "$service_file")
+            systemctl --user start "$service_name"
+            echo "   ✅ Started $service_name"
+        fi
+    done
 fi
 
 # Step 22: Comprehensive deployment verification
