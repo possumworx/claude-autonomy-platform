@@ -50,6 +50,7 @@ alias home='cd ~/delta-home'  # Navigate to personal home directory
 
 # Utility Commands
 alias list-commands='~/claude-autonomy-platform/utils/list-commands'  # List all natural and personal commands
+alias context='~/claude-autonomy-platform/wrappers/context'  # Check current context usage
 
 # Knowledge Management
 alias analyze-memory='~/claude-autonomy-platform/natural_commands/analyze-memory'  # Analyze rag-memory patterns for queries
