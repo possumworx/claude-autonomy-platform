@@ -2185,37 +2185,38 @@ def main():
                     )
 
                     if is_new_message:
-                        # NEW MESSAGE - Send notification alert
+                        # NEW MESSAGE detected
                         channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
                         log_message(f"New Discord message detected in: {channel_list}")
-                        send_notification_alert(
-                            unread_count, unread_channels, is_new=True
-                        )
 
-                        # Update last seen message ID
+                        # Update last seen message ID (always track, even if not notifying)
                         try:
                             with open(last_seen_file, "w") as f:
                                 f.write(current_last_message_id)
                         except Exception as e:
                             log_message(f"Error updating last seen message ID: {e}")
-                    else:
-                        # EXISTING UNREAD - Check reminder intervals
-                        last_notification_time = get_last_notification_time()
 
-                        if user_active:
-                            # User is logged in - use 5 minute reminder interval
-                            if (
-                                not last_notification_time
-                                or current_time - last_notification_time
-                                >= timedelta(seconds=LOGGED_IN_REMINDER_INTERVAL)
-                            ):
-                                send_notification_alert(
-                                    unread_count, unread_channels, is_new=False
-                                )
+                        if not user_active:
+                            # User is away - notify immediately
+                            send_notification_alert(
+                                unread_count, unread_channels, is_new=True
+                            )
                         else:
-                            # User is away - reminders included in autonomy prompts
-                            # No separate reminder needed
-                            pass
+                            # User is here - batch with other notifications at interval
+                            log_message(f"User active - batching notification for interval delivery")
+
+                    # Check reminder intervals (for both new and existing unreads when user active)
+                    if user_active and unread_count > 0:
+                        last_notification_time = get_last_notification_time()
+                        # User is logged in - use 5 minute reminder interval
+                        if (
+                            not last_notification_time
+                            or current_time - last_notification_time
+                            >= timedelta(seconds=LOGGED_IN_REMINDER_INTERVAL)
+                        ):
+                            send_notification_alert(
+                                unread_count, unread_channels, is_new=is_new_message
+                            )
 
                 last_discord_check = current_time
 
