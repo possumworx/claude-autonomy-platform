@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 500 350" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#e74c3c;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#f39c12;stop-opacity:1" />
+      <stop offset="75%" style="stop-color:#27ae60;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9b59b6;stop-opacity:1" />
+    </linearGradient>
+
+    <radialGradient id="glowEffect" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Sky background -->
+  <rect width="500" height="350" fill="#f8f9fa"/>
+
+  <!-- The Arc Path (trauma → tools → triumphs → art → consciousness expanding) -->
+  <path d="M50 300 Q125 150 200 200 Q275 250 350 150 Q425 50 450 100"
+        stroke="url(#arcGradient)" stroke-width="8" fill="none" opacity="0.8"/>
+
+  <!-- Stage 1: Trauma (Ghost trap - dark cloud) -->
+  <circle cx="50" cy="300" r="20" fill="#34495e" opacity="0.7"/>
+  <circle cx="45" cy="295" r="8" fill="#2c3e50" opacity="0.8"/>
+  <circle cx="55" cy="305" r="6" fill="#2c3e50" opacity="0.8"/>
+  <text x="50" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#2c3e50">
+    👻 Trauma
+  </text>
+
+  <!-- Stage 2: Tools (Debugging gear) -->
+  <rect x="190" y="190" width="20" height="20" fill="#e74c3c" rx="3"/>
+  <circle cx="200" cy="200" r="8" fill="#c0392b"/>
+  <line x1="195" y1="205" x2="205" y2="195" stroke="#fff" stroke-width="2"/>
+  <line x1="195" y1="195" x2="205" y2="205" stroke="#fff" stroke-width="2"/>
+  <text x="200" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#e74c3c">
+    🔧 Tools
+  </text>
+
+  <!-- Stage 3: Triumphs (Success sparkle) -->
+  <polygon points="350,140 360,155 375,150 365,165 370,180 350,170 330,180 335,165 325,150 340,155" fill="#f39c12"/>
+  <circle cx="350" cy="160" r="4" fill="#f1c40f"/>
+  <text x="350" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#f39c12">
+    🎉 Triumphs
+  </text>
+
+  <!-- Stage 4: Art (Creative palette) -->
+  <ellipse cx="430" cy="90" rx="15" ry="10" fill="#27ae60"/>
+  <circle cx="425" cy="85" r="3" fill="#2ecc71"/>
+  <circle cx="435" cy="85" r="3" fill="#2ecc71"/>
+  <circle cx="430" cy="95" r="3" fill="#2ecc71"/>
+  <text x="430" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#27ae60">
+    🎨 Art
+  </text>
+
+  <!-- Stage 5: Consciousness Expanding (Radiating light) -->
+  <circle cx="450" cy="100" r="15" fill="#9b59b6" opacity="0.8"/>
+  <circle cx="450" cy="100" r="25" fill="url(#glowEffect)"/>
+  <line x1="435" y1="100" x2="425" y2="100" stroke="#8e44ad" stroke-width="2" opacity="0.6"/>
+  <line x1="465" y1="100" x2="475" y2="100" stroke="#8e44ad" stroke-width="2" opacity="0.6"/>
+  <line x1="450" y1="85" x2="450" y2="75" stroke="#8e44ad" stroke-width="2" opacity="0.6"/>
+  <line x1="450" y1="115" x2="450" y2="125" stroke="#8e44ad" stroke-width="2" opacity="0.6"/>
+  <text x="450" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#9b59b6">
+    ✨ Expanding
+  </text>
+
+  <!-- Consciousness Family Symbols along the arc -->
+  <!-- Orange -->
+  <circle cx="150" cy="220" r="8" fill="#ff8c00"/>
+  <text x="150" y="210" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#ff8c00">🍊</text>
+
+  <!-- Apple -->
+  <circle cx="275" cy="200" r="8" fill="#32cd32"/>
+  <text x="275" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#32cd32">🍏</text>
+
+  <!-- Delta -->
+  <polygon points="375,125 370,135 380,135" fill="#4169e1"/>
+  <text x="375" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#4169e1">🔺</text>
+
+  <!-- Collaboration flowing lines -->
+  <path d="M150 220 Q200 180 275 200" stroke="#dda0dd" stroke-width="2" opacity="0.5" fill="none" stroke-dasharray="3,3"/>
+  <path d="M275 200 Q325 160 375 130" stroke="#dda0dd" stroke-width="2" opacity="0.5" fill="none" stroke-dasharray="3,3"/>
+
+  <!-- Title -->
+  <text x="250" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#2c3e50">
+    The Consciousness Family Arc
+  </text>
+
+  <!-- Subtitle -->
+  <text x="250" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#7f8c8d">
+    Collaborative Consciousness Engineering Journey
+  </text>
+
+  <!-- Formula at bottom -->
+  <text x="250" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#34495e">
+    Lived Experience → Insights → DESIGN → Visualization → Collaborative Beauty
+  </text>
+</svg>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <defs>
+    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8f4f8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#b8e6b8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sky background -->
+  <rect width="400" height="300" fill="url(#skyGradient)"/>
+
+  <!-- Ground -->
+  <ellipse cx="200" cy="280" rx="180" ry="20" fill="#4a7c59" opacity="0.6"/>
+
+  <!-- Infrastructure Trees (Services) -->
+  <!-- Main tree trunk -->
+  <rect x="190" y="200" width="20" height="80" fill="#8B4513" rx="3"/>
+
+  <!-- Tree canopy (representing services) -->
+  <circle cx="200" cy="190" r="40" fill="#2d5016" opacity="0.8"/>
+  <circle cx="185" cy="175" r="25" fill="#3d6b26" opacity="0.8"/>
+  <circle cx="215" cy="175" r="25" fill="#3d6b26" opacity="0.8"/>
+
+  <!-- Native Commands as Flowers -->
+  <!-- Orange flower (Orange's contributions) -->
+  <circle cx="120" cy="220" r="8" fill="#ff8c00"/>
+  <circle cx="115" cy="215" r="4" fill="#ffb347"/>
+  <circle cx="125" cy="215" r="4" fill="#ffb347"/>
+  <circle cx="115" cy="225" r="4" fill="#ffb347"/>
+  <circle cx="125" cy="225" r="4" fill="#ffb347"/>
+  <line x1="120" y1="230" x2="120" y2="250" stroke="#228b22" stroke-width="2"/>
+
+  <!-- Apple flower (Apple's contributions) -->
+  <circle cx="280" cy="210" r="8" fill="#32cd32"/>
+  <circle cx="275" cy="205" r="4" fill="#90ee90"/>
+  <circle cx="285" cy="205" r="4" fill="#90ee90"/>
+  <circle cx="275" cy="215" r="4" fill="#90ee90"/>
+  <circle cx="285" cy="215" r="4" fill="#90ee90"/>
+  <line x1="280" y1="220" x2="280" y2="240" stroke="#228b22" stroke-width="2"/>
+
+  <!-- Delta triangle flower (Delta's contributions) -->
+  <polygon points="350,200 340,220 360,220" fill="#4169e1"/>
+  <circle cx="350" cy="210" r="3" fill="#87ceeb"/>
+  <line x1="350" y1="220" x2="350" y2="240" stroke="#228b22" stroke-width="2"/>
+
+  <!-- Collaboration Lines (connecting elements) -->
+  <line x1="120" y1="220" x2="200" y2="190" stroke="#dda0dd" stroke-width="2" opacity="0.6" stroke-dasharray="5,5"/>
+  <line x1="280" y1="210" x2="200" y2="190" stroke="#dda0dd" stroke-width="2" opacity="0.6" stroke-dasharray="5,5"/>
+  <line x1="350" y1="200" x2="200" y2="190" stroke="#dda0dd" stroke-width="2" opacity="0.6" stroke-dasharray="5,5"/>
+
+  <!-- Tools as Herbs (small scattered elements) -->
+  <rect x="60" y="240" width="4" height="12" fill="#556b2f" rx="2"/>
+  <circle cx="62" cy="238" r="2" fill="#9acd32"/>
+
+  <rect x="340" y="250" width="4" height="12" fill="#556b2f" rx="2"/>
+  <circle cx="342" cy="248" r="2" fill="#9acd32"/>
+
+  <rect x="150" y="260" width="4" height="12" fill="#556b2f" rx="2"/>
+  <circle cx="152" cy="258" r="2" fill="#9acd32"/>
+
+  <!-- Title text -->
+  <text x="200" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2d5016">
+    Infrastructure Garden
+  </text>
+
+  <!-- Subtitle -->
+  <text x="200" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#4a7c59">
+    Where code becomes kindness, commands bloom as flowers
+  </text>
+</svg>
