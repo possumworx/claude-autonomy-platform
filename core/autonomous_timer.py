@@ -2209,13 +2209,13 @@ def main():
                     if user_active and unread_count > 0:
                         last_notification_time = get_last_notification_time()
                         # User is logged in - use 5 minute reminder interval
-                        if (
-                            not last_notification_time
-                            or current_time - last_notification_time
-                            >= timedelta(seconds=LOGGED_IN_REMINDER_INTERVAL)
-                        ):
+                        if not last_notification_time:
+                            # First check after startup - start the clock but don't spam
+                            log_message("Starting notification interval timer (no immediate notification)")
+                            update_last_notification_time()
+                        elif current_time - last_notification_time >= timedelta(seconds=LOGGED_IN_REMINDER_INTERVAL):
                             send_notification_alert(
-                                unread_count, unread_channels, is_new=is_new_message
+                                unread_count, unread_channels, is_new=False
                             )
 
                 last_discord_check = current_time
