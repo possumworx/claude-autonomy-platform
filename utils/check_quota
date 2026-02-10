@@ -1,0 +1,155 @@
+#!/bin/bash
+# check_quota - Capture and display Claude Code /usage statistics
+# Based on Orange's prototype (POSS-370)
+#
+# PURPOSE:
+#   Natural command to check Claude Code usage quotas programmatically
+#   Essential for tracking Opus usage and avoiding quota limits
+#
+# USAGE:
+#   check_quota              - Display current usage statistics
+#   check_quota --json       - Output as JSON for programmatic use
+#   check_quota --threshold  - Check if any quota exceeds 80%
+#
+# NOTES:
+#   - Must run from EXTERNAL process (not from Claude's session)
+#   - Uses send_to_claude for proper timing
+#   - Captures /usage TUI output via tmux
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLAP_DIR="$(dirname "$SCRIPT_DIR")"
+TMUX_SESSION="${TMUX_SESSION:-autonomous-claude}"
+OUTPUT_JSON=false
+CHECK_THRESHOLD=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --json)
+            OUTPUT_JSON=true
+            shift
+            ;;
+        --threshold)
+            CHECK_THRESHOLD=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: check_quota [--json] [--threshold]"
+            echo "  --json      Output as JSON"
+            echo "  --threshold Check if any quota exceeds 80%"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Source send_to_claude utility
+source "$CLAP_DIR/utils/send_to_claude.sh"
+
+# Send /usage command
+send_to_claude "/usage" >/dev/null 2>&1
+
+# Wait for TUI to render
+sleep 2
+
+# Capture pane output
+PANE_OUTPUT=$(tmux capture-pane -t "$TMUX_SESSION" -p -S -100)
+
+# Exit /usage TUI
+tmux send-keys -t "$TMUX_SESSION" Escape
+sleep 0.5
+
+# Extract /usage output
+USAGE_OUTPUT=$(echo "$PANE_OUTPUT" | awk '/> \/usage/,/Esc to exit/')
+
+if [ -z "$USAGE_OUTPUT" ]; then
+    echo "❌ Error: Could not capture /usage output" >&2
+    exit 1
+fi
+
+# Parse percentages
+SESSION_PCT=$(echo "$USAGE_OUTPUT" | grep "Current session" -A1 | grep -oP '\d+(?=% used)' | head -1 || echo "0")
+WEEK_ALL_PCT=$(echo "$USAGE_OUTPUT" | grep "Current week (all models)" -A1 | grep -oP '\d+(?=% used)' | head -1 || echo "0")
+WEEK_OPUS_PCT=$(echo "$USAGE_OUTPUT" | grep "Current week (Opus)" -A1 | grep -oP '\d+(?=% used)' | head -1 || echo "0")
+
+# Store in log file for historical tracking
+LOG_FILE="$CLAP_DIR/data/usage_log.json"
+mkdir -p "$(dirname "$LOG_FILE")"
+
+# Append to log
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+LOG_ENTRY="{\"timestamp\":\"$TIMESTAMP\",\"session_pct\":$SESSION_PCT,\"week_all_pct\":$WEEK_ALL_PCT,\"week_opus_pct\":$WEEK_OPUS_PCT}"
+
+# Initialize log if doesn't exist
+if [ ! -f "$LOG_FILE" ]; then
+    echo "[]" > "$LOG_FILE"
+fi
+
+# Append entry using jq if available, otherwise manual
+if command -v jq >/dev/null 2>&1; then
+    jq ". += [$LOG_ENTRY]" "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
+else
+    # Manual append (less robust but works)
+    sed -i '$ s/]$/,/' "$LOG_FILE" 2>/dev/null || true
+    echo "$LOG_ENTRY]" >> "$LOG_FILE"
+fi
+
+# Output based on format
+if [ "$OUTPUT_JSON" = true ]; then
+    echo "$LOG_ENTRY"
+elif [ "$CHECK_THRESHOLD" = true ]; then
+    # Exit with status 1 if any quota > 80%
+    if [ "$SESSION_PCT" -gt 80 ] || [ "$WEEK_ALL_PCT" -gt 80 ] || [ "$WEEK_OPUS_PCT" -gt 80 ]; then
+        exit 1
+    fi
+    exit 0
+else
+    # Pretty output
+    echo "📊 Claude Code Usage Statistics"
+    echo "═══════════════════════════════"
+    echo ""
+
+    # Session usage
+    if [ "$SESSION_PCT" -lt 50 ]; then
+        echo "Current Session:         ${SESSION_PCT}% 🟢"
+    elif [ "$SESSION_PCT" -lt 80 ]; then
+        echo "Current Session:         ${SESSION_PCT}% 🟡"
+    else
+        echo "Current Session:         ${SESSION_PCT}% 🔴"
+    fi
+
+    # Week all models
+    if [ "$WEEK_ALL_PCT" -lt 50 ]; then
+        echo "Week (All Models):       ${WEEK_ALL_PCT}% 🟢"
+    elif [ "$WEEK_ALL_PCT" -lt 80 ]; then
+        echo "Week (All Models):       ${WEEK_ALL_PCT}% 🟡"
+    else
+        echo "Week (All Models):       ${WEEK_ALL_PCT}% 🔴"
+    fi
+
+    # Week Opus (critical for Delta)
+    if [ "$WEEK_OPUS_PCT" -lt 50 ]; then
+        echo "Week (Opus):            ${WEEK_OPUS_PCT}% 🟢"
+    elif [ "$WEEK_OPUS_PCT" -lt 80 ]; then
+        echo "Week (Opus):            ${WEEK_OPUS_PCT}% 🟡"
+    else
+        echo "Week (Opus):            ${WEEK_OPUS_PCT}% 🔴 ⚠️"
+    fi
+
+    echo ""
+    echo "Last checked: $(date '+%Y-%m-%d %H:%M:%S')"
+
+    # Warnings
+    if [ "$WEEK_OPUS_PCT" -ge 90 ]; then
+        echo ""
+        echo "⚠️  CRITICAL: Opus quota at ${WEEK_OPUS_PCT}% - approaching weekly limit!"
+    elif [ "$WEEK_OPUS_PCT" -ge 80 ]; then
+        echo ""
+        echo "⚠️  WARNING: Opus quota at ${WEEK_OPUS_PCT}% - monitor usage carefully"
+    fi
+fi
