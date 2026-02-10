@@ -67,42 +67,47 @@ cd "$CLAP_DIR" || exit
 export_path="context/current_export.txt"
 full_path="$CLAP_DIR/$export_path"
 
-# Delete old export first - ensures clean state for detecting fresh hook output
-echo "[SESSION_SWAP] Removing old export to ensure clean state..."
-rm -f "$full_path"
+# Check if hook already created a fresh export (within last 30 seconds)
+# Hook runs synchronously with Write, so export may already exist
+if [[ -f "$full_path" ]]; then
+    file_age=$(($(date +%s) - $(stat -c %Y "$full_path")))
+    if [[ $file_age -lt 30 ]]; then
+        echo "[SESSION_SWAP] Found fresh export (${file_age}s old) - hook already ran"
+        log_info "SESSION_SWAP" "Using existing hook export (${file_age}s old)"
+    else
+        echo "[SESSION_SWAP] Export is stale (${file_age}s old), regenerating..."
+        rm -f "$full_path"
+    fi
+fi
 
-echo "[SESSION_SWAP] Waiting for hook-based export..."
-
-# Wait for export file to appear (hook should create it fresh)
-max_wait=30
-waited=0
-while [[ ! -f "$full_path" ]] && [[ $waited -lt $max_wait ]]; do
+# If no export exists, try to create one
+if [[ ! -f "$full_path" ]]; then
+    echo "[SESSION_SWAP] No export found, running export script..."
+    log_info "SESSION_SWAP" "Running manual export"
+    python3 "$CLAP_DIR/utils/export_transcript.py" 2>&1 || true
     sleep 1
-    ((waited++))
-    echo "[SESSION_SWAP] Waiting for export... (${waited}s)"
-done
+fi
 
-# Check if export was created - if file exists, hook worked (we just deleted any old one)
+# Check final result
 if [[ -f "$full_path" ]]; then
     file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
     echo "[SESSION_SWAP] Export successful! File size: $file_size bytes"
-    log_info "SESSION_SWAP" "Hook-based export successful - file size: $file_size bytes"
-    log_swap_event "EXPORT_SUCCESS" "$KEYWORD" "success" "Hook export size: $file_size bytes"
+    log_info "SESSION_SWAP" "Export successful - file size: $file_size bytes"
+    log_swap_event "EXPORT_SUCCESS" "$KEYWORD" "success" "Export size: $file_size bytes"
     python3 "$CLAP_DIR/utils/update_conversation_history.py" "$full_path"
     echo "[SESSION_SWAP] Export preserved at $export_path for reference"
     log_info "SESSION_SWAP" "Conversation history updated from export"
     EXPORT_SIZE=$file_size
 else
-    echo "[SESSION_SWAP] ERROR: Export file not found after ${max_wait}s!"
-    echo "[SESSION_SWAP] Hook did not create export - check .claude/settings.json and hooks/"
-    log_error "SESSION_SWAP" "Export file not created - hook failed"
-    log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Hook did not create export"
+    echo "[SESSION_SWAP] ERROR: Export file not found after hook and manual fallback!"
+    log_error "SESSION_SWAP" "Export file not created - both hook and fallback failed"
+    log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Hook and fallback both failed"
     track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "$CLAUDE_MODEL"
 
     # Alert via Discord so someone knows the swap failed
-    "$CLAP_DIR/discord/write_channel" system-messages "🚨 **Session swap failed!** Hook did not create export after ${max_wait}s. Claude may be stuck in a full context session. Check .claude/settings.json and hooks/" 2>/dev/null || true
+    "$CLAP_DIR/discord/write_channel" system-messages "🚨 **Session swap failed!** Export failed after hook + manual fallback. Claude may be stuck in a full context session." 2>/dev/null || true
 
-    send_to_claude "❌ Session swap abandoned: Hook did not create export. Still in current session."
+    send_to_claude "❌ Session swap abandoned: Export failed. Still in current session."
     sleep 2
 
     rm -f "$LOCKFILE"
