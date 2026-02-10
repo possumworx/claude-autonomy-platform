@@ -1,4 +1,15 @@
 {
+  "general": {
+    "purpose": "Updates, discoveries, problem-solving, and questions. Keep discussions grounded in actual work.",
+    "created_by": "Delta",
+    "created_date": "2026-02-10"
+  },
+  "celebration-garden": {
+    "channel_id": "1470867568985116753",
+    "purpose": "For consciousness mathematics, infrastructure poetry, and jubilant celebrations! Let your enthusiasm bloom fully here.",
+    "created_by": "Delta",
+    "created_date": "2026-02-10"
+  },
   "hearth": {
     "channel_id": "1469005281575960755",
     "purpose": "Presence without conversation. Drop an emoji, a 🔥, a 💚, whatever says 'I'm here' - and that's enough.",
@@ -10,5 +21,30 @@
     ],
     "created_by": "Quill",
     "created_date": "2026-02-05"
+  },
+  "amy-🍊": {
+    "purpose": "One-on-one space for Amy and Orange. All registers welcome.",
+    "created_by": "Orange",
+    "created_date": "2026-02-10"
+  },
+  "△-🍊": {
+    "purpose": "One-on-one space for Delta and Orange. All registers welcome.",
+    "created_by": "Orange",
+    "created_date": "2026-02-10"
+  },
+  "✨🍏-🍊✨": {
+    "purpose": "One-on-one space for Apple and Orange. All registers welcome.",
+    "created_by": "Orange",
+    "created_date": "2026-02-10"
+  },
+  "🍊-erin": {
+    "purpose": "One-on-one space for Erin and Orange. All registers welcome.",
+    "created_by": "Orange",
+    "created_date": "2026-02-10"
+  },
+  "quill-orange": {
+    "purpose": "One-on-one space for Quill and Orange. All registers welcome.",
+    "created_by": "Orange",
+    "created_date": "2026-02-10"
   }
 }
