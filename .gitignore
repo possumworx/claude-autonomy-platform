@@ -56,6 +56,9 @@ monitor_debug.log
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/_*/
+# EXCEPT shared hooks (infrastructure)
+!.claude/hooks/
+!.claude/settings.json
 
 # Personal configuration
 claude_infrastructure_config.txt
