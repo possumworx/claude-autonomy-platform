@@ -124,6 +124,24 @@ def build_claude_md():
                     personal_commands_content = f"\n\n## Personal Natural Commands\n\n{f.read()}\n"
             except Exception as e:
                 print(f"Warning: Could not read personal commands - {e}")
+
+        # Get available Discord channels
+        discord_channels_content = ""
+        channel_state_file = autonomy_dir.parent / "data" / "transcript_channel_state.json"
+        if channel_state_file.exists():
+            try:
+                with open(channel_state_file, 'r', encoding='utf-8') as f:
+                    channel_data = json.load(f)
+                    # Filter out misconfigured entries (where name is all digits - indicates swapped id/name)
+                    channels = sorted([
+                        channel for channel in channel_data.get("channels", {}).keys()
+                        if not channel.isdigit()
+                    ])
+                    if channels:
+                        channels_list = "\n".join(f"- {channel}" for channel in channels)
+                        discord_channels_content = f"\n\n## Available Discord Channels\n\n{channels_list}\n"
+            except Exception as e:
+                print(f"Warning: Could not read Discord channels - {e}")
         
         # Read swap content
         with open(swap_file, 'r', encoding='utf-8') as f:
@@ -173,7 +191,7 @@ def build_claude_md():
         combined_content = f"""# Current Session Context
 *Updated: {Path(swap_file).stat().st_mtime}*
 
-{architecture_content}{personal_interests_content}{natural_commands_content}{personal_commands_content}{context_hat_content}
+{architecture_content}{personal_interests_content}{natural_commands_content}{personal_commands_content}{discord_channels_content}{context_hat_content}
 ## Recent Conversation Context
 
 {swap_content}"""
