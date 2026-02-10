@@ -1,0 +1,16 @@
+{
+  "outputStyle": "identity",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/claude-autonomy-platform/.claude/hooks/on-session-swap.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

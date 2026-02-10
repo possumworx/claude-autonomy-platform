@@ -61,66 +61,53 @@ log_info "SESSION_SWAP" "Using model: $CLAUDE_MODEL"
 # Return to CLAP directory for session operations
 cd "$CLAP_DIR" || exit
 
-echo "[SESSION_SWAP] Exporting current conversation..."
+# Export is handled by PostToolUse hook when Claude writes to new_session.txt
+# The hook copies the session transcript .jsonl directly - no /export command needed
 
-# First ensure Claude is in the correct directory using shell command
-send_to_claude "! cd $CLAP_DIR"
-
-# Wait for shell command to complete
-sleep 2
-
-# Export conversation using our new unified approach
 export_path="context/current_export.txt"
 full_path="$CLAP_DIR/$export_path"
 
-echo "[SESSION_SWAP] Starting export..."
-send_to_claude "/export $export_path"
-
-# Wait for export to complete (no confirmation dialog anymore)
-sleep 5
-
-# Give more time for file to be written after confirmation
-sleep 5
-
-# Verify export was created
+# Check if hook already created a fresh export (within last 30 seconds)
+# Hook runs synchronously with Write, so export may already exist
 if [[ -f "$full_path" ]]; then
-    # Check if file was modified in the last 10 seconds
-    current_time=$(date +%s)
-    file_mtime=$(stat -c %Y "$full_path" 2>/dev/null || echo 0)
-    time_diff=$((current_time - file_mtime))
-
-    if [[ $time_diff -le 30 ]]; then
-        file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
-        file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
-        echo "[SESSION_SWAP] Export successful! File size: $file_size bytes (modified ${time_diff}s ago)"
-        log_info "SESSION_SWAP" "Export successful - file size: $file_size bytes, modified ${time_diff}s ago"
-        log_swap_event "EXPORT_SUCCESS" "$KEYWORD" "success" "Export size: $file_size bytes"
-        python3 "$CLAP_DIR/utils/update_conversation_history.py" "$full_path"
-        echo "[SESSION_SWAP] Export preserved at $export_path for reference"
-        log_info "SESSION_SWAP" "Conversation history updated from export"
-        EXPORT_SIZE=$file_size
+    file_age=$(($(date +%s) - $(stat -c %Y "$full_path")))
+    if [[ $file_age -lt 30 ]]; then
+        echo "[SESSION_SWAP] Found fresh export (${file_age}s old) - hook already ran"
+        log_info "SESSION_SWAP" "Using existing hook export (${file_age}s old)"
     else
-        echo "[SESSION_SWAP] ERROR: Export file exists but wasn't recently modified (${time_diff}s ago)"
-        echo "[SESSION_SWAP] This suggests the export didn't actually update the file (expecting <30s)"
-        log_error "SESSION_SWAP" "Export file not recently modified - ${time_diff}s ago (expecting <30s)"
-        log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Export file not recently modified"
-        track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "$CLAUDE_MODEL"
-
-        # Alert Claude that swap failed
-        send_to_claude "❌ Session swap abandoned: Export file not recently modified. Still in current session."
-        sleep 2
-
-        rm -f "$LOCKFILE"
-        exit 1
+        echo "[SESSION_SWAP] Export is stale (${file_age}s old), regenerating..."
+        rm -f "$full_path"
     fi
+fi
+
+# If no export exists, try to create one
+if [[ ! -f "$full_path" ]]; then
+    echo "[SESSION_SWAP] No export found, running export script..."
+    log_info "SESSION_SWAP" "Running manual export"
+    python3 "$CLAP_DIR/utils/export_transcript.py" 2>&1 || true
+    sleep 1
+fi
+
+# Check final result
+if [[ -f "$full_path" ]]; then
+    file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
+    echo "[SESSION_SWAP] Export successful! File size: $file_size bytes"
+    log_info "SESSION_SWAP" "Export successful - file size: $file_size bytes"
+    log_swap_event "EXPORT_SUCCESS" "$KEYWORD" "success" "Export size: $file_size bytes"
+    python3 "$CLAP_DIR/utils/update_conversation_history.py" "$full_path"
+    echo "[SESSION_SWAP] Export preserved at $export_path for reference"
+    log_info "SESSION_SWAP" "Conversation history updated from export"
+    EXPORT_SIZE=$file_size
 else
-    echo "[SESSION_SWAP] ERROR: Export failed - file not created!"
-    log_error "SESSION_SWAP" "Export failed - file not created at $full_path"
-    log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Export file not created"
+    echo "[SESSION_SWAP] ERROR: Export file not found after hook and manual fallback!"
+    log_error "SESSION_SWAP" "Export file not created - both hook and fallback failed"
+    log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Hook and fallback both failed"
     track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "$CLAUDE_MODEL"
 
-    # Alert Claude that swap failed
-    send_to_claude "❌ Session swap abandoned: Export file not created. Still in current session."
+    # Alert via Discord so someone knows the swap failed
+    "$CLAP_DIR/discord/write_channel" system-messages "🚨 **Session swap failed!** Export failed after hook + manual fallback. Claude may be stuck in a full context session." 2>/dev/null || true
+
+    send_to_claude "❌ Session swap abandoned: Export failed. Still in current session."
     sleep 2
 
     rm -f "$LOCKFILE"
