@@ -73,6 +73,17 @@ sleep 2
 export_path="context/current_export.txt"
 full_path="$CLAP_DIR/$export_path"
 
+# Delete existing export file to ensure we detect fresh exports only
+# This fixes the "ghost bug" where stale export files caused false timing failures
+if [[ -f "$full_path" ]]; then
+    rm -f "$full_path"
+    echo "[SESSION_SWAP] Removed stale export file"
+    log_info "SESSION_SWAP" "Removed stale export file before export"
+fi
+
+# Record timestamp before export to verify file is newer
+pre_export_time=$(date +%s)
+
 echo "[SESSION_SWAP] Starting export..."
 send_to_claude "/export $export_path"
 
@@ -84,12 +95,14 @@ sleep 5
 
 # Verify export was created
 if [[ -f "$full_path" ]]; then
-    # Check if file was modified in the last 10 seconds
+    # Check if file was modified AFTER we started the export
+    # (file was deleted before export, so existence means it's fresh)
     current_time=$(date +%s)
     file_mtime=$(stat -c %Y "$full_path" 2>/dev/null || echo 0)
     time_diff=$((current_time - file_mtime))
 
-    if [[ $time_diff -le 30 ]]; then
+    # File must be newer than pre_export_time AND within reasonable window
+    if [[ $file_mtime -ge $pre_export_time ]] && [[ $time_diff -le 60 ]]; then
         file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
         file_size=$(stat -c %s "$full_path" 2>/dev/null || echo 0)
         echo "[SESSION_SWAP] Export successful! File size: $file_size bytes (modified ${time_diff}s ago)"
@@ -100,14 +113,15 @@ if [[ -f "$full_path" ]]; then
         log_info "SESSION_SWAP" "Conversation history updated from export"
         EXPORT_SIZE=$file_size
     else
-        echo "[SESSION_SWAP] ERROR: Export file exists but wasn't recently modified (${time_diff}s ago)"
-        echo "[SESSION_SWAP] This suggests the export didn't actually update the file (expecting <30s)"
-        log_error "SESSION_SWAP" "Export file not recently modified - ${time_diff}s ago (expecting <30s)"
-        log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Export file not recently modified"
+        echo "[SESSION_SWAP] ERROR: Export file timing validation failed"
+        echo "[SESSION_SWAP] Pre-export time: $pre_export_time, File mtime: $file_mtime, Time diff: ${time_diff}s"
+        echo "[SESSION_SWAP] File must be newer than pre_export_time AND modified within 60s"
+        log_error "SESSION_SWAP" "Export timing validation failed - pre_export: $pre_export_time, mtime: $file_mtime, diff: ${time_diff}s"
+        log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Export timing validation failed"
         track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "$CLAUDE_MODEL"
 
         # Alert Claude that swap failed
-        send_to_claude "❌ Session swap abandoned: Export file not recently modified. Still in current session."
+        send_to_claude "❌ Session swap abandoned: Export timing validation failed. Still in current session."
         sleep 2
 
         rm -f "$LOCKFILE"
@@ -115,8 +129,9 @@ if [[ -f "$full_path" ]]; then
     fi
 else
     echo "[SESSION_SWAP] ERROR: Export failed - file not created!"
+    echo "[SESSION_SWAP] The /export command did not produce a file (Claude may be unresponsive at high context)"
     log_error "SESSION_SWAP" "Export failed - file not created at $full_path"
-    log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Export file not created"
+    log_swap_event "EXPORT_FAILED" "$KEYWORD" "failed" "Export file not created (Claude possibly unresponsive)"
     track_swap_metrics "$SWAP_START_TIME" "$(date +%s)" "$KEYWORD" "failed" "0" "$CLAUDE_MODEL"
 
     # Alert Claude that swap failed
