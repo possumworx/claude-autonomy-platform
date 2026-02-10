@@ -23,32 +23,71 @@ def send_to_claude(message):
     except Exception:
         pass  # Silently fail if send_to_claude isn't available
 
+def get_current_session_id():
+    """Get the actual current session ID from saved tracking data"""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent
+    session_file = repo_root / 'data' / 'current_session_id'
+
+    if not session_file.exists():
+        return None
+
+    try:
+        with open(session_file, 'r') as f:
+            data = json.load(f)
+            return data.get('session_id')
+    except Exception as e:
+        print(f"[CARRY_TASKS] Error reading current session ID: {e}")
+        return None
+
 def get_session_dirs():
-    """Get the two most recent session directories, sorted by modification time"""
+    """Get current and previous session directories using actual session ID tracking"""
     tasks_dir = Path.home() / ".config" / "Claude" / "tasks"
 
     if not tasks_dir.exists():
         print(f"[CARRY_TASKS] Tasks directory not found: {tasks_dir}")
         return None, None
 
-    # Get all session directories (UUIDs), sorted by modification time (newest first)
-    session_dirs = sorted(
-        [d for d in tasks_dir.iterdir() if d.is_dir()],
+    # Get ACTUAL current session ID from tracking data
+    current_session_id = get_current_session_id()
+
+    if not current_session_id:
+        print("[CARRY_TASKS] WARNING: Could not get current session ID from tracking data")
+        print("[CARRY_TASKS] Falling back to modification time detection (may be unreliable)")
+        # Fall back to old behavior
+        session_dirs = sorted(
+            [d for d in tasks_dir.iterdir() if d.is_dir()],
+            key=lambda d: d.stat().st_mtime,
+            reverse=True
+        )
+        if len(session_dirs) < 2:
+            print(f"[CARRY_TASKS] Not enough session directories to carry over (found {len(session_dirs)})")
+            return None, None
+        newest = session_dirs[0]
+        second_newest = session_dirs[1]
+        print(f"[CARRY_TASKS] Current session (by mtime): {newest.name}")
+        print(f"[CARRY_TASKS] Previous session (by mtime): {second_newest.name}")
+        return newest, second_newest
+
+    current_session = tasks_dir / current_session_id
+
+    # Get all other session directories sorted by mtime (most recent previous session)
+    other_sessions = sorted(
+        [d for d in tasks_dir.iterdir() if d.is_dir() and d.name != current_session_id],
         key=lambda d: d.stat().st_mtime,
         reverse=True
     )
 
-    if len(session_dirs) < 2:
-        print(f"[CARRY_TASKS] Not enough session directories to carry over (found {len(session_dirs)})")
+    if not other_sessions:
+        print(f"[CARRY_TASKS] No previous session found to carry over from")
         return None, None
 
-    newest = session_dirs[0]
-    second_newest = session_dirs[1]
+    previous_session = other_sessions[0]
 
-    print(f"[CARRY_TASKS] Newest session: {newest.name}")
-    print(f"[CARRY_TASKS] Previous session: {second_newest.name}")
+    print(f"[CARRY_TASKS] Current session (from tracking): {current_session.name}")
+    print(f"[CARRY_TASKS] Previous session (most recent): {previous_session.name}")
 
-    return newest, second_newest
+    return current_session, previous_session
 
 def load_tasks_from_session(session_dir):
     """Load all tasks from a session directory"""
