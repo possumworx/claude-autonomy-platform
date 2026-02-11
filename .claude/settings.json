@@ -13,5 +13,8 @@
       }
     ]
   },
-  "cleanupPeriodDays": 365
+  "cleanupPeriodDays": 365,
+  "env": {
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "99"
+  }
 }
