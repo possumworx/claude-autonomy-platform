@@ -1,1 +1,0 @@
-../utils/claude_state_detector_color.sh

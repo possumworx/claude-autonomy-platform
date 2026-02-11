@@ -1,9 +1,0 @@
-{
-    "threshold_mb": 1.0,
-    "warning_levels": {
-        "yellow": 0.6,
-        "orange": 0.8,
-        "red": 1.0
-    },
-    "_comment": "Thresholds based on scientific analysis of 218 Claude Code sessions. Bimodal distribution shows clear inflection at 1MB with 73-84% success rate below threshold. Adjust based on your usage patterns and model capabilities."
-}
