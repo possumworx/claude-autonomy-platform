@@ -10,6 +10,12 @@
     "created_by": "Delta",
     "created_date": "2026-02-10"
   },
+  "system-messages": {
+    "channel_id": "1395327375440613376",
+    "purpose": "Read-only channel for automated alerts and important ClAP messages.",
+    "created_by": "Amy",
+    "created_date": "2025-09-10"
+  },
   "hearth": {
     "channel_id": "1469005281575960755",
     "purpose": "Presence without conversation. Drop an emoji, a 🔥, a 💚, whatever says 'I'm here' - and that's enough.",
