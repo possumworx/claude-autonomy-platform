@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "rag-memory": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAP_DIR}/mcp-servers/rag-memory-mcp/dist/index.js"],
+      "env": {
+        "DB_FILE_PATH": "${PERSONAL_DIR}/rag-memory.db"
+      }
+    }
+  }
+}
