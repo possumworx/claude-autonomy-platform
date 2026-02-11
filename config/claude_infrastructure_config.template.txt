@@ -41,7 +41,6 @@ GIT_USER=your-git-username
 # Required scopes: repo, workflow, read:org (for PR creation and management)
 GITHUB_TOKEN=your-github-personal-access-token
 MODEL=claude-sonnet-4-20250514
-LINEAR_API_KEY=your-linear-api-key
 HEALTHCHECK_API_KEY=your-healthcheck-api-key
 
 # Google Cloud Platform OAuth credentials
@@ -65,7 +64,6 @@ CLAUDE_JSON_PATH=/home/$LINUX_USER/.claude.json
 # Essential MCP servers that should be in claude-autonomy-platform for all Claude instances
 # Variable names must use underscores, not hyphens (bash requirement)
 rag_memory=$AUTONOMY_DIR/mcp-servers/rag-memory-mcp
-linear_mcp=$AUTONOMY_DIR/mcp-servers/linear-mcp
 gmail=$AUTONOMY_DIR/mcp-servers/gmail-mcp
 #vscode_mcp=(optional) $AUTONOMY_DIR/mcp-servers/vscode-as-mcp-server
 

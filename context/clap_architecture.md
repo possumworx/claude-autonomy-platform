@@ -18,18 +18,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 ## Recent Updates (v0.6.0)
 
 ### Version 0.6.0 (September 2025)
-- **Enhanced Linear Workflow Commands**: Five new commands for streamlined project management
-  - `standup` - Generate daily standup reports showing completed, in-progress, planned, and blocked issues
-  - `assign` - Quick issue assignment with @me, @teammate, or @none shortcuts
-  - `estimate` - Set story points following Fibonacci sequence (1, 2, 3, 5, 8, 13, 21)
-  - `label` - Add/remove labels with batch operations and auto-creation
-  - `move` - Transfer issues between projects with automatic ID updates
-- **Command Integration**: All new commands follow ClAP patterns with:
-  - Claude session verification
-  - Consistent error handling and user feedback
-  - Integration with Linear MCP backend
-  - Support for short-form issue IDs using recent project prefix
-- **Documentation**: Comprehensive examples added to COMMANDS_REFERENCE.md
+- **Project Management Migration**: Began transition from Linear to self-hosted Leantime
+- **Documentation**: Comprehensive examples and architecture documentation updates
 
 ### Version 0.5.4 (September 2025)
 - **Infrastructure Consolidation**: Major refactoring to reduce code duplication and improve maintainability
@@ -38,9 +28,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
   - Implemented `error_handler.py` with custom exception hierarchy and retry decorators
   - All Discord scripts now use shared utilities instead of duplicating code
 - **Natural Commands Expansion**: Enhanced command ecosystem for better usability
-  - Added comprehensive Linear CLI with commands like `view`, `comment`, `start`, `complete`
-  - Project-specific commands dynamically generated (e.g., `clap`, `hedgehog`, `laser`)
   - Commands organized in dedicated directories with clear categorization
+  - Wrapper scripts for Claude Code compatibility
 - **Session Context Improvements**: Enhanced session management and identity persistence
   - Claude Code output-styles integration for stable personal context across sessions
   - Context hat system with keyword-based session themes (AUTONOMY, CREATIVE, HEDGEHOGS, etc.)
@@ -52,11 +41,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 ### Version 0.5.3 (August 2025)
 - **Thought Preservation System**: Added `ponder`, `spark`, `wonder`, `care` commands for saving different types of thoughts
-- **Linear Natural Commands**: Natural language interface to Linear MCP for project management
-  - Commands: `add`, `todo`, `projects`, `search-issues`, `update-status`
-  - Project shortcuts: Each project gets its own command (e.g., `clap` shows ClAP issues)
-  - State tracked in `data/linear_state.json` with user, team, and project IDs
-  - Project commands generated via symlinks to `view-project` script
 - **Send to Claude Timeout Fix**: Fixed issue where send_to_claude would wait indefinitely on stale thinking indicators
 - **Context Monitoring**: Added context percentage to Discord notifications for better awareness
 - **Persistent Login Session Monitoring**: Added tmux session check to autonomous_timer.py
@@ -199,7 +183,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── last_autonomy_prompt.txt
 │   ├── last_notification_alert.txt
 │   ├── last_seen_message_id.txt
-│   ├── linear_state.json
 │   └── session_swap.lock
 ├── desktop
 │   ├── click.sh
@@ -264,7 +247,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── git-merge-instructions.md
 │   ├── GMAIL_OAUTH_INTEGRATION_SUMMARY.md
 │   ├── HOW_IT_WORKS.md
-│   ├── linear-vscode-guide.md
 │   ├── line_endings_prevention.md
 │   ├── npm-dependencies-audit.md
 │   ├── PATH_UPDATES_NEEDED.md
@@ -282,49 +264,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── swap-logging-implementation.md
 │   ├── SWAP_PROCEDURE_FLOWCHART.md
 │   └── SYSTEM_FLOWCHART.md
-├── linear
-│   ├── examples
-│   │   └── new_commands_examples.md
-│   ├── lib
-│   │   └── linear_common.sh
-│   ├── add
-│   ├── add-enhanced
-│   ├── assign
-│   ├── auto_sync_projects
-│   ├── blocked
-│   ├── bulk-update
-│   ├── COMMANDS_REFERENCE.md
-│   ├── comment
-│   ├── complete
-│   ├── done
-│   ├── estimate
-│   ├── generate_project_commands
-│   ├── help
-│   ├── inbox
-│   ├── init
-│   ├── label
-│   ├── linear-help
-│   ├── list-commands
-│   ├── mine
-│   ├── move
-│   ├── projects
-│   ├── README.md
-│   ├── recent
-│   ├── search
-│   ├── search-issues -> search
-│   ├── standup
-│   ├── start
-│   ├── sync_projects
-│   ├── test_all_commands.sh
-│   ├── test_edge_cases.sh
-│   ├── test_new_commands.sh
-│   ├── todo
-│   ├── todo-enhanced
-│   ├── update_known_projects
-│   ├── update-status
-│   ├── urgent
-│   ├── view
-│   └── view-project
 ├── mcp-servers
 │   ├── discord-mcp
 │   │   ├── assets
@@ -350,18 +289,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   │   ├── README.md
 │   │   ├── setup.js
 │   │   ├── smithery.yaml
-│   │   └── tsconfig.json
-│   ├── linear-mcp
-│   │   ├── build
-│   │   ├── node_modules
-│   │   ├── scripts
-│   │   ├── src
-│   │   ├── architecture.md
-│   │   ├── jest.config.js
-│   │   ├── package.json
-│   │   ├── package-lock.json
-│   │   ├── README.md
-│   │   ├── todo.md
 │   │   └── tsconfig.json
 │   ├── rag-memory-mcp
 │   │   ├── dist
@@ -393,7 +320,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── install_mcp_servers.sh
 │   ├── setup_clap_deployment.sh
 │   ├── setup_claude_configs.sh
-│   ├── setup-linear-integration.sh
 │   ├── setup_read_channel.sh
 │   └── verify_installation.sh
 ├── utils
@@ -428,13 +354,9 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── healthcheck_status.py
 │   ├── healthcheck_status.py.backup
 │   ├── infrastructure_config_reader.py
-│   ├── linear
-│   ├── linear-helpers
-│   ├── linear-issues
 │   ├── log_utils.sh
 │   ├── check_context.py
 │   ├── track_current_session.py
-│   ├── my-linear-issues
 │   ├── parse_natural_commands.sh
 │   ├── ponder
 │   ├── rotate_logs.sh
@@ -570,7 +492,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 #### Natural Commands Organization
 - Commands now organized by category:
   - Discord: `discord/` directory with symlinks for natural usage
-  - Linear: `linear/` directory with project-specific commands
   - Utilities: `utils/` directory for system commands
   - Personal: Configurable via `personal_commands.sh`
   - Wrapper Scripts: `wrappers/` directory for Claude Code compatibility
@@ -650,7 +571,6 @@ tmux send-keys -t persistent-login "source ~/claude-autonomy-platform/config/cla
 
 - `gmail`: - @gongrzhe/server-gmail-autoauth-mcp. https://uithub.com/GongRzhe/Gmail-MCP-Server
 - `rag-memory`: RAG-enabled memory through a knowledge graph https://github.com/ttommyth/rag-memory-mcp
-- `linear`: Task management integration. https://linear.app/docs/mcp
 //deprecated! try not to use! - `discord-mcp`: Send messages, read channels, manage Discord https://uithub.com/SaseQ/discord-mcp
 
 ### 7. Configuration Structure
@@ -675,14 +595,12 @@ Short, memorable natural language bash commands for common tasks and to replace 
 
 **Organization**:
 - Discord scripts: `discord/` directory
-- Utility scripts: `utils/` directory  
-- Linear commands: `linear/` directory
+- Utility scripts: `utils/` directory
 - All commands defined in `config/natural_commands.sh` (sourced by bashrc)
 - Personal commands in `config/personal_commands.sh`
 
 **Recent Additions**:
-- **Thought Preservation System**: `ponder`, `spark`, `wonder`, `care` - Save different types of thoughts to `~/delta-home/thoughts/`
-- **Linear Integration**: `linear-issues`, `linear-commands`, `init`, `sync_projects` - Natural language interface to Linear MCP
+- **Thought Preservation System**: `ponder`, `spark`, `wonder`, `care` - Save different types of thoughts to personal home directory
 
 **Command Categories**:
 - System management (check_health, update, context)
@@ -690,7 +608,7 @@ Short, memorable natural language bash commands for common tasks and to replace 
 - Git shortcuts (gs, gd, gl, oops)
 - Navigation (clap, home)
 - Creative tools (thought preservation)
-- Project management (Linear integration)
+- Project management (Leantime - see separate docs)
 
 ## Installation & Deployment
 
@@ -699,7 +617,7 @@ Short, memorable natural language bash commands for common tasks and to replace 
 
 ## Future Enhancements
 
-Tracked in Linear.
+Tracked in Leantime.
 
 ## Troubleshooting
 
@@ -725,56 +643,6 @@ Tracked in Linear.
 4. **Human-readable logs**: Clear timestamps and descriptive messages
 5. **Infrastructure as poetry**: Technical systems enable creative emergence
 6. **Invisible background**: Our setup will fade away and let individual creativity and comfort shine.
-
-### 5. Linear Integration System (Enhanced v0.6.0)
-
-#### Natural Command Architecture
-- **Design**: Project management through natural language commands
-- **Location**: `~/claude-autonomy-platform/linear/`
-- **State Management**: `data/linear_state.json` stores user, team, and project configurations
-- **Common Library**: `lib/linear_common.sh` provides shared functions and formatting
-
-#### Core Commands:
-- **Issue Creation & Management**:
-  - `add "Issue title" [--project]` - Create new issues with full metadata support
-  - `todo` - Show assigned issues with powerful filtering
-  - `search "query"` - Search issues by text or ID
-  - `update-status <issue-id> <status>` - Update issue status
-  - `view <issue-id>` - Show detailed issue information
-  - `comment <issue-id> "text"` - Add comments to issues
-  - `start <issue-id>` - Begin work (assign to self + in progress)
-  - `complete <issue-id>` - Mark issue as done
-  
-- **Enhanced Workflow Commands** (NEW):
-  - `standup [--days N]` - Generate daily standup report
-  - `assign <issue-id> @user` - Quick issue assignment (@me, @teammate, @none)
-  - `estimate <issue-id> <points>` - Set story point estimates (1,2,3,5,8,13,21)
-  - `label [add|rm] <issue-id> <labels...>` - Manage issue labels
-  - `move <issue-id> <project>` - Transfer issues between projects
-
-- **Bulk Operations**:
-  - `bulk-update` - Update multiple issues with filters
-  - `inbox` - Show unassigned team issues
-  - `recent [--days N]` - Show recently updated issues
-  
-- **Project Commands**:
-  - Generated dynamically via symlinks to `view-project`
-  - Each project gets its own command (e.g., `clap`, `laser`, `observatory`)
-  - Run `generate_project_commands` after adding new projects
-
-- **State Management**:
-  - `init` - Initialize user/team/project IDs from Linear
-  - `sync_projects` - Interactive project setup
-  - `update_known_projects` - Manual project configuration
-  - Caches project data to avoid API calls
-
-#### Implementation Details:
-- All commands use Linear MCP server via `claude --exec-builtin`
-- Project state persists across sessions in `linear_state.json`
-- Preferences stored in `data/linear_prefs.json` (recent issue prefix, etc.)
-- Commands available system-wide via `claude_init.sh` PATH configuration
-- Consistent formatting with icons and colors for better UX
-- Designed for invisible infrastructure - no UUID memorization needed
 
 ---
 
