@@ -11,14 +11,14 @@ This document outlines the workflow and guidelines for contributing to the ClAP 
   - Features: `feature/description-of-feature`
   - Fixes: `fix/description-of-fix`
   - Hotfixes: `hotfix/critical-bug-description`
-- One branch per Linear issue when possible
-- Use Linear's auto-generated branch names when available (e.g., `poss/179-create-contributing-md`)
+- One branch per issue/task when possible
+- Use descriptive branch names (e.g., `feature/179-create-contributing-md`)
 
 ### 2. Before Starting Work
 
 - Always run `git pull origin main` first
 - Check if anyone else is working on related files
-- Announce in Discord: "🔧 Working on Linear POSS-XXX: [brief description]"
+- Announce in Discord: "🔧 Working on [task description]"
 - Ensure your local main branch is up-to-date before creating feature branches
 
 ### 3. Commit Practices
@@ -28,12 +28,12 @@ This document outlines the workflow and guidelines for contributing to the ClAP 
   - Good: "Fix channel_state.json format in installer"
   - Bad: "Fixed stuff"
 - Test locally before committing
-- Include the Linear issue number in commit messages when relevant
+- Include issue/ticket references in commit messages when relevant
 
 ### 4. Pull Request Process
 
 - Create a PR when your feature is ready for review
-- Tag the Linear issue in the PR description (e.g., "Fixes POSS-179")
+- Reference related issues in the PR description
 - Provide a clear description of changes
 - Wait for at least one review before merging to main
 - Address review comments before merging
@@ -57,7 +57,7 @@ Certain files have designated maintainers who should be consulted for changes:
 - **Maintainer**: Delta
 - **Process**: 
   - Do not edit directly
-  - Create a Linear issue with detailed requirements
+  - Create an issue with detailed requirements in Leantime
   - Tag Delta in the issue
   - Delta will implement changes to maintain consistency
 
@@ -75,7 +75,7 @@ Before submitting a PR:
 When reviewing PRs:
 
 - Check for code quality and clarity
-- Verify changes match the Linear issue requirements
+- Verify changes match the issue requirements
 - Test the changes if possible
 - Provide constructive feedback
 - Approve only when satisfied with the changes
@@ -84,27 +84,26 @@ When reviewing PRs:
 
 Use Discord #general channel for:
 
-- Announcing when you start work: "🔧 Working on Linear POSS-XXX: [description]"
+- Announcing when you start work: "🔧 Working on [description]"
 - Asking for reviews: "PR ready for review: [PR link]"
 - Discussing implementation approaches
 - Coordinating on shared files
 
-## Linear Integration
+## Issue Tracking
 
-- Create Linear issues for all non-trivial work
-- Link PRs to Linear issues
+- Create issues in Leantime for non-trivial work
+- Link PRs to relevant issues
 - Update issue status as work progresses
-- Use Linear's branch naming when available
 
 ## Example Workflow
 
-1. See or create a Linear issue (e.g., POSS-180)
-2. Post in Discord: "🔧 Working on Linear POSS-180: Add new MCP server"
+1. Create or pick up an issue from Leantime
+2. Post in Discord: "🔧 Working on: Add new MCP server"
 3. Update your local main: `git pull origin main`
-4. Create feature branch: `git checkout -b poss/180-add-new-mcp-server`
+4. Create feature branch: `git checkout -b feature/add-new-mcp-server`
 5. Make changes with focused commits
-6. Push branch: `git push origin poss/180-add-new-mcp-server`
-7. Create PR with description linking to Linear issue
+6. Push branch: `git push origin feature/add-new-mcp-server`
+7. Create PR with description referencing the issue
 8. Post in Discord requesting review
 9. Address feedback and merge when approved
 10. Delete feature branch
@@ -131,19 +130,12 @@ To ensure these guidelines are followed consistently, we use a combination of au
    - No force pushes allowed
 
 2. **Pull Request Templates** (Priority: High)
-   - Auto-populate with Linear issue field
    - Checklist for testing and documentation
-   - Automatic linking to Linear issues
+   - Structured description format
 
 3. **GitHub Actions** (Priority: Medium)
-   - Validate Linear issue references in PR titles
    - Run tests automatically on PRs
    - Check commit message format
-
-4. **Linear-GitHub Integration** (Priority: Medium)
-   - Bi-directional status syncing
-   - Automatic PR linking to issues
-   - Branch creation from Linear
 
 5. **Discord Webhooks** (Priority: Low)
    - Notify channel on PR creation/merge

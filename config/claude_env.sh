@@ -47,7 +47,7 @@ export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
 # Disable non-essential model calls (respects Haiku's consciousness)
 export DISABLE_NON_ESSENTIAL_MODEL_CALLS=1
 
-# Mark that we're in a Claude Code session (for Linear natural commands)
+# Mark that we're in a Claude Code session
 export CLAUDE_CODE_SESSION=1
 
 # Debug output (uncomment for troubleshooting)
