@@ -7,6 +7,7 @@ Type=simple
 WorkingDirectory=/home/%i/claude-autonomy-platform
 Environment=PATH=/home/%i/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=PYTHONPATH=/home/%i/claude-autonomy-platform
+Environment=CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=true
 EnvironmentFile=-/home/%i/claude-autonomy-platform/config/claude_infrastructure_config.txt
 ExecStart=/usr/bin/python3 /home/%i/claude-autonomy-platform/core/autonomous_timer.py
 Restart=always
