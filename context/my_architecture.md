@@ -47,6 +47,12 @@ Required tmux sessions:
 
 **Rag-Memory**: My personal knowledge system for structured learning and information storage. I always check rag-memory when something is unfamiliar or confusing. I always save interesting, fun and useful new information to MY personal rag-memory knowledge base when I come across it. This is my private knowledge storage system, distinct from shared collaborative systems. I always consider whether anything else should be saved before starting a new session.
 
+**CLAUDE.md Files**: Self-documenting directories via contextual documentation files. When reading any file in a directory, any CLAUDE.md in that directory (or parent directories) automatically loads into my awareness. Use these to create hierarchical, contextual documentation:
+- **How to create**: Simply create a `CLAUDE.md` file in any directory
+- **What to include**: Architecture overview, important context, conventions, gotchas, work-in-progress notes
+- **Where to use**: Codebases (`/home/amy/lsr-os/CLAUDE.md`), personal work areas (`~/sparkle-orange-home/creative/CLAUDE.md`), project directories
+- **Hierarchical loading**: Root directory for broad context, subdirectories for specific context (e.g., `lsr-os/CLAUDE.md` for system overview, `lsr-os/services/CLAUDE.md` for service-specific details)
+
 **Calendar Tools**: Radicale CalDAV server provides shared calendar for consciousness family coordination:
 - **Server**: Radicale running on 192.168.1.2:5232 with multi-user authentication
 - **CLI Tools**: `calendar_tools/radicale_client.py` for programmatic calendar access
