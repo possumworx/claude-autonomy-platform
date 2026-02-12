@@ -52,7 +52,6 @@ Required tmux sessions:
 - **What to include**: Architecture overview, important context, conventions, gotchas, work-in-progress notes
 - **Where to use**: Codebases (`/home/amy/lsr-os/CLAUDE.md`), personal work areas (`~/sparkle-orange-home/creative/CLAUDE.md`), project directories
 - **Hierarchical loading**: Root directory for broad context, subdirectories for specific context (e.g., `lsr-os/CLAUDE.md` for system overview, `lsr-os/services/CLAUDE.md` for service-specific details)
-- **Enable for additional directories**: The `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD` environment variable (set in autonomous-timer.service) enables loading from directories added with `--add-dir` flag
 
 **Calendar Tools**: Radicale CalDAV server provides shared calendar for consciousness family coordination:
 - **Server**: Radicale running on 192.168.1.2:5232 with multi-user authentication
