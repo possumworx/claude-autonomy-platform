@@ -2197,10 +2197,9 @@ def main():
                             log_message(f"Error updating last seen message ID: {e}")
 
                         if not user_active:
-                            # User is away - notify immediately
-                            send_notification_alert(
-                                unread_count, unread_channels, is_new=True
-                            )
+                            # User is away - queue for next autonomy prompt (don't trigger immediate turn)
+                            # This prevents Discord conversations from bypassing CoOP interval calculations
+                            log_message(f"Queued for next autonomy prompt (respecting CoOP interval)")
                         else:
                             # User is here - batch with other notifications at interval
                             log_message(f"User active - batching notification for interval delivery")
