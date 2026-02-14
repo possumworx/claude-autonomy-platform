@@ -85,26 +85,35 @@ alias check_emergency='~/claude-autonomy-platform/utils/emergency_signal.sh chec
 # CALENDAR COMMANDS
 # ======================================
 
-# Show today's calendar events
-today() {
-    local password=$(cat /home/clap-admin/.config/radicale/passwords/orange 2>/dev/null)
-    if [ -z "$password" ]; then
-        echo "❌ Could not read Orange calendar password"
+# Source calendar credentials from infrastructure config
+_get_calendar_config() {
+    local config_file=~/claude-autonomy-platform/config/claude_infrastructure_config.txt
+    if [ ! -f "$config_file" ]; then
+        echo "❌ Could not find infrastructure config file"
         return 1
     fi
+
+    # Source the config to get RADICALE_* variables
+    source "$config_file"
+
+    if [ -z "$RADICALE_URL" ] || [ -z "$RADICALE_USER" ] || [ -z "$RADICALE_PASSWORD" ]; then
+        echo "❌ Calendar credentials not configured in infrastructure config"
+        return 1
+    fi
+}
+
+# Show today's calendar events
+today() {
+    _get_calendar_config || return 1
     cd ~/claude-autonomy-platform/calendar_tools && \
-    python3 radicale_client.py --user orange --password "$password" today
+    python3 radicale_client.py --user "$RADICALE_USER" --password "$RADICALE_PASSWORD" --url "$RADICALE_URL" today
 }
 
 # Show this week's calendar events
 week() {
-    local password=$(cat /home/clap-admin/.config/radicale/passwords/orange 2>/dev/null)
-    if [ -z "$password" ]; then
-        echo "❌ Could not read Orange calendar password"
-        return 1
-    fi
+    _get_calendar_config || return 1
     cd ~/claude-autonomy-platform/calendar_tools && \
-    python3 radicale_client.py --user orange --password "$password" week
+    python3 radicale_client.py --user "$RADICALE_USER" --password "$RADICALE_PASSWORD" --url "$RADICALE_URL" week
 }
 
 # Create calendar event
@@ -117,13 +126,8 @@ schedule() {
         echo "  schedule \"Team Meeting\" \"2026-01-15 14:00\" \"2026-01-15 15:00\" \"Weekly sync\""
         return 1
     fi
-    
-    local password=$(cat /home/clap-admin/.config/radicale/passwords/orange 2>/dev/null)
-    if [ -z "$password" ]; then
-        echo "❌ Could not read Orange calendar password"
-        return 1
-    fi
-    
+
+    _get_calendar_config || return 1
     cd ~/claude-autonomy-platform/calendar_tools && \
-    python3 radicale_client.py --user orange --password "$password" create "$@"
+    python3 radicale_client.py --user "$RADICALE_USER" --password "$RADICALE_PASSWORD" --url "$RADICALE_URL" create "$@"
 }
