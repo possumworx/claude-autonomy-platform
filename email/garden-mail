@@ -94,4 +94,10 @@ EOF
 mkdir -p ~/.cache/neomutt/{headers,bodies}
 
 # Launch neomutt with our config
-neomutt -F "$MUTT_CONFIG" "$@"
+if [ $# -eq 0 ]; then
+    # No arguments - just open neomutt
+    exec neomutt -F "$MUTT_CONFIG"
+else
+    # Arguments passed - forward them
+    exec neomutt -F "$MUTT_CONFIG" "$@"
+fi

@@ -1,0 +1,49 @@
+#!/bin/bash
+# Garden Mail Check - List emails without opening UI
+# Uses neomutt in batch mode to check inbox
+
+# Source the infrastructure config
+CONFIG_FILE="$HOME/claude-autonomy-platform/config/claude_infrastructure_config.txt"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: Infrastructure config not found at $CONFIG_FILE"
+    exit 1
+fi
+
+# Parse config values
+EMAIL_ADDRESS=$(grep "^EMAIL_ADDRESS=" "$CONFIG_FILE" | cut -d'=' -f2)
+EMAIL_PASSWORD=$(grep "^EMAIL_PASSWORD=" "$CONFIG_FILE" | cut -d'=' -f2)
+EMAIL_IMAP_SERVER=$(grep "^EMAIL_IMAP_SERVER=" "$CONFIG_FILE" | cut -d'=' -f2)
+EMAIL_IMAP_PORT=$(grep "^EMAIL_IMAP_PORT=" "$CONFIG_FILE" | cut -d'=' -f2)
+
+# Create minimal config for checking
+MUTT_CONFIG=$(mktemp /tmp/neomuttrc.XXXXXX)
+trap "rm -f $MUTT_CONFIG" EXIT
+
+cat > "$MUTT_CONFIG" << EOF
+set from = "$EMAIL_ADDRESS"
+set real_name = "${USER^}"
+set imap_user = "$EMAIL_ADDRESS"
+set imap_pass = "$EMAIL_PASSWORD"
+set folder = "imaps://$EMAIL_IMAP_SERVER:$EMAIL_IMAP_PORT"
+set spoolfile = "+INBOX"
+set ssl_force_tls = yes
+set header_cache = "~/.cache/neomutt/headers"
+set message_cachedir = "~/.cache/neomutt/bodies"
+EOF
+
+mkdir -p ~/.cache/neomutt/{headers,bodies}
+
+echo "📧 Checking email for $EMAIL_ADDRESS..."
+echo "================================="
+
+# Use neomutt to list emails in inbox
+# -e runs commands, -Z returns 0 if new mail exists
+neomutt -F "$MUTT_CONFIG" -e "set folder_format='%2C %f'" -e "push '<change-folder>=INBOX<enter><exit>'" 2>/dev/null
+
+# Alternative: Use IMAP directly to check
+if command -v curl &> /dev/null; then
+    echo ""
+    echo "📊 Quick inbox status:"
+    # This would need more work to properly authenticate with IMAP
+    echo "(Feature coming soon - for now, please use garden-mail interactively)"
+fi
