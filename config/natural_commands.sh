@@ -127,3 +127,8 @@ schedule() {
     cd ~/claude-autonomy-platform/calendar_tools && \
     python3 radicale_client.py --user orange --password "$password" create "$@"
 }
+
+# Temperature monitoring
+alias temp="$HOME/claude-autonomy-platform/monitoring/temp"
+alias temp-history="$HOME/claude-autonomy-platform/monitoring/temp-history"
+alias temp-stats="$HOME/claude-autonomy-platform/monitoring/temp-stats"

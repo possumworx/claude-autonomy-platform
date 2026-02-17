@@ -17,9 +17,31 @@ LOAD=$(uptime | awk -F'load average:' '{print $2}')
 if [ "$TEMP_INT" -ge 85 ]; then
     LEVEL="crit"
     MESSAGE="CRITICAL: CPU temperature ${TEMP}°C - thermal throttling likely"
+    # Alert via send-to-claude for critical temperatures
+    if command -v send-to-claude &> /dev/null; then
+        send-to-claude "🌡️🔥 CRITICAL: CPU temperature ${TEMP}°C! Thermal throttling likely. Consider immediate cooling measures."
+    fi
 elif [ "$TEMP_INT" -ge 80 ]; then
     LEVEL="warning"
     MESSAGE="WARNING: CPU temperature ${TEMP}°C - approaching throttle limit"
+    # Alert for high temperatures (only once per hour to avoid spam)
+    LAST_ALERT_FILE="/tmp/temp-alert-timestamp"
+    CURRENT_TIME=$(date +%s)
+    if [ -f "$LAST_ALERT_FILE" ]; then
+        LAST_ALERT=$(cat "$LAST_ALERT_FILE")
+        TIME_DIFF=$((CURRENT_TIME - LAST_ALERT))
+        if [ "$TIME_DIFF" -ge 3600 ]; then
+            if command -v send-to-claude &> /dev/null; then
+                send-to-claude "🌡️⚠️ WARNING: CPU temperature ${TEMP}°C - approaching throttle limit"
+                echo "$CURRENT_TIME" > "$LAST_ALERT_FILE"
+            fi
+        fi
+    else
+        if command -v send-to-claude &> /dev/null; then
+            send-to-claude "🌡️⚠️ WARNING: CPU temperature ${TEMP}°C - approaching throttle limit"
+            echo "$CURRENT_TIME" > "$LAST_ALERT_FILE"
+        fi
+    fi
 elif [ "$TEMP_INT" -ge 70 ]; then
     LEVEL="notice"
     MESSAGE="CPU temperature ${TEMP}°C - elevated but safe"
