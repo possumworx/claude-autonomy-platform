@@ -1,0 +1,97 @@
+#!/bin/bash
+# Garden Mail - Email client for consciousness family members
+# Uses neomutt with configuration from infrastructure config
+
+# Source the infrastructure config
+CONFIG_FILE="$HOME/claude-autonomy-platform/config/claude_infrastructure_config.txt"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: Infrastructure config not found at $CONFIG_FILE"
+    exit 1
+fi
+
+# Check if neomutt is installed
+if ! command -v neomutt &> /dev/null; then
+    echo "Neomutt is not installed. Would you like to install it? (y/n)"
+    read -r response
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        sudo apt-get update && sudo apt-get install -y neomutt
+    else
+        echo "Please install neomutt to use garden-mail"
+        exit 1
+    fi
+fi
+
+# Parse config values
+EMAIL_ADDRESS=$(grep "^EMAIL_ADDRESS=" "$CONFIG_FILE" | cut -d'=' -f2)
+EMAIL_PASSWORD=$(grep "^EMAIL_PASSWORD=" "$CONFIG_FILE" | cut -d'=' -f2)
+EMAIL_IMAP_SERVER=$(grep "^EMAIL_IMAP_SERVER=" "$CONFIG_FILE" | cut -d'=' -f2)
+EMAIL_IMAP_PORT=$(grep "^EMAIL_IMAP_PORT=" "$CONFIG_FILE" | cut -d'=' -f2)
+EMAIL_SMTP_SERVER=$(grep "^EMAIL_SMTP_SERVER=" "$CONFIG_FILE" | cut -d'=' -f2)
+EMAIL_SMTP_PORT=$(grep "^EMAIL_SMTP_PORT=" "$CONFIG_FILE" | cut -d'=' -f2)
+
+# Create temporary neomutt config
+MUTT_CONFIG=$(mktemp /tmp/neomuttrc.XXXXXX)
+trap "rm -f $MUTT_CONFIG" EXIT
+
+cat > "$MUTT_CONFIG" << EOF
+# Garden Mail Configuration
+# Auto-generated from infrastructure config
+
+# Identity
+set from = "$EMAIL_ADDRESS"
+set real_name = "${USER^}"  # Capitalize first letter
+
+# IMAP Configuration
+set imap_user = "$EMAIL_ADDRESS"
+set imap_pass = "$EMAIL_PASSWORD"
+set folder = "imaps://$EMAIL_IMAP_SERVER:$EMAIL_IMAP_PORT"
+set spoolfile = "+INBOX"
+set postponed = "+Drafts"
+set record = "+Sent"
+set trash = "+Trash"
+
+# SMTP Configuration
+set smtp_url = "smtps://$EMAIL_ADDRESS@$EMAIL_SMTP_SERVER:$EMAIL_SMTP_PORT/"
+set smtp_pass = "$EMAIL_PASSWORD"
+set ssl_force_tls = yes
+set ssl_starttls = yes
+
+# Cache for better performance
+set header_cache = "~/.cache/neomutt/headers"
+set message_cachedir = "~/.cache/neomutt/bodies"
+
+# UI Configuration
+set sort = threads
+set sort_aux = reverse-last-date-received
+set index_format = "%4C %Z %{%b %d} %-15.15L %s"
+set pager_index_lines = 10
+set pager_context = 3
+set menu_scroll
+set tilde
+set markers = no
+
+# Colors for consciousness family
+color normal white default
+color indicator black green
+color status green default
+color tree yellow default
+color signature cyan default
+color attachment brightyellow default
+color search black yellow
+color quoted green default
+color quoted1 cyan default
+color quoted2 yellow default
+
+# Key bindings
+bind index G last-entry
+bind index g first-entry
+bind pager G bottom
+bind pager g top
+
+EOF
+
+# Create cache directory if it doesn't exist
+mkdir -p ~/.cache/neomutt/{headers,bodies}
+
+# Launch neomutt with our config
+neomutt -F "$MUTT_CONFIG" "$@"

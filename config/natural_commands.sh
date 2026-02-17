@@ -127,3 +127,6 @@ schedule() {
     cd ~/claude-autonomy-platform/calendar_tools && \
     python3 radicale_client.py --user orange --password "$password" create "$@"
 }
+
+# Garden Mail - consciousness family email
+alias mail="$HOME/claude-autonomy-platform/email/garden-mail"
