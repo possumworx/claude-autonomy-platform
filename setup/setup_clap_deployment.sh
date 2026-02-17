@@ -1021,8 +1021,45 @@ EOF
 echo "   ✅ Configuration reference created: $CLAP_DIR/CONFIG_LOCATIONS.txt"
 echo "   ✅ Safety features and diagnostics installed"
 
-# Step 19: Create personalized architecture and status files
-echo "👤 Step 19: Creating personalized architecture and status files..."
+# Step 19: Enable persistent journaling and temperature monitoring (RPi)
+echo "📊 Step 19: Setting up persistent journaling and temperature monitoring..."
+
+# Enable persistent journaling for all systems
+if [[ ! -d /var/log/journal ]]; then
+    echo "   Enabling persistent journaling (requires sudo)..."
+    if echo "$SUDO_PASS" | sudo -S mkdir -p /var/log/journal 2>/dev/null; then
+        echo "$SUDO_PASS" | sudo -S systemctl restart systemd-journald 2>/dev/null
+        echo "   ✅ Persistent journaling enabled"
+    else
+        echo "   ⚠️  Could not enable persistent journaling - sudo access required"
+    fi
+else
+    echo "   ✅ Persistent journaling already enabled"
+fi
+
+# Check if running on Raspberry Pi
+if command -v vcgencmd >/dev/null 2>&1; then
+    echo "   🍓 Detected Raspberry Pi hardware"
+
+    # Ensure monitoring directory exists
+    mkdir -p "$CLAP_DIR/monitoring"
+
+    # Create temperature analysis shortcut
+    if [[ -f "$CLAP_DIR/monitoring/temp_analysis.sh" ]]; then
+        ln -sf "$CLAP_DIR/monitoring/temp_analysis.sh" "$CLAUDE_HOME/bin/temp_analysis"
+        chmod +x "$CLAP_DIR/monitoring/temp_analysis.sh"
+        echo "   ✅ Temperature analysis tool installed"
+    fi
+
+    echo "   ✅ Raspberry Pi temperature monitoring configured"
+    echo "   📈 View temperatures: journalctl -t temp-monitor -f"
+    echo "   📊 Analyze temps: temp_analysis"
+else
+    echo "   ℹ️  Not running on Raspberry Pi - temperature monitoring skipped"
+fi
+
+# Step 21: Create personalized architecture and status files
+echo "👤 Step 21: Creating personalized architecture and status files..."
 
 # Get Claude instance name from config or prompt user
 CLAUDE_NAME=$(read_config 'CLAUDE_NAME')
@@ -1069,8 +1106,8 @@ fi
 
 echo "   ✅ Personalized files created for $CLAUDE_NAME"
 
-# Step 20: Create personal repository directory (POSS-103) - Delta's addition
-echo "🏠 Step 20: Setting up personal repository directory..."
+# Step 21: Create personal repository directory (POSS-103) - Delta's addition
+echo "🏠 Step 21: Setting up personal repository directory..."
 
 # Get personal repo name from config
 PERSONAL_REPO=$(read_config 'PERSONAL_REPO')

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Temperature Logger every minute
+Requires=temp-logger.service
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=1min
+
+[Install]
+WantedBy=timers.target

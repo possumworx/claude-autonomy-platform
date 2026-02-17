@@ -1,0 +1,7 @@
+[Unit]
+Description=Temperature Logger for Raspberry Pi
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/claude-autonomy-platform/monitoring/temp_logger.sh
