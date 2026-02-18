@@ -118,3 +118,6 @@ LEANTIME_USER_ID=your-user-id
 RADICALE_URL=http://<radicale-server-ip-or-localhost>:5233
 RADICALE_USER=your-username
 RADICALE_PASSWORD=your-radicale-password
+
+SMB_USER=your-smb-username
+SMB_PASSWORD=your-smb-password
