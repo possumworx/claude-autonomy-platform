@@ -1,0 +1,35 @@
+#!/bin/bash
+# Show current CPU temperature
+
+if command -v vcgencmd &> /dev/null; then
+    # Raspberry Pi
+    TEMP=$(vcgencmd measure_temp | cut -d= -f2)
+    TEMP_VALUE=$(echo $TEMP | cut -d\' -f1)
+    TEMP_INT=${TEMP_VALUE%.*}
+
+    # Color coding
+    if [ "$TEMP_INT" -ge 80 ]; then
+        echo -e "🌡️ CPU Temperature: \033[31m${TEMP}\033[0m (CRITICAL)"
+    elif [ "$TEMP_INT" -ge 70 ]; then
+        echo -e "🌡️ CPU Temperature: \033[33m${TEMP}\033[0m (Warning)"
+    elif [ "$TEMP_INT" -ge 60 ]; then
+        echo -e "🌡️ CPU Temperature: \033[36m${TEMP}\033[0m (Elevated)"
+    else
+        echo -e "🌡️ CPU Temperature: \033[32m${TEMP}\033[0m (Normal)"
+    fi
+
+    # Also show throttling status
+    THROTTLED=$(vcgencmd get_throttled | cut -d= -f2)
+    if [ "$THROTTLED" != "0x0" ]; then
+        echo -e "⚠️  \033[31mTHROTTLING ACTIVE: $THROTTLED\033[0m"
+    fi
+else
+    # Generic Linux
+    if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
+        TEMP_MILLI=$(cat /sys/class/thermal/thermal_zone0/temp)
+        TEMP_C=$(echo "scale=1; $TEMP_MILLI / 1000" | bc)
+        echo "🌡️ CPU Temperature: ${TEMP_C}°C"
+    else
+        echo "Temperature monitoring not available on this system"
+    fi
+fi

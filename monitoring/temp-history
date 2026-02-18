@@ -1,0 +1,28 @@
+#!/bin/bash
+# Show temperature history from journal
+
+echo "🌡️ Temperature History (last 2 hours)"
+echo "===================================="
+
+# Show temperature entries with color coding
+journalctl --user -u temp-logger --since "2 hours ago" --no-pager | \
+    grep -E "temperature|THROTTLING" | \
+    sed 's/CRITICAL:/\\033[31mCRITICAL:\\033[0m/' | \
+    sed 's/WARNING:/\\033[33mWARNING:\\033[0m/' | \
+    sed 's/elevated but safe/\\033[36melevated but safe\\033[0m/' | \
+    sed 's/normal/\\033[32mnormal\\033[0m/' | \
+    sed 's/THROTTLING DETECTED:/\\033[31mTHROTTLING DETECTED:\\033[0m/'
+
+echo ""
+echo "Summary:"
+echo "--------"
+# Count different severity levels
+CRITICAL=$(journalctl --user -u temp-logger --since "2 hours ago" | grep -c "CRITICAL:")
+WARNING=$(journalctl --user -u temp-logger --since "2 hours ago" | grep -c "WARNING:")
+ELEVATED=$(journalctl --user -u temp-logger --since "2 hours ago" | grep -c "elevated but safe")
+NORMAL=$(journalctl --user -u temp-logger --since "2 hours ago" | grep -c "normal")
+
+echo "🔴 Critical: $CRITICAL"
+echo "🟡 Warning: $WARNING"
+echo "🔵 Elevated: $ELEVATED"
+echo "🟢 Normal: $NORMAL"

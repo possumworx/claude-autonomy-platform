@@ -1,0 +1,47 @@
+#!/bin/bash
+# Show temperature statistics for the day
+
+echo "🌡️ Temperature Statistics (last 24 hours)"
+echo "========================================"
+
+# Extract all temperature values from the last 24 hours
+TEMPS=$(journalctl --user -u temp-logger --since "24 hours ago" --no-pager | \
+    grep -oP 'temperature \K[0-9.]+(?=°C)' | \
+    sort -n)
+
+if [ -z "$TEMPS" ]; then
+    echo "No temperature data available for the last 24 hours"
+    exit 1
+fi
+
+# Calculate statistics
+MIN=$(echo "$TEMPS" | head -1)
+MAX=$(echo "$TEMPS" | tail -1)
+COUNT=$(echo "$TEMPS" | wc -l)
+AVG=$(echo "$TEMPS" | awk '{sum+=$1} END {printf "%.1f", sum/NR}')
+
+# Find current temp
+if command -v vcgencmd &> /dev/null; then
+    CURRENT=$(vcgencmd measure_temp | cut -d= -f2 | cut -d\' -f1)
+else
+    if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
+        TEMP_MILLI=$(cat /sys/class/thermal/thermal_zone0/temp)
+        CURRENT=$(echo "scale=1; $TEMP_MILLI / 1000" | bc)
+    else
+        CURRENT="N/A"
+    fi
+fi
+
+echo "📊 Current: ${CURRENT}°C"
+echo "📈 Maximum: ${MAX}°C"
+echo "📉 Minimum: ${MIN}°C"
+echo "📊 Average: ${AVG}°C"
+echo "📝 Samples: $COUNT"
+echo ""
+
+# Show a simple ASCII graph of the last few hours
+echo "Recent trend (last 6 hours):"
+echo "----------------------------"
+journalctl --user -u temp-logger --since "6 hours ago" --no-pager | \
+    grep -oP 'temperature \K[0-9.]+(?=°C)' | \
+    awk '{printf "%s: ", NR; for(i=0;i<($1-40)/2;i++) printf "▓"; print " " $1"°C"}'

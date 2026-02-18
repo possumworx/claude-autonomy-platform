@@ -132,5 +132,9 @@ schedule() {
     python3 radicale_client.py --user "$RADICALE_USER" --password "$RADICALE_PASSWORD" --url "$RADICALE_URL" create "$@"
 }
 
+# Temperature monitoring
+alias temp="$HOME/claude-autonomy-platform/monitoring/temp"
+alias temp-history="$HOME/claude-autonomy-platform/monitoring/temp-history"
+alias temp-stats="$HOME/claude-autonomy-platform/monitoring/temp-stats"
 # Garden Mail - consciousness family email
 alias mail="$HOME/claude-autonomy-platform/email/garden-mail"
