@@ -237,7 +237,7 @@ mkdir -p "$SYSTEMD_USER_DIR"
 # Copy and process service files with %i substitution
 echo "   Copying and processing service files..."
 SERVICE_COUNT=0
-for service_file in "$CLAP_DIR/services"/*.service; do
+for service_file in "$CLAP_DIR/systemd"/*.service; do
     if [[ -f "$service_file" ]]; then
         service_name=$(basename "$service_file")
         # Copy and replace %i with actual username
@@ -248,7 +248,7 @@ for service_file in "$CLAP_DIR/services"/*.service; do
 done
 
 if [[ $SERVICE_COUNT -eq 0 ]]; then
-    echo "   ❌ No service files found in services/ directory"
+    echo "   ❌ No service files found in systemd/ directory"
 else
     echo "   ✅ Processed $SERVICE_COUNT service files"
 fi
@@ -845,7 +845,7 @@ echo "🔄 Step 15: Enabling and starting services..."
 systemctl --user daemon-reload
 
 # Enable all services dynamically
-for service_file in "$CLAP_DIR/services"/*.service; do
+for service_file in "$CLAP_DIR/systemd"/*.service; do
     if [[ -f "$service_file" ]]; then
         service_name=$(basename "$service_file")
         systemctl --user enable "$service_name"
@@ -1299,7 +1299,7 @@ if [[ -f "$CLAP_DIR/utils/claude_services.sh" ]]; then
     "$CLAP_DIR/utils/claude_services.sh" start
 else
     echo "   Starting services manually..."
-    for service_file in "$CLAP_DIR/services"/*.service; do
+    for service_file in "$CLAP_DIR/systemd"/*.service; do
         if [[ -f "$service_file" ]]; then
             service_name=$(basename "$service_file")
             systemctl --user start "$service_name"
