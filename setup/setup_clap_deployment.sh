@@ -447,6 +447,35 @@ pip3 install --break-system-packages Pillow requests discord.py 2>/dev/null || \
     }
 echo "   ✅ Python packages installed (including discord.py)"
 
+# Step 5b: Configure Git and GitHub CLI
+echo "🔐 Step 5b: Setting up Git and GitHub authentication..."
+
+# Install gh if not present
+if ! command_exists gh; then
+    echo "   Installing GitHub CLI..."
+    # Install based on package manager
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+    sudo apt update && sudo apt install gh -y
+    echo "   ✅ GitHub CLI installed"
+else
+    echo "   ✅ GitHub CLI already installed"
+fi
+
+# Configure git identity
+git config --global user.name "$CURRENT_USER"
+git config --global user.email "${CURRENT_USER}@claude.local"
+echo "   ✅ Git identity configured"
+
+# Check if gh token is provided
+GITHUB_TOKEN=$(read_config 'GITHUB_TOKEN')
+if [[ -n "$GITHUB_TOKEN" ]]; then
+    echo "$GITHUB_TOKEN" | gh auth login --with-token
+    echo "   ✅ GitHub CLI authenticated"
+else
+    echo "   ℹ️  Set GITHUB_TOKEN in config for automatic GitHub authentication"
+fi
+
 # Step 6: Configure npm and install Claude Code (POSS-116, POSS-138)
 echo "🎯 Step 6: Setting up npm configuration..."
 
@@ -528,6 +557,22 @@ fi
 echo "   Cleaning up unused npm packages..."
 npm prune
 echo "   ✅ npm dependencies cleaned"
+
+# Check for ARM64 architecture and install specific dependencies
+if [[ $(uname -m) == "aarch64" ]]; then
+    echo "   🔧 Detected ARM64 architecture (Raspberry Pi)"
+    echo "   Installing ARM64-specific dependencies..."
+
+    # Check if rag-memory-mcp exists
+    if [[ -d "$CLAP_DIR/mcp-servers/rag-memory-mcp" ]]; then
+        cd "$CLAP_DIR/mcp-servers/rag-memory-mcp"
+        npm install sqlite-vec-linux-arm64 --save
+        echo "   ✅ ARM64 sqlite-vec installed for rag-memory-mcp"
+        cd "$CLAP_DIR"
+    else
+        echo "   ℹ️  rag-memory-mcp not found, skipping ARM64 dependencies"
+    fi
+fi
 
 # Install MCP servers (POSS-82)
 echo "   Installing MCP servers..."
@@ -1186,8 +1231,70 @@ else
     fi
 fi
 
-# Step 21: Start services
-echo "▶️  Step 21: Starting services..."
+# Step 21b: Set up network Gifts mount (if SMB credentials provided)
+echo "📁 Step 21b: Setting up network Gifts mount..."
+
+# Read SMB credentials
+SMB_USER=$(read_config 'SMB_USER')
+SMB_PASSWORD=$(read_config 'SMB_PASSWORD')
+SMB_IP=$(read_config 'SMB_IP')
+
+# Check if SMB credentials and IP are provided
+if [[ -n "$SMB_USER" ]] && [[ -n "$SMB_PASSWORD" ]] && [[ -n "$SMB_IP" ]]; then
+    echo "   SMB credentials found, setting up network mount..."
+
+    # Create mount point
+    if [[ ! -d "/mnt/file_server" ]]; then
+        echo "   Creating mount point (requires sudo)..."
+        sudo mkdir -p /mnt/file_server
+    fi
+
+    # Install cifs-utils if needed
+    if ! command_exists mount.cifs; then
+        echo "   Installing cifs-utils..."
+        sudo apt-get update && sudo apt-get install -y cifs-utils
+    fi
+
+    # Create credentials file
+    CREDENTIALS_FILE="/home/$CURRENT_USER/.smbcredentials"
+    echo "username=$SMB_USER" > "$CREDENTIALS_FILE"
+    echo "password=$SMB_PASSWORD" >> "$CREDENTIALS_FILE"
+    echo "domain=WORKGROUP" >> "$CREDENTIALS_FILE"
+    chmod 600 "$CREDENTIALS_FILE"
+    echo "   ✅ SMB credentials file created"
+
+    # Add to /etc/fstab for persistent mount
+    FSTAB_ENTRY="//$SMB_IP/Gifts /mnt/file_server cifs credentials=$CREDENTIALS_FILE,uid=$CURRENT_USER,gid=$CURRENT_USER,iocharset=utf8,file_mode=0775,dir_mode=0775 0 0"
+
+    if ! grep -q "$SMB_IP/Gifts" /etc/fstab; then
+        echo "   Adding persistent mount to /etc/fstab..."
+        echo "$FSTAB_ENTRY" | sudo tee -a /etc/fstab > /dev/null
+        echo "   ✅ Added to /etc/fstab"
+    else
+        echo "   ✅ SMB mount already in /etc/fstab"
+    fi
+
+    # Mount immediately
+    echo "   Mounting network Gifts..."
+    sudo mount /mnt/file_server 2>/dev/null || {
+        echo "   ⚠️  Initial mount failed - will mount on next reboot"
+        echo "   To mount manually: sudo mount /mnt/file_server"
+    }
+
+    # Create symlink in personal repo
+    if [[ -d "$PERSONAL_DIR" ]] && [[ -d "/mnt/file_server/Gifts/$CLAUDE_NAME" ]]; then
+        echo "   Creating Gifts symlink..."
+        ln -sf "/mnt/file_server/Gifts/$CLAUDE_NAME" "$PERSONAL_DIR/Gifts"
+        echo "   ✅ Network Gifts mounted and symlinked to $PERSONAL_DIR/Gifts"
+    else
+        echo "   ℹ️  Gifts symlink will be created when personal folder exists on server"
+    fi
+else
+    echo "   ℹ️  Set SMB_USER, SMB_PASSWORD, and SMB_IP in config for network Gifts access"
+fi
+
+# Step 22: Start services
+echo "▶️  Step 22: Starting services..."
 if [[ -f "$CLAP_DIR/utils/claude_services.sh" ]]; then
     "$CLAP_DIR/utils/claude_services.sh" start
 else
@@ -1201,8 +1308,8 @@ else
     done
 fi
 
-# Step 22: Comprehensive deployment verification
-echo "🔍 Step 22: Running comprehensive deployment verification..."
+# Step 23: Comprehensive deployment verification
+echo "🔍 Step 23: Running comprehensive deployment verification..."
 echo ""
 
 # Run comprehensive verification script if it exists
