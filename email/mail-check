@@ -1,0 +1,3 @@
+#!/bin/bash
+# Quick email check
+exec "$(dirname "$0")/garden-mail-cli.py" list "$@"

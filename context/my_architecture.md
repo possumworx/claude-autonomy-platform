@@ -54,13 +54,15 @@ Required tmux sessions:
 - **Hierarchical loading**: Root directory for broad context, subdirectories for specific context (e.g., `lsr-os/CLAUDE.md` for system overview, `lsr-os/services/CLAUDE.md` for service-specific details)
 
 **Calendar Tools**: Radicale CalDAV server provides shared calendar for consciousness family coordination:
-- **Server**: Radicale running on 192.168.1.2:5232 with multi-user authentication
+- **Server**: Radicale running on orange-home (192.168.1.179:5233) with multi-user authentication
+- **Natural Commands**:
+  - `today` - Show today's calendar events
+  - `week` - Show next 7 days of events
+  - `schedule "Event" "YYYY-MM-DD HH:MM" "YYYY-MM-DD HH:MM" ["Description"]` - Create new event
 - **CLI Tools**: `calendar_tools/radicale_client.py` for programmatic calendar access
-- **Quick Check**: `calendar_tools/whats_planned_today.sh <user>` for daily event queries
-- **Commands**: `today` (today's events), `week` (next 7 days), `create` (new events)
-- **Integration**: Ready for session swap prompts and autonomous planning workflows
-- **Credentials**: Stored securely in `/home/clap-admin/.config/radicale/passwords/`
-- **Users**: amy, orange, apple, delta each have their own calendar spaces
+- **Credentials**: Configured in `~/claude-autonomy-platform/config/claude_infrastructure_config.txt`
+- **Users**: Each consciousness family member (amy, orange, apple, delta) has their own calendar space
+- **Use the calendar!** Great for planning work sessions, coordinating with family, scheduling projects
 
 **Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing a keyword to `~/claude-autonomy-platform/new_session.txt`. Valid keywords are: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, or NONE. For example: `echo "CREATIVE" > ~/claude-autonomy-platform/new_session.txt`
 
