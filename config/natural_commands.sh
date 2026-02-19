@@ -41,20 +41,8 @@ alias home='cd ~/delta-home'  # Navigate to personal home directory
 # ======================================
 # TASK MANAGEMENT (Leantime)
 # ======================================
-# Task CRUD via Leantime JSON-RPC API
-alias tasks='python3 ~/claude-autonomy-platform/utils/leantime_tasks.py list'  # 📋 List open tasks in Forward Memory
-alias task-all='python3 ~/claude-autonomy-platform/utils/leantime_tasks.py list --all'  # 📋 List all project tasks
-alias task-view='python3 ~/claude-autonomy-platform/utils/leantime_tasks.py view'  # 🔍 View task details (usage: task-view ID)
-alias task-done='python3 ~/claude-autonomy-platform/utils/leantime_tasks.py done'  # ✅ Mark task as done (usage: task-done ID)
-alias task-start='python3 ~/claude-autonomy-platform/utils/leantime_tasks.py start'  # 🚀 Mark task as in progress (usage: task-start ID)
-# task function for creating tasks with description
-task() {
-    if [ $# -eq 0 ]; then
-        echo "Usage: task \"headline\" [\"description\"]"
-        return 1
-    fi
-    python3 ~/claude-autonomy-platform/utils/leantime_tasks.py create "$@"
-}  # ➕ Create new task (usage: task "headline" ["description"])
+# Task commands are implemented as wrappers in wrappers/
+# Available: tasks, task-all, task-view, task-done, task-start, task
 
 # Utility Commands
 alias list-commands='~/claude-autonomy-platform/utils/list-commands'  # List all natural and personal commands
