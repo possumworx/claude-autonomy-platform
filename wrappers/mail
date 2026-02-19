@@ -1,0 +1,3 @@
+#!/bin/bash
+# Read and send garden mail
+~/claude-autonomy-platform/email/garden-mail "$@"
