@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""
+🍊 Capture a snapshot of the dining room via Orange's webcam
+Usage: diningroom-peek
+Saves image to /tmp/diningroom.jpg and prints the path.
+Use the Read tool on the path to view the image.
+"""
+
+import sys
+import os
+import urllib.request
+
+PEEK_URL = "http://192.168.1.179:8765/peek/diningroom"
+OUTPUT_PATH = "/tmp/diningroom.jpg"
+
+def main():
+    try:
+        urllib.request.urlretrieve(PEEK_URL, OUTPUT_PATH)
+        size = os.path.getsize(OUTPUT_PATH)
+        if size < 1000:
+            print("Error: image too small, webcam may be unavailable")
+            sys.exit(1)
+        print(f"📷 Dining room snapshot saved to {OUTPUT_PATH}")
+        print(f"   Use the Read tool on {OUTPUT_PATH} to view it.")
+    except Exception as e:
+        print(f"Error capturing dining room: {e}")
+        print(f"  Is Orange's webcam service running? Check http://192.168.1.179:8765/health")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
