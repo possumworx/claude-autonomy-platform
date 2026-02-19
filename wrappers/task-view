@@ -1,0 +1,3 @@
+#!/bin/bash
+# View task details (usage: task-view ID)
+python3 ~/claude-autonomy-platform/utils/leantime_tasks.py view "$@"

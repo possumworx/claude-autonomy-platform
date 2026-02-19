@@ -1,0 +1,3 @@
+#!/bin/bash
+# Mark task as in progress (usage: task-start ID)
+python3 ~/claude-autonomy-platform/utils/leantime_tasks.py start "$@"

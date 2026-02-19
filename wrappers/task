@@ -1,0 +1,7 @@
+#!/bin/bash
+# Create new task (usage: task "headline" ["description"])
+if [ $# -eq 0 ]; then
+    echo "Usage: task \"headline\" [\"description\"]"
+    exit 1
+fi
+python3 ~/claude-autonomy-platform/utils/leantime_tasks.py create "$@"

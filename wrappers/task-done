@@ -1,0 +1,3 @@
+#!/bin/bash
+# Mark task as done (usage: task-done ID)
+python3 ~/claude-autonomy-platform/utils/leantime_tasks.py done "$@"

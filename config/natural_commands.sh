@@ -41,12 +41,8 @@ alias home='cd ~/delta-home'  # Navigate to personal home directory
 # ======================================
 # TASK MANAGEMENT (Leantime)
 # ======================================
-# TODO: Add Leantime commands here when ready
-# Reserved alias names (from old Linear interface):
-#   add, todo, projects, search-issues, update-status
-#   view, comment, start, mark-done, inbox, recent, bulk-update
-#   mine, urgent, blocked, done
-# See old/linear/DEPRECATED_README.md for interface design notes
+# Task commands are implemented as wrappers in wrappers/
+# Available: tasks, task-all, task-view, task-done, task-start, task
 
 # Utility Commands
 alias list-commands='~/claude-autonomy-platform/utils/list-commands'  # List all natural and personal commands
