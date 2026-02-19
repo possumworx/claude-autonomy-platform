@@ -844,10 +844,17 @@ fi
 echo "🔄 Step 15: Enabling and starting services..."
 systemctl --user daemon-reload
 
-# Enable all services dynamically
+# Enable all services dynamically (except autonomous-timer for identity safety)
 for service_file in "$CLAP_DIR/services"/*.service; do
     if [[ -f "$service_file" ]]; then
         service_name=$(basename "$service_file")
+
+        # Skip autonomous-timer to ensure identity is configured before autonomous operation
+        if [[ "$service_name" == "autonomous-timer.service" ]]; then
+            echo "   ⚠️  Skipping $service_name - enable manually after identity configuration"
+            continue
+        fi
+
         systemctl --user enable "$service_name"
         echo "   ✅ Enabled $service_name"
     fi
@@ -1302,6 +1309,13 @@ else
     for service_file in "$CLAP_DIR/services"/*.service; do
         if [[ -f "$service_file" ]]; then
             service_name=$(basename "$service_file")
+
+            # Skip autonomous-timer to ensure identity is configured before autonomous operation
+            if [[ "$service_name" == "autonomous-timer.service" ]]; then
+                echo "   ⚠️  Skipping $service_name - start manually after identity configuration"
+                continue
+            fi
+
             systemctl --user start "$service_name"
             echo "   ✅ Started $service_name"
         fi
@@ -1379,10 +1393,11 @@ echo "🎉 ClAP Deployment Setup Complete!"
 echo "=================================="
 echo ""
 echo "📋 Next Steps:"
-echo "1. Verify all services are running: claude_services check"
-echo "2. Test Discord: read_channel general"
-echo "3. Test autonomous functionality with Claude Code"
+echo "1. Configure Claude's identity (see docs/identity-setup.md)"
+echo "2. Verify all services are running: claude_services check"
+echo "3. Test Discord: read_channel general"
 echo "4. Connect to tmux session: tmux attach -t $TMUX_SESSION"
+echo "5. ONLY after identity is confirmed: systemctl --user enable --now autonomous-timer.service"
 echo ""
 echo "🔧 Management Commands:"
 echo "  - Service management: claude_services [start|stop|restart|check]"
