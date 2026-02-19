@@ -1,0 +1,3 @@
+#!/bin/bash
+# Check current temperature
+~/claude-autonomy-platform/monitoring/temp "$@"

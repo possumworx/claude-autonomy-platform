@@ -1,0 +1,3 @@
+#!/bin/bash
+# Show temperature history
+~/claude-autonomy-platform/monitoring/temp-history "$@"

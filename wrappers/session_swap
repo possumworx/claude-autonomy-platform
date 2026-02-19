@@ -1,0 +1,4 @@
+#!/bin/bash
+# Trigger a session swap with optional keyword
+# Usage: session_swap [AUTONOMY|BUSINESS|CREATIVE|HEDGEHOGS|NONE]
+echo "${1:-NONE}" > ~/claude-autonomy-platform/new_session.txt
