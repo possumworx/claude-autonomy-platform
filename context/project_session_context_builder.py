@@ -100,20 +100,20 @@ def build_claude_md():
             with open(personal_interests_file, 'r', encoding='utf-8') as f:
                 personal_interests_content = f"\n\n{f.read()}\n"
         
-        # Parse natural commands content (if exists)
+        # Parse available commands from wrappers directory
         natural_commands_content = ""
-        natural_commands_file = autonomy_dir.parent / "config" / "natural_commands.sh"
-        if natural_commands_file.exists():
+        wrappers_dir = autonomy_dir.parent / "wrappers"
+        if wrappers_dir.exists():
             import subprocess
             try:
-                # Run the parser script to get formatted commands
+                # Run the parser script to get formatted commands from wrappers/
                 parser_script = autonomy_dir.parent / "utils" / "parse_natural_commands.sh"
                 if parser_script.exists():
                     result = subprocess.run([str(parser_script)], capture_output=True, text=True)
                     if result.returncode == 0:
                         natural_commands_content = f"\n\n{result.stdout}\n"
             except Exception as e:
-                print(f"Warning: Could not parse natural commands - {e}")
+                print(f"Warning: Could not parse commands from wrappers - {e}")
         
         # Parse personal commands content (if exists)
         personal_commands_content = ""

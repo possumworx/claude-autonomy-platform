@@ -1,17 +1,20 @@
 #!/bin/bash
-# Parse natural commands for inclusion in session context
+# Parse available commands from wrappers directory for session context
+# Reads the comment on line 2 of each wrapper script as the description
+
+WRAPPERS_DIR="$HOME/claude-autonomy-platform/wrappers"
 
 echo "## Available Natural Commands"
 echo ""
-grep "^alias" ~/claude-autonomy-platform/config/natural_commands.sh | while IFS= read -r line; do
-    # Extract alias name and command
-    alias_name=$(echo "$line" | sed 's/alias \([^=]*\)=.*/\1/')
-    command=$(echo "$line" | sed 's/alias [^=]*=\(.*\)/\1/' | sed 's/  *#.*//')
-    comment=$(echo "$line" | grep -o '#.*' | sed 's/^# *//')
-    
-    if [ -n "$comment" ]; then
-        echo "- **$alias_name**: $comment"
+
+for wrapper in "$WRAPPERS_DIR"/*; do
+    [ -f "$wrapper" ] || continue
+    name=$(basename "$wrapper")
+    # Extract description from line 2 comment (# Description text)
+    description=$(sed -n '2s/^# *//p' "$wrapper" 2>/dev/null)
+    if [ -n "$description" ]; then
+        echo "- **$name**: $description"
     else
-        echo "- **$alias_name**: $command"
+        echo "- **$name**"
     fi
 done
