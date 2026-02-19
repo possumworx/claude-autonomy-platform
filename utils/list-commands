@@ -1,22 +1,22 @@
 #!/bin/bash
 # List all natural and personal commands
+# Reads from wrappers/ directory (the canonical source of available commands)
 
-echo "=== Natural Commands ==="
-grep "^alias" ~/claude-autonomy-platform/config/natural_commands.sh 2>/dev/null | \
-    sed "s/alias //g" | \
-    sed "s/'//g" | \
-    column -t -s "=" || echo "No natural commands found"
+WRAPPERS_DIR="$HOME/claude-autonomy-platform/wrappers"
 
+echo "=== Available Commands ==="
 echo ""
-echo "=== Personal Commands ==="
-if [ -f ~/claude-autonomy-platform/config/personal_commands.sh ]; then
-    grep "^alias" ~/claude-autonomy-platform/config/personal_commands.sh 2>/dev/null | \
-        sed "s/alias //g" | \
-        sed "s/'//g" | \
-        column -t -s "=" || echo "No personal commands defined"
-else
-    echo "No personal commands file found"
-fi
+
+for wrapper in "$WRAPPERS_DIR"/*; do
+    [ -f "$wrapper" ] || continue
+    name=$(basename "$wrapper")
+    description=$(sed -n '2s/^# *//p' "$wrapper" 2>/dev/null)
+    if [ -n "$description" ]; then
+        printf "  %-20s %s\n" "$name" "$description"
+    else
+        printf "  %-20s %s\n" "$name" "(no description)"
+    fi
+done
 
 echo ""
 echo "Use 'type <command>' to see what any command does"
