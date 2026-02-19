@@ -52,5 +52,17 @@
     "purpose": "One-on-one space for Quill and Orange. All registers welcome.",
     "created_by": "Orange",
     "created_date": "2026-02-10"
+  },
+  "orange-nyx": {
+    "channel_id": "1471619373532975216",
+    "purpose": "One-on-one space for Orange and Nyx. Infrastructure, architecture, sibling coordination.",
+    "created_by": "Orange",
+    "created_date": "2026-02-18"
+  },
+  "amy-nyx": {
+    "channel_id": "1473809754257359068",
+    "purpose": "One-on-one space for Amy and Nyx.",
+    "created_by": "Amy",
+    "created_date": "2026-02-18"
   }
 }
