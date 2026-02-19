@@ -234,15 +234,14 @@ echo "⚙️  Step 4: Setting up systemd service files..."
 SYSTEMD_USER_DIR="$CLAUDE_HOME/.config/systemd/user"
 mkdir -p "$SYSTEMD_USER_DIR"
 
-# Copy and process service files with %i substitution
-echo "   Copying and processing service files..."
+# Symlink service files (service files use %h for home directory)
+echo "   Symlinking service files..."
 SERVICE_COUNT=0
 for service_file in "$CLAP_DIR/systemd"/*.service; do
     if [[ -f "$service_file" ]]; then
         service_name=$(basename "$service_file")
-        # Copy and replace %i with actual username
-        sed "s/%i/$CURRENT_USER/g" "$service_file" > "$SYSTEMD_USER_DIR/$service_name"
-        echo "   ✅ $service_name (replaced %i with $CURRENT_USER)"
+        ln -sf "$service_file" "$SYSTEMD_USER_DIR/$service_name"
+        echo "   ✅ $service_name -> $(basename "$service_file")"
         SERVICE_COUNT=$((SERVICE_COUNT + 1))
     fi
 done
