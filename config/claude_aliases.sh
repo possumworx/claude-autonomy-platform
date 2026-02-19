@@ -45,11 +45,7 @@ alias oops='cd ~/claude-autonomy-platform && git reset --hard && git clean -fd &
 # Utility commands
 alias list-commands='~/claude-autonomy-platform/utils/list-commands'
 
-# Thought preservation
-alias ponder='~/claude-autonomy-platform/utils/ponder'
-alias spark='~/claude-autonomy-platform/utils/spark'
-alias wonder='~/claude-autonomy-platform/utils/wonder'
-alias care='~/claude-autonomy-platform/utils/care'
+# Thought preservation — handled by wrappers/ (natural_commands/ versions)
 
 # Export functions for session management
 swap() {
