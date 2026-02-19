@@ -523,8 +523,8 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 
 - `session_swap_monitor.py` running as `session-swap-monitor.service` checks `new_session.txt` for changes, which trigger a new session
 - Claude writes to `new_session.txt` with a context hat keyword or NONE. `swap KEYWORD` also writes here automatically.
-- Session swap monitor service calls `session_swap.sh` which triggers a git commit and push of the personal repo, calls `project_session_builder.py`, runs `carry_over_todos.py` to preserve active todos, resets `new_session.txt` to FALSE, uses tmux send keys to terminate the current claude code session and begin a new one
-- **Todo Carry-Over**: `carry_over_todos.py` reads active todos from the current session and writes them to the new session context, maintaining continuity of work across session boundaries (forwards memory solution)
+- Session swap monitor service calls `session_swap.sh` which exports the transcript, calls `project_session_context_builder.py`, runs `carry_over_tasks.py` to preserve active tasks, resets `new_session.txt` to FALSE, uses tmux send keys to terminate the current claude code session and begin a new one
+- **Task Carry-Over**: `carry_over_tasks.py` reads active tasks from the current session and writes them to the new session context, maintaining continuity of work across session boundaries (forwards memory solution)
 
 
 ### 5. Service Architecture
