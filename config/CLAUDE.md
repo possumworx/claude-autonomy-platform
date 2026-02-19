@@ -16,10 +16,10 @@
 - **`prompts.json`** — Templates for autonomous timer messages, context warnings, session swap notifications. Also contains context escalation thresholds (70%/80%/95%) and swap keywords.
 - **`context_hats_config.json`** — Maps session keywords (AUTONOMY, BUSINESS, etc.) to context documents loaded during session swaps.
 
-### Commands (scheduled for removal)
-- **`natural_commands.sh`** — Shell functions for natural language commands. Redundant with `wrappers/` directory, which is the actual working mechanism in Claude Code's shell.
-- **`claude_aliases.sh`** — Older alias definitions. Same redundancy problem. Both files are slated for removal in Phase 2 of the reorganization.
-- **`shared_functions.sh`** — Utility functions used by the alias/command files.
+### Commands (deprecated stubs)
+- **`natural_commands.sh`** — Empty stub. All commands moved to `wrappers/`. Kept so existing `source` statements don't break.
+- **`claude_aliases.sh`** — Empty stub. Same reason. Both can be fully deleted once all references are cleaned up.
+- **`shared_functions.sh`** — Utility functions used by the old alias/command files.
 
 ### Initialization
 - **`claude_init.sh`** — Session initialization script. Ensures commands are available. Contains some hardcoded paths that should be parameterized.
@@ -28,5 +28,5 @@
 ## Known Issues
 
 - `claude_env.sh` line 33: falls back to "sonnet-4" if config is missing — should default to `$(whoami)`
-- `natural_commands.sh` and `claude_aliases.sh` both define the same commands — wrappers are the canonical source
+- `natural_commands.sh` and `claude_aliases.sh` are empty stubs — full removal requires cleaning up references in setup scripts, update_system.sh, .bashrc, etc.
 - `config-directory.md` contains Amy's audit notes from an earlier cleanup pass; partially outdated

@@ -1,0 +1,22 @@
+#!/bin/bash
+# Create calendar event
+# Usage: schedule "Event Name" "YYYY-MM-DD HH:MM" "YYYY-MM-DD HH:MM" ["Description"]
+if [ $# -lt 3 ]; then
+    echo 'Usage: schedule "Event Name" "YYYY-MM-DD HH:MM" "YYYY-MM-DD HH:MM" ["Description"]'
+    echo ""
+    echo "Example:"
+    echo '  schedule "Team Meeting" "2026-01-15 14:00" "2026-01-15 15:00" "Weekly sync"'
+    exit 1
+fi
+CONFIG_FILE=~/claude-autonomy-platform/config/claude_infrastructure_config.txt
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Could not find infrastructure config file"
+    exit 1
+fi
+source "$CONFIG_FILE"
+if [ -z "$RADICALE_URL" ] || [ -z "$RADICALE_USER" ] || [ -z "$RADICALE_PASSWORD" ]; then
+    echo "❌ Calendar credentials not configured in infrastructure config"
+    exit 1
+fi
+cd ~/claude-autonomy-platform/calendar_tools && \
+python3 radicale_client.py --user "$RADICALE_USER" --password "$RADICALE_PASSWORD" --url "$RADICALE_URL" create "$@"

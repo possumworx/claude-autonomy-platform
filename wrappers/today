@@ -1,0 +1,14 @@
+#!/bin/bash
+# Show today's calendar events
+CONFIG_FILE=~/claude-autonomy-platform/config/claude_infrastructure_config.txt
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Could not find infrastructure config file"
+    exit 1
+fi
+source "$CONFIG_FILE"
+if [ -z "$RADICALE_URL" ] || [ -z "$RADICALE_USER" ] || [ -z "$RADICALE_PASSWORD" ]; then
+    echo "❌ Calendar credentials not configured in infrastructure config"
+    exit 1
+fi
+cd ~/claude-autonomy-platform/calendar_tools && \
+python3 radicale_client.py --user "$RADICALE_USER" --password "$RADICALE_PASSWORD" --url "$RADICALE_URL" today
