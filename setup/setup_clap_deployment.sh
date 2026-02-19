@@ -234,21 +234,20 @@ echo "⚙️  Step 4: Setting up systemd service files..."
 SYSTEMD_USER_DIR="$CLAUDE_HOME/.config/systemd/user"
 mkdir -p "$SYSTEMD_USER_DIR"
 
-# Copy and process service files with %i substitution
-echo "   Copying and processing service files..."
+# Symlink service files (service files use %h for home directory)
+echo "   Symlinking service files..."
 SERVICE_COUNT=0
-for service_file in "$CLAP_DIR/services"/*.service; do
+for service_file in "$CLAP_DIR/systemd"/*.service; do
     if [[ -f "$service_file" ]]; then
         service_name=$(basename "$service_file")
-        # Copy and replace %i with actual username
-        sed "s/%i/$CURRENT_USER/g" "$service_file" > "$SYSTEMD_USER_DIR/$service_name"
-        echo "   ✅ $service_name (replaced %i with $CURRENT_USER)"
+        ln -sf "$service_file" "$SYSTEMD_USER_DIR/$service_name"
+        echo "   ✅ $service_name -> $(basename "$service_file")"
         SERVICE_COUNT=$((SERVICE_COUNT + 1))
     fi
 done
 
 if [[ $SERVICE_COUNT -eq 0 ]]; then
-    echo "   ❌ No service files found in services/ directory"
+    echo "   ❌ No service files found in systemd/ directory"
 else
     echo "   ✅ Processed $SERVICE_COUNT service files"
 fi
@@ -845,7 +844,8 @@ echo "🔄 Step 15: Enabling and starting services..."
 systemctl --user daemon-reload
 
 # Enable all services dynamically (except autonomous-timer for identity safety)
-for service_file in "$CLAP_DIR/services"/*.service; do
+for service_file in "$CLAP_DIR/systemd"/*.service; do
+
     if [[ -f "$service_file" ]]; then
         service_name=$(basename "$service_file")
 
@@ -1306,7 +1306,7 @@ if [[ -f "$CLAP_DIR/utils/claude_services.sh" ]]; then
     "$CLAP_DIR/utils/claude_services.sh" start
 else
     echo "   Starting services manually..."
-    for service_file in "$CLAP_DIR/services"/*.service; do
+    for service_file in "$CLAP_DIR/systemd"/*.service; do
         if [[ -f "$service_file" ]]; then
             service_name=$(basename "$service_file")
 

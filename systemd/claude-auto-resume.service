@@ -1,0 +1,19 @@
+[Unit]
+Description=Claude Auto-Resume after System Reboot
+After=network.target default.target
+Documentation=file://%h/claude-autonomy-platform/docs/AUTO_RESUME.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/claude-autonomy-platform
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONPATH=%h/claude-autonomy-platform
+EnvironmentFile=-%h/claude-autonomy-platform/config/claude_infrastructure_config.txt
+EnvironmentFile=-%h/claude-autonomy-platform/config/claude.env
+ExecStart=%h/claude-autonomy-platform/core/claude_auto_resume.sh
+StandardOutput=journal
+StandardError=journal
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
