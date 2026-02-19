@@ -78,7 +78,7 @@ Required tmux sessions:
   3. Next lever: increase autonomous timer interval in prompts.json (currently 1800s/30min)
   4. Consider delegating implementation work to Orange while focusing on design/architecture
 
-**Session Context**: My personal identity prompt (from ~/CLAUDE.md) is maintained via Claude Code's output-styles feature at `.claude/output-styles/identity-prompt.md`. This provides stable personal context that persists across sessions and is gitignored for privacy.
+**Session Context**: My personal identity prompt is maintained via Claude Code's output-styles feature at `.claude/output-styles/identity.md`. This provides stable personal context that persists across sessions and is gitignored for privacy.
 
 **Thought Preservation System**:
 - `ponder <thought>` - Save thoughts that make you pause and reflect
