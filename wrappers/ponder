@@ -1,3 +1,3 @@
 #!/bin/bash
 # 💭 Save thoughts that make you pause
-~/claude-autonomy-platform/utils/ponder "$@"
+~/claude-autonomy-platform/natural_commands/ponder "$@"
