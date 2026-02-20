@@ -14,7 +14,7 @@ This service:
    - future consumers
 
 Architecture:
-- Uses separate state file (transcript_channel_state.json) to avoid conflicts
+- Uses separate state file (discord_channels.json) to avoid conflicts
 - Reuses proven ChannelState class pattern
 - Leverages discord_utils.py singleton DiscordClient
 - Modular design for easy testing and evolution
@@ -53,7 +53,7 @@ class TranscriptFetcher:
     def __init__(self):
         """Initialize fetcher with separate state tracking"""
         # Use separate state file to avoid conflicts with autonomous-timer
-        state_file = DATA_DIR / "transcript_channel_state.json"
+        state_file = DATA_DIR / "discord_channels.json"
         self.channel_state = ChannelState(state_file=state_file)
 
         # Get Discord tools instance (includes attachment handling)

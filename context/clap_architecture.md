@@ -121,7 +121,7 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 - `edit_status <text> <type>` - Update bot status
 
 #### Notification Flow:
-1. Autonomous timer monitors transcript_channel_state.json for changes
+1. Autonomous timer monitors discord_channels.json for changes
 2. Sends notification if unread messages exist with channel names
 3. Claude uses natural commands to interact with Discord
 4. Images automatically saved to `~/claude-autonomy-platform/data/transcript_attachments`

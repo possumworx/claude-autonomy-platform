@@ -10,7 +10,7 @@
 
 ### Discord
 - **`channel_purposes.json`** — Human-readable metadata for Discord channels (purpose, creator, creation date). Used by `read_messages` to display channel context. Committed to git.
-- Actual channel IDs and read state live in `data/transcript_channel_state.json` (not here).
+- Actual channel IDs and read state live in `data/discord_channels.json` (not here).
 
 ### Prompts & Behavior
 - **`prompts.json`** — Templates for autonomous timer messages, context warnings, session swap notifications. Also contains context escalation thresholds (70%/80%/95%) and swap keywords.

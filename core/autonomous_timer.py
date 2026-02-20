@@ -1197,7 +1197,7 @@ def get_latest_message_info(channel_id):
 
 
 def update_discord_channels():
-    """Check all Discord channels and update transcript_channel_state.json"""
+    """Check all Discord channels and update discord_channels.json"""
     # Import ChannelState here to avoid circular imports
     sys.path.append(str(AUTONOMY_DIR / "discord"))
     from channel_state import ChannelState
@@ -1237,9 +1237,9 @@ def update_discord_channels():
 
 
 def get_discord_notification_status():
-    """Check Discord notification state from transcript_channel_state.json (transcript-based format)"""
+    """Check Discord notification state from discord_channels.json (transcript-based format)"""
     try:
-        notification_state_file = DATA_DIR / "transcript_channel_state.json"
+        notification_state_file = DATA_DIR / "discord_channels.json"
         if not notification_state_file.exists():
             return 0, None, []
 

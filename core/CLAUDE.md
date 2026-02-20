@@ -32,7 +32,7 @@ These services depend heavily on:
 - `config/claude_infrastructure_config.txt` — token, model, user config
 - `config/prompts.json` — prompt templates and thresholds
 - `utils/infrastructure_config_reader.py` — config parsing
-- `data/transcript_channel_state.json` — channel tracking for notifications
+- `data/discord_channels.json` — channel tracking for notifications
 - `utils/session_swap.sh` — the actual swap mechanism (called by monitor)
 
 ## Key Design Decisions

@@ -158,7 +158,7 @@ fi
 if restore_if_exists "$BACKUP_DIR/data/transcript_attachments" "data/transcript_attachments"; then
     RESTORED_COUNT=$((RESTORED_COUNT + 1))
 fi
-if restore_if_exists "$BACKUP_DIR/data/transcript_channel_state.json" "data/transcript_channel_state.json"; then
+if restore_if_exists "$BACKUP_DIR/data/discord_channels.json" "data/discord_channels.json"; then
     RESTORED_COUNT=$((RESTORED_COUNT + 1))
 fi
 echo ""

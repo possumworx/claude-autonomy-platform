@@ -6,7 +6,7 @@ A unified tools library (`discord_tools.py`) powers simple CLI wrappers for all 
 
 ## Core Modules
 
-- **`discord_tools.py`** — Main library. `DiscordTools` class handles all API operations: sending/reading messages, file uploads, reactions, image downloads. Auto-resolves channel names to IDs via `data/transcript_channel_state.json`.
+- **`discord_tools.py`** — Main library. `DiscordTools` class handles all API operations: sending/reading messages, file uploads, reactions, image downloads. Auto-resolves channel names to IDs via `data/discord_channels.json`.
 - **`discord_utils.py`** — Lightweight singleton client for services that need minimal dependencies. Works with channel IDs directly.
 - **`channel_state.py`** — Thread-safe state management for channel tracking (IDs, read position). Handles concurrent access with reload-merge on save.
 - **`discord_transcript_fetcher.py`** — Background service (30s polling). Builds local JSON Lines transcripts at `data/transcripts/{channel}.jsonl`. Downloads images automatically.
@@ -49,7 +49,7 @@ Discord API → discord_tools.py → transcript_fetcher.py → data/transcripts/
 ## Configuration
 
 - **Token**: Loaded from `config/claude_infrastructure_config.txt` via `infrastructure_config_reader.py`
-- **Channel state**: `data/transcript_channel_state.json` — name-to-ID mapping, read positions
+- **Channel state**: `data/discord_channels.json` — name-to-ID mapping, read positions
 - **Channel purposes**: `config/channel_purposes.json` — display metadata
 - **Bot status queue**: `data/bot_status_request.json` — consumed by `claude_status_bot.py`
 - **Muted channels**: `data/muted_channels.json` — temporary mutes with expiry timestamps
