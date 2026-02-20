@@ -29,11 +29,11 @@ read_config() {
 CLAUDE_USER=$(read_config "LINUX_USER")
 PERSONAL_REPO=$(read_config "PERSONAL_REPO")
 
-# Set paths using config values
-export CLAUDE_USER=${CLAUDE_USER:-sonnet-4}
+# Set paths using config values (fall back to current user if config unreadable)
+export CLAUDE_USER=${CLAUDE_USER:-$(whoami)}
 export CLAUDE_HOME=${CLAUDE_HOME:-$(eval echo ~$CLAUDE_USER)}
 export AUTONOMY_DIR=${AUTONOMY_DIR:-$CLAUDE_HOME/claude-autonomy-platform}
-export PERSONAL_DIR=${PERSONAL_DIR:-$CLAUDE_HOME/$PERSONAL_REPO}
+export PERSONAL_DIR=${PERSONAL_DIR:-$CLAUDE_HOME/${PERSONAL_REPO:-${CLAUDE_USER}-home}}
 export CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR:-$CLAUDE_HOME/.config/Claude}
 # Get the ClAP directory (parent of config directory)
 # This works regardless of where the script is sourced from
