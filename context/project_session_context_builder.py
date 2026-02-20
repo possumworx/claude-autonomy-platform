@@ -127,7 +127,7 @@ def build_claude_md():
 
         # Get available Discord channels
         discord_channels_content = ""
-        channel_state_file = autonomy_dir.parent / "data" / "transcript_channel_state.json"
+        channel_state_file = autonomy_dir.parent / "data" / "discord_channels.json"
         if channel_state_file.exists():
             try:
                 with open(channel_state_file, 'r', encoding='utf-8') as f:

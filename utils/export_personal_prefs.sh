@@ -122,8 +122,8 @@ fi
 if copy_if_exists "data/transcript_attachments" "$EXPORT_DIR/data"; then
     echo "  data/transcript_attachments/" >> "$MANIFEST"
 fi
-if copy_if_exists "data/transcript_channel_state.json" "$EXPORT_DIR/data"; then
-    echo "  data/transcript_channel_state.json" >> "$MANIFEST"
+if copy_if_exists "data/discord_channels.json" "$EXPORT_DIR/data"; then
+    echo "  data/discord_channels.json" >> "$MANIFEST"
 fi
 echo ""
 

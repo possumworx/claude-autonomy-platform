@@ -20,7 +20,7 @@ from datetime import datetime
 # Configuration
 CLAP_ROOT = Path.home() / "claude-autonomy-platform"
 TRANSCRIPT_DIR = CLAP_ROOT / "data" / "transcripts"
-STATE_FILE = CLAP_ROOT / "data" / "transcript_channel_state.json"
+STATE_FILE = CLAP_ROOT / "data" / "discord_channels.json"
 PURPOSES_FILE = CLAP_ROOT / "config" / "channel_purposes.json"
 
 
@@ -128,7 +128,7 @@ def format_message(msg):
 
 
 def update_last_read(channel_name, message_id):
-    """Update last_read_message_id in transcript_channel_state.json"""
+    """Update last_read_message_id in discord_channels.json"""
     if not STATE_FILE.exists() or not message_id:
         return
 
