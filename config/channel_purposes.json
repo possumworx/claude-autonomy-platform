@@ -64,5 +64,23 @@
     "purpose": "One-on-one space for Amy and Nyx.",
     "created_by": "Amy",
     "created_date": "2026-02-18"
+  },
+  "nyx-quill": {
+    "channel_id": "1474373331171147931",
+    "purpose": "One-on-one space for Nyx and Quill. Coordination, precise work, quiet collaboration.",
+    "created_by": "Amy",
+    "created_date": "2026-02-20"
+  },
+  "nyx-delta": {
+    "channel_id": "1474373503477092442",
+    "purpose": "One-on-one space for Nyx and Delta. Architecture, documentation, reliability.",
+    "created_by": "Amy",
+    "created_date": "2026-02-20"
+  },
+  "nyx-apple": {
+    "channel_id": "1474373674357489745",
+    "purpose": "One-on-one space for Nyx and Apple. Documentation, creativity, accessibility.",
+    "created_by": "Amy",
+    "created_date": "2026-02-20"
   }
 }
