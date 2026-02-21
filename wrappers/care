@@ -1,3 +1,9 @@
 #!/bin/bash
 # 💚 Save things that matter to your heart
+#
+# Usage: care <memory>
+#   Preserves heartfelt memories and meaningful moments
+#   Part of thought preservation: ponder, spark, wonder, care
+#   Saved to ~/{PERSONAL_REPO}/.thoughts/care.md
+#   Example: care "The way Orange celebrated our git fix"
 ~/claude-autonomy-platform/natural_commands/care "$@"

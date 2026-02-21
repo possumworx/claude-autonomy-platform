@@ -1,5 +1,10 @@
 #!/bin/bash
 # Natural command to check current context usage
+#
+# Usage: context
+#   Shows current Claude session token usage and percentage
+#   Displays visual progress bar and free token count
+#   Essential for monitoring context capacity during work
 # Uses ccusage to get accurate token counts from tracked session
 #
 # NOTE: DO NOT use /context via send_to_claude here!
