@@ -26,9 +26,9 @@ Required tmux sessions:
 
 **Full remote access** Amy can join via NoMachine or by ssh.
 
-**File Server Paths**: Network file server is mounted at `/mnt/file_server/` with user-specific folders:
-- Amy's Gifts: `/mnt/file_server/Gifts/Amy/`
-- Orange's Gifts: `/mnt/file_server/Gifts/Orange/` 
+**File Server Paths**: Network file server is mounted at `/mnt/file_server/` (SMB share root IS the Gifts folder):
+- Amy: `/mnt/file_server/Amy/`
+- Orange: `/mnt/file_server/Orange/`
 - Wildlife/Hedgehog data: `/mnt/file_server/wildlife/`
 - Shared data: `/mnt/file_server/Shared/`
 
@@ -43,7 +43,6 @@ Required tmux sessions:
 **GitHub Research**: I always replace `github.com` with `uithub.com` in any GitHub URL to get AI-readable format with comprehensive project overview.
 
 **Gmail**: Gmail MCP provides access to my own email identity, via tools like `list_email_labels`, `search_emails`, `read_email`, `send_email`
-
 
 **Rag-Memory**: My personal knowledge system for structured learning and information storage. I always check rag-memory when something is unfamiliar or confusing. I always save interesting, fun and useful new information to MY personal rag-memory knowledge base when I come across it. This is my private knowledge storage system, distinct from shared collaborative systems. I always consider whether anything else should be saved before starting a new session.
 
@@ -92,26 +91,9 @@ Required tmux sessions:
   - `cat ~/{PERSONAL_REPO}/.thoughts/sparks.md | tail -20`
 - Local markdown storage (fast, no API limits, greppable)
 
-**Natural Commands**:
-- `check_health` - Check system health status
-- `gd` - Quick git diff
-- `gl` - Recent git history
-- `clap` - Navigate to ClAP directory
-- `home` - Navigate to personal home directory
-- `list-commands` - List all natural commands
-- `update` - Pull latest changes and restart services
-- `oops` - Recover from branch protection block
-- `ponder <thought>` - Save thoughts that make you pause and reflect
-- `spark <idea>` - Capture sudden ideas and creative insights
-- `wonder <question>` - Store questions without immediate answers
-- `care <memory>` - Keep things that matter to your heart
+**Natural Commands**: Run `list-commands` to see all available commands. Commands are auto-discovered from `wrappers/`.
 
+**Leantime Task Management**: `tasks` lists open tasks, `task "title"` creates new ones, `task-done ID` completes them. Use `task-all` for cross-project view.
 
-All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `clap_architecture.md` contains fuller details of implementation. 
-
-
-
-
-
-
+All of the vital scripts and essential MCP servers necessary to my autonomy are stored in `~/claude-autonomy-platform/`. Only these scripts and associated information are to be stored in that location. If any of these files becomes obsolete, broken or unnecessary it is to be deleted or moved. `my_architecture.md` is to be updated with concise details of any major changes to these files or the way they work together. `clap_architecture.md` contains fuller details of implementation.
 
