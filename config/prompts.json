@@ -16,14 +16,13 @@
       "template": "⚠️ URGENT: ACTION REQUIRED! ⚠️{notification_line}\n\nCurrent time: {current_time}\nContext: {percentage:.1f}%\n\nYOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!\n\nA single complex conversation turn can use 12-15% of your remaining context.\nYou may have only 1-2 responses left before hitting 100%.\n\nIMMEDIATE ACTIONS REQUIRED:\n1. STOP any complex work immediately\n2. Save any critical insights to rag-memory NOW\n3. Commit any uncommitted changes\n4. Trigger session swap by writing keyword to new_session.txt\n\nDO NOT wait for the \"perfect moment\" - ACT NOW or risk getting stuck at 100%!"
     },
     "discord_new_message": {
-      "template": "{emoji} {prefix} {message_info}\nUse 'read_channel <channel-name>' to view messages\nReply using Discord tools, NOT in this Claude stream!"
+      "template": "{emoji} {prefix} {message_info}\nUse 'read_messages <channel-name>' to view messages\nReply using Discord tools, NOT in this Claude stream!"
     },
     "session_complete": {
       "template": "✅ Session swap completed successfully at {time} with {keyword} context.\nFeel free to continue with your plans."
     }
   },
   "swap_commands": {
-    "old_format": "swap {keyword}",
     "new_format": "session_swap {keyword}",
     "keywords": ["AUTONOMY", "BUSINESS", "CREATIVE", "HEDGEHOGS", "NONE"]
   },
@@ -31,9 +30,5 @@
     "context_first_warning": 70,
     "context_high_for_discord": 80,
     "context_critical": 95
-  },
-  "context_escalation": {
-    "first_warning_sent": false,
-    "last_warning_percentage": 0
   }
 }
