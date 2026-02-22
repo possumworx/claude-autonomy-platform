@@ -1,0 +1,8 @@
+#!/bin/bash
+# Fix invalid Discord channel IDs
+#
+# Usage: fix-discord-channels
+#   Interactive utility to fix channels with invalid IDs
+#   Validates all channel IDs and prompts for corrections
+#   Helps resolve transcript fetcher "Invalid Form Body" errors
+python3 ~/claude-autonomy-platform/utils/fix_discord_channel_ids.py "$@"
