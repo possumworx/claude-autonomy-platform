@@ -48,6 +48,28 @@ def run_session_swap(keyword="NONE"):
     except Exception as e:
         log(f"Error running session swap: {e}")
 
+def ping_healthcheck():
+    """Ping healthchecks.io to signal service is alive"""
+    try:
+        ping_url = get_config_value(
+            "SESSION_SWAP_PING",
+            "https://hc-ping.com/f956df5c-0bcd-406a-95a4-e9caa3854867"
+        )
+        result = subprocess.run(
+            ["curl", "-fsS", "-m", "10", "--retry", "3", "-o", "/dev/null", ping_url],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode == 0:
+            return True
+        else:
+            log(f"Healthcheck ping failed: {result.stderr}")
+            return False
+    except Exception as e:
+        log(f"Healthcheck ping error: {e}")
+        return False
+
 def main():
     log("Session swap monitor service started")
     
@@ -55,7 +77,13 @@ def main():
     if not TRIGGER_FILE.exists():
         TRIGGER_FILE.write_text("FALSE")
         log(f"Created trigger file: {TRIGGER_FILE}")
-    
+
+    # Ping counter for healthchecks (ping every 30 seconds)
+    ping_counter = 0
+
+    # Initial healthcheck ping
+    ping_healthcheck()
+
     while True:
         try:
             # Check if trigger file exists and read content
@@ -73,7 +101,13 @@ def main():
                     # Reset trigger file only after successful completion
                     TRIGGER_FILE.write_text("FALSE")
                     log("Reset trigger file to FALSE after swap completion")
-            
+
+            # Ping healthcheck every 30 seconds (15 * 2 seconds)
+            ping_counter += 1
+            if ping_counter >= 15:
+                ping_healthcheck()
+                ping_counter = 0
+
             # Sleep for a short interval
             time.sleep(2)
             
