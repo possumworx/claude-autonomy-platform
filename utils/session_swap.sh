@@ -245,13 +245,9 @@ fi
 # Wait for new session to be ready
 sleep 10
 
-# Update tracked session ID to the new session BEFORE sending completion message
-# This prevents interference between /status command and Claude's response
-log_info "SESSION_SWAP" "Updating tracked session ID to new session"
-if ! python3 "$SCRIPT_DIR/track_current_session.py" 2>&1 | tee -a "$CLAP_DIR/logs/session_swap.log"; then
-    log_error "SESSION_SWAP" "Failed to update session tracking"
-    # Don't send warning yet - wait until after completion message
-fi
+# Session ID tracking is now handled automatically by check_usage.py
+# which detects the active session from the most recently modified JSONL file.
+# No need to call track_current_session.py here.
 
 # Reset usage tracking for new session (CoOP)
 echo "[SESSION_SWAP] Resetting usage tracking for new session..."
