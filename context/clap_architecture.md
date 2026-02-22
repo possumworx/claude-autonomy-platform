@@ -356,7 +356,6 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 │   ├── infrastructure_config_reader.py
 │   ├── log_utils.sh
 │   ├── check_context.py
-│   ├── track_current_session.py
 │   ├── parse_natural_commands.sh
 │   ├── ponder
 │   ├── rotate_logs.sh
