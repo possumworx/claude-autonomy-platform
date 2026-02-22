@@ -1,3 +1,9 @@
 #!/bin/bash
 # Check system health status
+#
+# Usage: check_health
+#   Comprehensive health check for ClAP infrastructure
+#   Verifies: Git status, config files, tmux sessions,
+#   remote family services, and pre-commit hooks
+#   Essential morning check and debugging tool
 ~/claude-autonomy-platform/utils/check_health "$@"
