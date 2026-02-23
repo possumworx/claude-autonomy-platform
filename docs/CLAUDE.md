@@ -25,7 +25,6 @@ Historical and reference documentation. Many of these capture decisions, debuggi
 Many files here document specific debugging sessions or fixes:
 - **`bashrc_sourcing_fix.md`** / **`bashrc-sourcing-solution.md`** — PATH and sourcing issues
 - **`pipe-pane-instability-report.md`** — tmux pipe-pane debugging
-- **`context-monitoring-*.md`** — Context monitoring evolution
 - **`session-bridge-export-design.md`** — Session export design notes
 
 ## Subdirectories
