@@ -11,6 +11,8 @@ import subprocess
 from datetime import datetime
 import os
 from pathlib import Path
+import argparse
+import sys
 
 # API configuration
 API_KEY = "hcr_icPvO9biFPnjkZfI8PgDNy16zlIV"  # ALLOW-SECRET
@@ -18,6 +20,23 @@ BASE_URL = "https://healthchecks.io/api/v3"
 
 # Required tmux sessions for autonomous operation
 REQUIRED_TMUX_SESSIONS = ["autonomous-claude", "persistent-login"]
+
+# Mapping from healthchecks.io check names to systemd service names
+# None means remote service (can't access logs)
+HEALTHCHECK_TO_SERVICE = {
+    "Orange Session Swap": "session-swap-monitor.service",
+    "Orange Autonomous Timer": "autonomous-timer.service",
+    "Orange Claude Code": "autonomous-timer.service",  # Claude runs via autonomous timer
+    "Delta Session Swap": None,  # Remote Delta service
+    "Delta Autonomous Timer": None,
+    "Delta Claude Code": None,
+    "Apple Session Swap": None,  # Remote Apple service
+    "Apple Autonomous Timer": None,
+    "Apple Claude Code": None,
+    "Quill Session Swap": None,  # Remote Quill service (if separate)
+    "Quill Autonomous Timer": None,
+    "Quill Claude Code": None,
+}
 
 # Configuration file locations
 CONFIG_LOCATIONS = {
@@ -164,6 +183,23 @@ def check_config_files():
     return issues
 
 
+def fetch_service_logs(service_name, lines=10):
+    """Fetch recent logs from systemd service"""
+    try:
+        result = subprocess.run(
+            ["journalctl", "--user", "-u", service_name, "-n", str(lines), "--no-pager"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+        else:
+            return f"Error fetching logs: {result.stderr.strip()}"
+    except Exception as e:
+        return f"Exception fetching logs: {e}"
+
+
 def fetch_health_status():
     """Fetch all check statuses from healthchecks.io"""
     headers = {"X-Api-Key": API_KEY}
@@ -223,8 +259,13 @@ def format_status(status):
     return status_map.get(status, f"❓ {status.upper()}")
 
 
-def display_health_status(data):
-    """Display health status in a clean format"""
+def display_health_status(data, diagnose=False):
+    """Display health status in a clean format
+
+    Args:
+        data: Health check data from healthchecks.io
+        diagnose: If True, show logs for DOWN services
+    """
     print(f"\n🏥 System Health Status - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
@@ -291,6 +332,21 @@ def display_health_status(data):
 
         print(f"{format_status(status):12} {name:30} Last: {last_ping_str}")
 
+        # In diagnose mode, show logs for DOWN services
+        if diagnose and status == "down":
+            service_name = HEALTHCHECK_TO_SERVICE.get(name)
+            if service_name:
+                print(f"   📋 Fetching logs from {service_name}...")
+                logs = fetch_service_logs(service_name, lines=10)
+                # Indent each log line
+                for line in logs.split('\n'):
+                    if line.strip():
+                        print(f"      {line}")
+            elif service_name is None:
+                print(f"   ℹ️  Remote service - logs unavailable from this machine")
+            else:
+                print(f"   ⚠️  No service mapping configured for this check")
+
     print("=" * 60)
     print(f"Remote: {up_count} UP, {down_count} DOWN, {other_count} OTHER")
     print(f"Tmux: {len(REQUIRED_TMUX_SESSIONS) - tmux_issues} UP, {tmux_issues} DOWN")
@@ -330,8 +386,18 @@ def display_health_status(data):
 
 def main():
     """Main function"""
+    parser = argparse.ArgumentParser(
+        description="Check system health status and service logs"
+    )
+    parser.add_argument(
+        "--diagnose",
+        action="store_true",
+        help="Show systemd logs for DOWN services (local services only)"
+    )
+    args = parser.parse_args()
+
     data = fetch_health_status()
-    display_health_status(data)
+    display_health_status(data, diagnose=args.diagnose)
 
 
 if __name__ == "__main__":
