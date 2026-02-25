@@ -17,7 +17,7 @@
 - **`update_conversation_history.py`** — Parses exported transcript into rolling context.
 - **`conversation_history_utils.py`** — Shared utilities for history processing.
 - **`trim_claude_history.py`** — Trims Claude Code command history to prevent context bloat.
-- **`track_current_session.py`** — Tracks which Claude session is active (for status monitoring).
+- **`track_current_session.py`** — *(Removed)* Session detection now handled by `check_usage.py` via filesystem (most recently modified JSONL file).
 - **`send_to_claude.sh`** — Sends text to the Claude tmux session with retry logic.
 
 ## Health & Monitoring

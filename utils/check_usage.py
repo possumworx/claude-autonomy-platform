@@ -5,35 +5,102 @@ the total $ spend, then comparing with the previous stored value to get
 the delta ($ spent this turn).
 
 This is used by CoOP for accurate usage tracking (not cache read proxy).
+
+Session detection: finds the active session by looking for the most recently
+modified JSONL file in Claude Code's projects directory. This is more reliable
+than the old approach of querying /status via tmux, which was fragile and
+could only run during session swaps.
 """
 
 import subprocess
 import json
 import re
+import os
 from pathlib import Path
 from datetime import datetime
 
 
-def get_current_session_id():
-    """Read the current session ID from tracking file"""
-    script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent  # utils/ -> claude-autonomy-platform/
-    session_file = repo_root / "data" / "current_session_id"
+# UUID pattern for session IDs in JSONL filenames
+_UUID_PATTERN = re.compile(
+    r"^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\.jsonl$"
+)
 
-    if not session_file.exists():
+
+def _get_repo_root():
+    """Get the ClAP repository root directory"""
+    return Path(__file__).resolve().parent.parent
+
+
+def _get_projects_dir():
+    """Get the Claude Code projects directory for our working directory"""
+    config_dir = Path(
+        os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".config" / "Claude")
+    )
+    # Claude Code encodes the project path by replacing / with -
+    clap_dir = _get_repo_root()
+    encoded = str(clap_dir).replace("/", "-")
+    return config_dir / "projects" / encoded
+
+
+def get_current_session_id():
+    """Get the current session ID from the most recently modified JSONL file.
+
+    Claude Code stores session data in UUID-named .jsonl files under
+    ~/.config/Claude/projects/<encoded-path>/. The active session is
+    always the most recently modified file.
+    """
+    projects_dir = _get_projects_dir()
+    if not projects_dir.exists():
         return None
 
+    newest_id = None
+    newest_mtime = 0
+
+    for f in projects_dir.iterdir():
+        match = _UUID_PATTERN.match(f.name)
+        if match:
+            try:
+                mtime = f.stat().st_mtime
+            except OSError:
+                continue
+            if mtime > newest_mtime:
+                newest_mtime = mtime
+                newest_id = match.group(1)
+
+    # Also update the tracking file for anything else that reads it
+    if newest_id:
+        _update_tracking_file(newest_id)
+
+    return newest_id
+
+
+def _update_tracking_file(session_id):
+    """Update data/current_session_id for consumers that read it directly."""
+    repo_root = _get_repo_root()
+    session_file = repo_root / "data" / "current_session_id"
+
+    # Only write if the ID has actually changed
     try:
-        with open(session_file, "r") as f:
-            data = json.load(f)
-            return data.get("session_id")
-    except:
-        # Try reading as plain text for backwards compatibility
-        try:
+        if session_file.exists():
             with open(session_file, "r") as f:
-                return f.read().strip()
-        except:
-            return None
+                data = json.load(f)
+                if data.get("session_id") == session_id:
+                    return  # Already up to date
+    except (json.JSONDecodeError, KeyError):
+        pass
+
+    data = {
+        "session_id": session_id,
+        "timestamp": datetime.now().isoformat(),
+        "tracked_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "source": "filesystem",
+    }
+    try:
+        session_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(session_file, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass  # Non-critical — the ID is still returned correctly
 
 
 def run_ccusage(session_id):
@@ -97,8 +164,7 @@ def parse_total_cost(output):
 
 def get_stored_cost():
     """Get previously stored total cost"""
-    script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent
+    repo_root = _get_repo_root()
     storage_file = repo_root / "data" / "last_usage_cost.json"
 
     if not storage_file.exists():
@@ -115,8 +181,7 @@ def get_stored_cost():
 
 def store_cost(total_cost, session_id):
     """Store current total cost for next comparison"""
-    script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent
+    repo_root = _get_repo_root()
     storage_file = repo_root / "data" / "last_usage_cost.json"
 
     # Ensure data directory exists
@@ -144,7 +209,7 @@ def check_usage(return_data=False):
     # Get current session ID
     session_id = get_current_session_id()
     if not session_id:
-        error_msg = "❌ No current session ID found. Run track_current_session.py first."
+        error_msg = "❌ No session JSONL files found in Claude Code projects directory."
         if return_data:
             return None, error_msg
         print(error_msg)

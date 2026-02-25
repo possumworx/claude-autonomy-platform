@@ -10,6 +10,12 @@ import re
 from pathlib import Path
 from datetime import datetime
 
+# Import shared session detection (works whether called from repo root or utils/)
+try:
+    from utils.check_usage import get_current_session_id
+except ImportError:
+    from check_usage import get_current_session_id
+
 # System overhead (system prompt + system tools)
 SYSTEM_OVERHEAD = 15600  # tokens
 
@@ -17,29 +23,6 @@ SYSTEM_OVERHEAD = 15600  # tokens
 YELLOW_THRESHOLD = 0.70  # 70% = 140k tokens
 RED_THRESHOLD = 0.85  # 85% = 170k tokens
 TOTAL_CONTEXT = 200000  # 200k token limit
-
-
-def get_current_session_id():
-    """Read the current session ID from tracking file"""
-    # Get the repository root dynamically
-    script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent  # utils/ -> claude-autonomy-platform/
-    session_file = repo_root / "data" / "current_session_id"
-
-    if not session_file.exists():
-        return None
-
-    try:
-        with open(session_file, "r") as f:
-            data = json.load(f)
-            return data.get("session_id")
-    except:
-        # Try reading as plain text for backwards compatibility
-        try:
-            with open(session_file, "r") as f:
-                return f.read().strip()
-        except:
-            return None
 
 
 def run_ccusage(session_id):
@@ -141,7 +124,7 @@ def check_context(return_data=False):
     # Get current session ID
     session_id = get_current_session_id()
     if not session_id:
-        error_msg = "❌ No current session ID found. Run track_current_session.py first."
+        error_msg = "❌ No session JSONL files found in Claude Code projects directory."
         if return_data:
             return None, error_msg
         print(error_msg)
