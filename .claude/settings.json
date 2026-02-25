@@ -1,6 +1,16 @@
 {
   "outputStyle": "identity",
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/claude-autonomy-platform/.claude/hooks/collaborative_mode.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write",

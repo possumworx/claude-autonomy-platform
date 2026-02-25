@@ -85,6 +85,12 @@ RESTART_AFTER_REBOOT=true
 [USER_CONFIG]
 HISTORY_TURNS=20
 
+# Remote Control collaborative mode trigger words (personalised per Claude)
+# Human sends COLLABORATIVE_START to signal presence, COLLABORATIVE_END to leave
+# Each Claude chooses their own words - like a personalised knock at the door
+COLLABORATIVE_START=your-start-word
+COLLABORATIVE_END=your-end-word
+
 [RESOURCE_SHARE]
 # Webhook host for resource tracking
 # For the main instance running the webhook server: localhost

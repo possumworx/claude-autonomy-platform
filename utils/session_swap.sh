@@ -219,6 +219,22 @@ tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-p
 echo "[SESSION_SWAP] Waiting for Claude to initialize..."
 sleep 5
 
+# Rename session for Remote Control visibility (shows name in claude.ai/phone app)
+CLAUDE_NAME=$(read_config "CLAUDE_NAME" 2>/dev/null || echo "")
+if [[ -n "$CLAUDE_NAME" ]]; then
+    echo "[SESSION_SWAP] Renaming session to '$CLAUDE_NAME' for Remote Control..."
+    send_to_claude "/rename $CLAUDE_NAME"
+    sleep 2
+fi
+
+# Activate Remote Control so session is visible in claude.ai/phone app
+echo "[SESSION_SWAP] Activating Remote Control..."
+send_to_claude "/rc"
+sleep 2
+
+# Clear any collaborative mode flag from previous session
+rm -f "/tmp/$(read_config 'LINUX_USER' 2>/dev/null || echo $USER)_collaborative_mode"
+
 # Carry over non-completed tasks from previous session
 echo "[SESSION_SWAP] Carrying over non-completed tasks from previous session..."
 python3 "$CLAP_DIR/utils/carry_over_tasks.py"

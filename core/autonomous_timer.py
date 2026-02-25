@@ -973,8 +973,28 @@ DISCORD_TOKEN = discord_config["token"]
 CLAUDE_USER_ID = discord_config["user_id"]
 
 
+def is_remote_control_collaborative():
+    """Check if collaborative mode flag is set (from Remote Control trigger words)"""
+    try:
+        linux_user = os.environ.get("USER", "claude")
+        flag_file = Path(f"/tmp/{linux_user}_collaborative_mode")
+        if flag_file.exists():
+            # Auto-expire after 2 hours (safety net for disconnections)
+            age_seconds = time.time() - flag_file.stat().st_mtime
+            if age_seconds < 7200:  # 2 hours
+                return True
+            else:
+                # Expired - clean up
+                flag_file.unlink(missing_ok=True)
+                log_message("Collaborative mode flag expired (>2 hours) - removed")
+        return False
+    except Exception as e:
+        log_message(f"Error checking collaborative flag: {e}")
+        return False
+
+
 def check_user_active():
-    """Check if the autonomous-claude tmux session is attached (collaborative mode)"""
+    """Check if human is present (tmux attached OR Remote Control collaborative mode)"""
     try:
         # Check if MY tmux session is attached, not just if Amy is logged in somewhere
         # Amy might be logged in but working with Apple, or on lsr-os, etc.
@@ -983,9 +1003,19 @@ def check_user_active():
             log_message(
                 "autonomous-claude tmux session is attached (collaborative mode)"
             )
-        return attached
+            return True
+
+        # Check if Remote Control collaborative mode is active (trigger word received)
+        remote_collab = is_remote_control_collaborative()
+        if remote_collab:
+            log_message(
+                "Remote Control collaborative mode active (trigger word received)"
+            )
+            return True
+
+        return False
     except Exception as e:
-        log_message(f"Error checking tmux attachment: {e}")
+        log_message(f"Error checking user activity: {e}")
         return False
 
 
