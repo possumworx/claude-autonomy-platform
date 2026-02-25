@@ -1,3 +1,4 @@
 #!/bin/bash
 # Quick health status check
-cd ~/claude-autonomy-platform && python3 utils/healthcheck_status.py
+# Pass all arguments through to the Python script
+cd ~/claude-autonomy-platform && python3 utils/healthcheck_status.py "$@"
