@@ -1,0 +1,3 @@
+#!/bin/bash
+# 🦔 Hedgehog care CLI - remote access to Orange's dashboard API
+python3 ~/sparkle-apple-home/enhanced_hog_cli.py "$@"
