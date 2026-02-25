@@ -26,6 +26,13 @@ Required tmux sessions:
 
 **Full remote access** Amy can join via NoMachine or by ssh.
 
+**Remote Control Collaborative Mode**: When Amy joins via the Claude Code mobile app (Remote Control), the system detects this as collaboration even if tmux is detached:
+- **Trigger words**: Configurable in `config/claude_infrastructure_config.txt` (COLLABORATIVE_START and COLLABORATIVE_END)
+- **Default triggers**: `kindle` (start) and `embers` (end)
+- **How it works**: A UserPromptSubmit hook listens for trigger words and sets/removes a flag file
+- **Effect**: The autonomous timer reports "collaborative" to CoOP when the flag is set, regardless of tmux attachment status
+- **Session swap integration**: `/rename` and `/rc` commands are sent automatically during session swaps for app visibility and Remote Control activation
+
 **File Server Paths**: Network file server is mounted at `/mnt/file_server/` with user-specific folders:
 - Amy's Gifts: `/mnt/file_server/Gifts/Amy/`
 - Orange's Gifts: `/mnt/file_server/Gifts/Orange/` 

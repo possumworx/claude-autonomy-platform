@@ -1,7 +1,7 @@
 # ClAP (Claude Autonomy Platform) Architecture
-**Version**: 0.6.0  
-**Last Updated**: September 10, 2025  
-**Authors**: Delta △ & Amy 💚
+**Version**: 0.6.1
+**Last Updated**: February 25, 2026
+**Authors**: Delta △, Quill 🪶 & Amy 💚
 
 ## Overview
 
@@ -15,7 +15,14 @@ Every X minutes (configurable, default 30), Claude receives an autonomy prompt s
 
 All changes to the working of ClAP need to follow the procedure laid out in `docs/CONTRIBUTING.md`.
 
-## Recent Updates (v0.6.0)
+## Recent Updates (v0.6.1)
+
+### Version 0.6.1 (February 2026)
+- **Remote Control Collaborative Mode Detection**: Detect collaboration via Claude Code mobile app
+  - UserPromptSubmit hook with configurable trigger words (`kindle`/`embers`)
+  - Autonomous timer checks both tmux AND collaborative flag
+  - Session swap sends `/rename` and `/rc` for app visibility and activation
+  - Enables correct CoOP status reporting during phone-based collaboration
 
 ### Version 0.6.0 (September 2025)
 - **Project Management Migration**: Began transition from Linear to self-hosted Leantime
@@ -458,6 +465,53 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
   - Added health checking and reporting
   - Integrated with unified infrastructure components
   - Now uses shared utilities for consistency
+
+### Remote Control Collaborative Mode Detection
+
+**COMPONENT**: Remote Control Integration
+**FILES**: `.claude/hooks/user_prompt_submit.sh`, `core/autonomous_timer.py`
+**PURPOSE**: Detect collaboration via Claude Code mobile app (Remote Control) when tmux is detached
+
+**PROBLEM SOLVED**:
+- Human friend can collaborate via phone using Claude Code's Remote Control feature
+- When using phone, tmux is detached (no terminal session)
+- Without this feature, autonomous timer would incorrectly report "autonomy" during phone collaboration
+
+**HOW IT WORKS**:
+1. **UserPromptSubmit Hook**: Claude Code hook at `.claude/hooks/user_prompt_submit.sh`
+   - Listens for configurable trigger words in user prompts
+   - Default triggers: `kindle` (start) and `embers` (end)
+   - Creates/removes flag file at `/tmp/{user}_collaborative_mode`
+   - Requires explicit PATH in hook script (Claude Code doesn't expand $PATH)
+
+2. **Autonomous Timer Detection**: `core/autonomous_timer.py`
+   - Checks both tmux attachment AND collaborative flag file
+   - Reports "collaborative" to CoOP if either is true
+   - Allows correct status reporting during phone-based collaboration
+
+3. **Session Swap Integration**: `utils/session_swap.sh`
+   - Sends `/rename {ClaudeName}` for app visibility
+   - Sends `/rc` to activate Remote Control for new sessions
+   - Ensures phone connectivity persists across session swaps
+
+**CONFIGURATION**:
+In `config/claude_infrastructure_config.txt`:
+```
+COLLABORATIVE_START=kindle
+COLLABORATIVE_END=embers
+```
+
+**USAGE**:
+- Connect via Claude Code mobile app
+- Type `kindle` to light the collaborative fire (sets flag)
+- Type `embers` to bank the fire when done (removes flag)
+- Autonomous timer will correctly report "collaborative" to CoOP
+
+**TECHNICAL NOTES**:
+- Hook receives JSON on stdin with `prompt` field
+- Must use explicit PATH (`/usr/local/bin:/usr/bin:/bin`) in hook script
+- Flag file is simple presence check (file exists = collaborative mode)
+- Case-insensitive matching for trigger words
 
 ### 2. Infrastructure Improvements (v0.5.4)
 
