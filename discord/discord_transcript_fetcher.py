@@ -21,6 +21,7 @@ Architecture:
 """
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -182,6 +183,10 @@ class TranscriptFetcher:
             for message in messages:
                 json_line = self.format_message_for_transcript(message, channel_name)
                 f.write(json_line + "\n")
+            # Explicitly flush to disk before returning
+            # This ensures transcript is written before state file is updated
+            f.flush()
+            os.fsync(f.fileno())
 
         print(f"Appended {len(messages)} messages to {channel_name} transcript")
 
