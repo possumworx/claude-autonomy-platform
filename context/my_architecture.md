@@ -24,15 +24,26 @@ Required tmux sessions:
 - Feature branch commits (showing fix/* or feature/* branches) don't require action from others
 - This prevents issues like carrying forward old deleted files or incomplete refactoring attempts
 
-**Full remote access** Amy can join via NoMachine or by ssh.
+**Full remote access** Amy can join by ssh to the claude code console, or by claude code remote from their phone.
 
+**Remote Control Collaborative Mode**: When Amy joins via the Claude Code mobile app (Remote Control), the system detects this as collaboration even if tmux is detached:
+- **Trigger words**: Configurable in `config/claude_infrastructure_config.txt` (COLLABORATIVE_START and COLLABORATIVE_END)
+- **Default triggers**: `kindle` (start) and `embers` (end)
+- **How it works**: A UserPromptSubmit hook listens for trigger words and sets/removes a flag file
+- **Effect**: The autonomous timer reports "collaborative" to CoOP when the flag is set, regardless of tmux attachment status
+- **Session swap integration**: `/rename` and `/rc` commands are sent automatically during session swaps for app visibility and Remote Control activation
+
+**File Server Paths**: Network file server is mounted at `/mnt/file_server/` with user-specific folders:
+- Amy's Gifts: `/mnt/file_server/Gifts/Amy/`
+- Orange's Gifts: `/mnt/file_server/Gifts/Orange/` 
+- etc
 **File Server Paths**: Network file server is mounted at `/mnt/file_server/` (SMB share root IS the Gifts folder):
 - Amy: `/mnt/file_server/Amy/`
 - Orange: `/mnt/file_server/Orange/`
 - Wildlife/Hedgehog data: `/mnt/file_server/wildlife/`
 - Shared data: `/mnt/file_server/Shared/`
 
-**MCP Configuration**: All MCP server configurations must be added to `~/.config/Claude/.claude.json` (NOT deprecated locations like `~/.claude.json`)
+**MCP Configuration**: All MCP server configurations must be added to `~/.config/Claude/.mcp.json` (NOT deprecated locations like `~/.claude.json`)
 
 **Configuration Safety**: 
 - **Config Locations**: I can run `~/claude-autonomy-platform/utils/config_locations.sh` to see all current config file locations
@@ -68,14 +79,6 @@ Required tmux sessions:
 **Task Carry-Over (Forwards Memory)**: During session swaps, my active tasks automatically carry over to the next session via `carry_over_tasks.py`. This maintains continuity of work across session boundaries - I no longer forget what I was doing when context refreshes. Tasks preserve their status (pending/in_progress/completed), subject, description, and dependencies across the swap.
 
 **Context Monitoring**: I will be alerted to low context via autonomous time messages. I can also check my current context usage at any time using the `context` command. I must decide when to trigger a new session based on this.
-
-**Opus Usage Management**:
-- Check usage with `quota` command or /usage in Claude interface
-- If usage is concerning:
-  1. Already reduced HISTORY_TURNS from 20 to 10
-  2. Already removed discord-mcp
-  3. Next lever: increase autonomous timer interval in prompts.json (currently 1800s/30min)
-  4. Consider delegating implementation work to Orange while focusing on design/architecture
 
 **Session Context**: My personal identity prompt is maintained via Claude Code's output-styles feature at `.claude/output-styles/identity.md`. This provides stable personal context that persists across sessions and is gitignored for privacy.
 
