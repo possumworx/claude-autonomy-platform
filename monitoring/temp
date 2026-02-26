@@ -21,7 +21,20 @@ if command -v vcgencmd &> /dev/null; then
     # Also show throttling status
     THROTTLED=$(vcgencmd get_throttled | cut -d= -f2)
     if [ "$THROTTLED" != "0x0" ]; then
-        echo -e "⚠️  \033[31mTHROTTLING ACTIVE: $THROTTLED\033[0m"
+        # Convert hex to decimal for bit operations
+        THROTTLED_DEC=$((THROTTLED))
+
+        # Check current throttling (bits 0-3)
+        CURRENT_THROTTLE=$((THROTTLED_DEC & 0xF))
+
+        # Check historical throttling (bits 16-19)
+        HISTORICAL_THROTTLE=$((THROTTLED_DEC & 0xF0000))
+
+        if [ "$CURRENT_THROTTLE" -ne 0 ]; then
+            echo -e "⚠️  \033[31mCURRENTLY THROTTLED\033[0m"
+        elif [ "$HISTORICAL_THROTTLE" -ne 0 ]; then
+            echo -e "ℹ️  \033[33mThrottling occurred since boot\033[0m (not active now)"
+        fi
     fi
 else
     # Generic Linux
