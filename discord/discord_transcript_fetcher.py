@@ -22,6 +22,8 @@ Architecture:
 
 import json
 import os
+import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -210,6 +212,52 @@ class TranscriptFetcher:
         if bot_display_name and author_name == bot_display_name:
             self.channel_state.mark_channel_read(channel_name, latest_id)
 
+    def check_mama_hen_alert(self, messages):
+        """
+        Check if any message is a Mama-hen alert for this Claude.
+        If found, trigger send_to_claude to wake up the stuck Claude.
+        """
+        my_name = get_config_value('CLAUDE_NAME', '')
+        if not my_name:
+            return
+
+        # Pattern to match: [MAMA-HEN:MyName]
+        pattern = rf'\[MAMA-HEN:{re.escape(my_name)}\]'
+
+        for message in messages:
+            content = message.get('content', '')
+            if re.search(pattern, content, re.IGNORECASE):
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] 🐔 Mama-hen alert detected for {my_name}!")
+
+                # Trigger send_to_claude to wake up the Claude session
+                try:
+                    nudge_message = (
+                        f"🐔 Mama-hen nudge: Your autonomous timer may have stopped. "
+                        f"Run: check_health"
+                    )
+                    send_to_claude_script = CLAP_ROOT / "utils" / "send_to_claude.sh"
+
+                    # Use bash to source and call the function
+                    result = subprocess.run(
+                        ['bash', '-c', f'source "{send_to_claude_script}" && send_to_claude "{nudge_message}"'],
+                        capture_output=True,
+                        text=True,
+                        timeout=30
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🐔 Sent Mama-hen nudge to Claude session")
+                    else:
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}] WARNING: Failed to send Mama-hen nudge: {result.stderr}")
+
+                except subprocess.TimeoutExpired:
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] WARNING: Mama-hen nudge timed out (Claude may be busy)")
+                except Exception as e:
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR: Mama-hen nudge failed: {e}")
+
+                # Only process first matching alert
+                return
+
     def process_channel(self, channel_name):
         """Process a single channel: fetch, transcribe, update state"""
         try:
@@ -222,6 +270,10 @@ class TranscriptFetcher:
 
                 # Update state
                 self.update_channel_state(channel_name, messages)
+
+                # Check for Mama-hen alerts in #system-messages
+                if channel_name == 'system-messages':
+                    self.check_mama_hen_alert(messages)
 
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] Processed {len(messages)} new messages in #{channel_name}")
 

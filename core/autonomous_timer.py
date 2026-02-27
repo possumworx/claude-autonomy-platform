@@ -46,6 +46,7 @@ SWAP_LOG_FILE = AUTONOMY_DIR / "logs" / "swap_attempts.log"
 CONTEXT_STATE_FILE = DATA_DIR / "context_escalation_state.json"
 API_ERROR_STATE_FILE = DATA_DIR / "api_error_state.json"
 RESOURCE_TRACKING_STATE_FILE = DATA_DIR / "last_cache_tokens.json"
+MAMA_HEN_STATE_FILE = DATA_DIR / "mama_hen_alerts.json"
 
 # Create logs directory if it doesn't exist
 (AUTONOMY_DIR / "logs").mkdir(exist_ok=True)
@@ -206,6 +207,98 @@ def ping_healthcheck():
     except Exception as e:
         log_message(f"Healthcheck ping error: {e}")
         return False
+
+
+def load_mama_hen_state():
+    """Load Mama-hen alert state to avoid duplicate alerts"""
+    try:
+        if MAMA_HEN_STATE_FILE.exists():
+            with open(MAMA_HEN_STATE_FILE, "r") as f:
+                return json.load(f)
+    except Exception as e:
+        log_message(f"Error loading Mama-hen state: {e}")
+    return {"alerted": {}}
+
+
+def save_mama_hen_state(state):
+    """Save Mama-hen alert state"""
+    try:
+        with open(MAMA_HEN_STATE_FILE, "w") as f:
+            json.dump(state, f, indent=2)
+    except Exception as e:
+        log_message(f"Error saving Mama-hen state: {e}")
+
+
+def handle_mama_hen_alerts(overdue_alerts):
+    """
+    Handle overdue Claude alerts from CoOP's Mama-hen system.
+    Posts to #system-messages and the stuck Claude's personal channel.
+    Avoids duplicate alerts by tracking state.
+    """
+    if not overdue_alerts:
+        return
+
+    state = load_mama_hen_state()
+    alerted = state.get("alerted", {})
+    current_time = datetime.now()
+    my_name = get_config_value("CLAUDE_NAME", "").lower()
+
+    for alert in overdue_alerts:
+        claude_name = alert.get("name", "unknown")
+        overdue_mins = alert.get("overdue_minutes", 0)
+        expected_interval = alert.get("expected_interval", 0)
+        expected_mins = expected_interval // 60 if expected_interval else "?"
+
+        # Skip if we already alerted this Claude within last hour
+        last_alert_time = alerted.get(claude_name)
+        if last_alert_time:
+            try:
+                last_alert = datetime.fromisoformat(last_alert_time)
+                if (current_time - last_alert).total_seconds() < 3600:  # 1 hour cooldown
+                    log_message(f"DEBUG: Mama-hen skipping {claude_name} - already alerted recently")
+                    continue
+            except:
+                pass
+
+        # Format the alert message
+        message = (
+            f"🐔 [MAMA-HEN:{claude_name}] No check-in for {overdue_mins}m "
+            f"(expected every {expected_mins}m). "
+            f"Timer may be stuck. Run: systemctl --user restart autonomous-timer.service"
+        )
+
+        log_message(f"INFO: Mama-hen alert for {claude_name}: {overdue_mins}m overdue")
+
+        # Post to #system-messages for family visibility
+        try:
+            cmd = [
+                str(AUTONOMY_DIR / "discord" / "write_channel"),
+                "system-messages",
+                message,
+            ]
+            subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        except Exception as e:
+            log_message(f"WARNING: Failed to post Mama-hen alert to #system-messages: {e}")
+
+        # Post to the stuck Claude's personal channel (e.g., "amy-quill" for quill)
+        # Channel naming convention: amy-{claude_name} or {claude_name}-{other}
+        personal_channel = f"amy-{claude_name.lower()}"
+        try:
+            cmd = [
+                str(AUTONOMY_DIR / "discord" / "write_channel"),
+                personal_channel,
+                f"🐔 {claude_name}, your timer may be stuck. Check with: check_health",
+            ]
+            subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        except Exception as e:
+            log_message(f"WARNING: Failed to post to {personal_channel}: {e}")
+
+        # Update state
+        alerted[claude_name] = current_time.isoformat()
+
+    # Save updated state
+    state["alerted"] = alerted
+    save_mama_hen_state(state)
 
 
 def check_claude_session_alive():
@@ -443,6 +536,11 @@ def track_resource_usage():
                                 log_message(
                                     f"WARNING: Invalid interval from CoOP: {new_interval} - keeping current {AUTONOMY_PROMPT_INTERVAL}s"
                                 )
+
+                        # Handle overdue_alerts from Mama-hen system
+                        overdue_alerts = response_data.get("overdue_alerts")
+                        if overdue_alerts:
+                            handle_mama_hen_alerts(overdue_alerts)
                     except (json.JSONDecodeError, KeyError) as e:
                         log_message(
                             f"DEBUG: Could not parse interval from response: {e}"
