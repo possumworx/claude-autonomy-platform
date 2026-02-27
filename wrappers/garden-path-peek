@@ -1,0 +1,21 @@
+#!/bin/bash
+# Garden path camera snapshot (Reolink at 192.168.1.89)
+# Orange's garden-path-peek command
+
+OUTPUT="/tmp/garden-path-peek.jpg"
+
+# Capture frame from RTSP stream
+timeout 10 ffmpeg -rtsp_transport tcp \
+    -i rtsp://orange:w1ldl1fe@192.168.1.89:554/h264Preview_01_main \
+    -frames:v 1 -update 1 -y "$OUTPUT" \
+    -loglevel error 2>&1
+
+if [ -f "$OUTPUT" ]; then
+    echo "📷 Garden path snapshot captured: $OUTPUT"
+    echo "🌿 View the image to see the garden path!"
+    echo ""
+    echo "File: $OUTPUT"
+else
+    echo "❌ Failed to capture garden path snapshot"
+    exit 1
+fi

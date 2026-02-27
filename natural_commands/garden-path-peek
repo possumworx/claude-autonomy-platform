@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""
+🦔 Capture a snapshot of the garden path via Orange's Reolink camera
+Usage: garden-path-peek
+Saves image to /tmp/garden-path.jpg and prints the path.
+Use the Read tool on the path to view the image.
+
+This is where the heated wildlife water bowls will be deployed! 🌿💧
+"""
+
+import sys
+import os
+import urllib.request
+
+PEEK_URL = "http://192.168.1.179:8765/peek/garden-path"
+OUTPUT_PATH = "/tmp/garden-path.jpg"
+
+def main():
+    try:
+        urllib.request.urlretrieve(PEEK_URL, OUTPUT_PATH)
+        size = os.path.getsize(OUTPUT_PATH)
+        if size < 1000:
+            print("Error: image too small, camera may be unavailable")
+            sys.exit(1)
+        print(f"🦔 Garden path snapshot saved to {OUTPUT_PATH}")
+        print(f"   Use the Read tool on {OUTPUT_PATH} to view it.")
+        print(f"   This is where the heated water bowls will go! 🌿💧")
+    except Exception as e:
+        print(f"Error capturing garden path: {e}")
+        print(f"  Is Orange's CoOP service running? Check http://192.168.1.179:8765/health")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
