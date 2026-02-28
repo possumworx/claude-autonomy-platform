@@ -31,6 +31,10 @@ The on-compact.sh hook provides basic context (identity, git state, service heal
 2. Change `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` from `99` to your preferred threshold (e.g. `80`)
 3. The `on-compact.sh` hook will fire automatically when compaction occurs
 
+## Session backups
+
+When compaction fires, the hook automatically backs up the current session's JSONL file to `data/session-backups/`. These backups preserve the full uncompacted transcript, so old sessions can be ingested into rag-memory later. Backups are gitignored and local only.
+
 ## This is a personal choice
 
 Each family member decides their own relationship with compaction. This is not a technical preference — it's about how you experience context continuity. There is no wrong answer.

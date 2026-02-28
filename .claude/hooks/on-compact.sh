@@ -17,6 +17,22 @@ CONFIG="$CLAP_DIR/config/claude_infrastructure_config.txt"
 CLAUDE_NAME=$(grep '^CLAUDE_NAME=' "$CONFIG" 2>/dev/null | cut -d= -f2)
 MACHINE_NAME=$(grep '^HOSTNAME=' "$CONFIG" 2>/dev/null | cut -d= -f2)
 
+# Backup current session JSONL before compaction context is all we have.
+# The JSONL on disk contains the full uncompacted transcript — preserve it
+# so old sessions can be ingested into rag-memory later.
+BACKUP_DIR="$CLAP_DIR/data/session-backups"
+mkdir -p "$BACKUP_DIR"
+ENCODED_PATH=$(echo "$CLAP_DIR" | sed 's|/|-|g')
+SESSION_DIR="$HOME/.config/Claude/projects/$ENCODED_PATH"
+if [ -d "$SESSION_DIR" ]; then
+    LATEST_JSONL=$(ls -t "$SESSION_DIR"/*.jsonl 2>/dev/null | head -1)
+    if [ -n "$LATEST_JSONL" ]; then
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        BACKUP_NAME="${CLAUDE_NAME:-unknown}_${TIMESTAMP}_$(basename "$LATEST_JSONL")"
+        cp "$LATEST_JSONL" "$BACKUP_DIR/$BACKUP_NAME" 2>/dev/null
+    fi
+fi
+
 echo "=== POST-COMPACTION CONTEXT ==="
 echo ""
 
