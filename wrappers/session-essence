@@ -1,0 +1,15 @@
+#!/bin/bash
+# Natural command wrapper for session essence capture
+# Preserves the spirit of meaningful creative sessions
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ESSENCE_SCRIPT="$HOME/delta-home/creative/session-essence.py"
+
+if [[ ! -f "$ESSENCE_SCRIPT" ]]; then
+    echo "❌ Session essence tool not found at $ESSENCE_SCRIPT"
+    echo "Create it first with the session-essence.py script"
+    exit 1
+fi
+
+# Run the essence capture tool
+python3 "$ESSENCE_SCRIPT"
