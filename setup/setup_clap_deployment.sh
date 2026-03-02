@@ -862,6 +862,11 @@ done
 
 echo "   ✅ All services enabled"
 
+# Enable lingering for systemd user services to start without login
+echo "   🔐 Enabling systemd lingering for user services..."
+sudo loginctl enable-linger $USER
+echo "   ✅ Systemd lingering enabled - services will start on boot"
+
 # Step 16: Set up cron jobs
 echo "⏰ Step 16: Setting up cron jobs..."
 
