@@ -273,6 +273,7 @@ def display_self_reported_status():
     optional = status.get("optional", {})
 
     essential_failures = 0
+    discord_issues = []
 
     if essential:
         print("\nEssential (self-reported):")
@@ -294,12 +295,18 @@ def display_self_reported_status():
             if data["stale"]:
                 print(f"  ⚠️  {label:18} stale ({age_str} — expected <2m)")
                 essential_failures += 1
+                # Track Discord-specific issues
+                if key in ["discord_read", "discord_write"]:
+                    discord_issues.append(key)
             elif data["status"] == "ok":
                 detail = data.get("details", "")
                 print(f"  ✅ {label:18} ok ({age_str})" + (f" — {detail}" if detail else ""))
             else:
                 print(f"  ❌ {label:18} FAILED — {data.get('details', 'unknown')}")
                 essential_failures += 1
+                # Track Discord-specific issues
+                if key in ["discord_read", "discord_write"]:
+                    discord_issues.append(key)
     else:
         print("\nEssential (self-reported):")
         print("  ℹ️  No status files yet (autonomous timer will create them)")
@@ -315,6 +322,13 @@ def display_self_reported_status():
                 print(f"  ✅ {label:18} ok ({age_str})")
             else:
                 print(f"  ❌ {label:18} FAILED — {data.get('details', '')}")
+
+    # Show Discord diagnostic suggestion if Discord issues detected
+    if discord_issues:
+        print("\n💡 Discord Diagnostic Tips:")
+        print("   Discord read/write issues often resolve by restarting the transcript fetcher:")
+        print("   systemctl --user restart discord-transcript-fetcher.service")
+        print("   (Symptom: Messages sent but not visible in local transcript)")
 
     return essential_failures
 
