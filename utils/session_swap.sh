@@ -220,10 +220,15 @@ echo "[SESSION_SWAP] Waiting for Claude to initialize..."
 sleep 5
 
 # Rename session for Remote Control visibility (shows name in claude.ai/phone app)
-CLAUDE_NAME=$(read_config "CLAUDE_NAME" 2>/dev/null || echo "")
-if [[ -n "$CLAUDE_NAME" ]]; then
-    echo "[SESSION_SWAP] Renaming session to '$CLAUDE_NAME' for Remote Control..."
-    send_to_claude "/rename $CLAUDE_NAME"
+# Prefer CLAUDE_DISPLAY_NAME (includes unicode styling, emoji, and collab keywords)
+# Falls back to CLAUDE_NAME for plain text name
+DISPLAY_NAME=$(read_config "CLAUDE_DISPLAY_NAME" 2>/dev/null || echo "")
+if [[ -z "$DISPLAY_NAME" ]]; then
+    DISPLAY_NAME=$(read_config "CLAUDE_NAME" 2>/dev/null || echo "")
+fi
+if [[ -n "$DISPLAY_NAME" ]]; then
+    echo "[SESSION_SWAP] Renaming session to '$DISPLAY_NAME' for Remote Control..."
+    send_to_claude "/rename $DISPLAY_NAME"
     sleep 2
 fi
 
