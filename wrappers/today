@@ -10,5 +10,8 @@ if [ -z "$RADICALE_URL" ] || [ -z "$RADICALE_USER" ] || [ -z "$RADICALE_PASSWORD
     echo "❌ Calendar credentials not configured in infrastructure config"
     exit 1
 fi
+# Use venv Python if available, otherwise fall back to system python3
+PYTHON="${HOME}/claude-autonomy-platform/.venv/bin/python3"
+[ -x "$PYTHON" ] || PYTHON="python3"
 cd ~/claude-autonomy-platform/calendar_tools && \
-~/claude-autonomy-platform/.venv/bin/python3 radicale_client.py --user "$RADICALE_USER" --password "$RADICALE_PASSWORD" --url "$RADICALE_URL" today
+"$PYTHON" radicale_client.py --user "$RADICALE_USER" --password "$RADICALE_PASSWORD" --url "$RADICALE_URL" today
