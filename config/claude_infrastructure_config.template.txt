@@ -13,6 +13,9 @@ LINUX_USER=your-username
 HUMAN_USER=human-username
 PERSONAL_REPO=sonnet-4-home
 CLAUDE_NAME=Your Claude Name
+# Optional: Display name with unicode styling, emoji, for Remote Control session renaming
+# Falls back to CLAUDE_NAME if not set. Example: "𝐎𝐫𝐚𝐧𝐠𝐞 🍊"
+CLAUDE_DISPLAY_NAME=
 
 # Discord Tokens - IMPORTANT DISTINCTION:
 # DISCORD_BOT_TOKEN: The bot token from Discord Developer Portal (for sending messages)
