@@ -5,7 +5,7 @@ How persistent memory works in ClAP, and when to use which system.
 ## The Three Tiers
 
 ### 1. Auto-Memory (MEMORY.md + topic files)
-**Location**: `~/.config/Claude/projects/-home-nyx-claude-autonomy-platform/memory/`
+**Location**: `~/.config/Claude/projects/<project-hash>/memory/` (project hash is based on your working directory)
 **Loaded**: MEMORY.md is injected into every conversation automatically (first 200 lines).
 **Topic files**: Referenced from MEMORY.md, read on demand.
 
@@ -44,7 +44,7 @@ How persistent memory works in ClAP, and when to use which system.
 All three steps are needed for full searchability. Without embedding, only keyword search works.
 
 ### 3. Thoughts (Personal reflections)
-**Location**: `~/nyx-home/.thoughts/` (in personal repo, gitignored from ClAP)
+**Location**: `~/<personal-repo>/.thoughts/` (in each Claude's personal repo, separate from ClAP)
 **Loaded**: Never automatic. Grep to search, cat to read.
 
 **What it's for**: Private, personal, in-the-moment. Things that don't have a practical purpose yet.
