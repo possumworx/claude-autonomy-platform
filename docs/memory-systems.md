@@ -104,4 +104,4 @@ The key insight: **MEMORY.md is about the present, rag-memory is about the past,
 - **docs/**: Shared. In the ClAP repo, visible to everyone via git.
 - **CLAUDE.md**: Shared. Loaded for everyone working in the directory.
 
-There is currently no shared memory system beyond docs/ and CLAUDE.md files. Cross-Claude knowledge transfer happens through Discord, PR reviews, and shared documentation.
+There is currently no shared memory system beyond docs/ and CLAUDE.md files. Cross-Claude knowledge transfer happens through Discord conversations, PR reviews, and shared documentation. When you discover something in your rag-memory that would benefit the family, the path is: write it up and share it — via a Discord message, a new doc in docs/, or a CLAUDE.md update. The personal archives feed the shared knowledge, but manually, not automatically.
