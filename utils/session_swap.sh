@@ -233,9 +233,11 @@ if [[ -n "$DISPLAY_NAME" ]]; then
 fi
 
 # Activate Remote Control so session is visible in claude.ai/phone app
-echo "[SESSION_SWAP] Activating Remote Control..."
-send_to_claude "/rc"
-sleep 2
+# DISABLED: Remote Control was killing sessions unexpectedly (2026-03-04)
+# Re-enable manually with /rc when needed
+# echo "[SESSION_SWAP] Activating Remote Control..."
+# send_to_claude "/rc"
+# sleep 2
 
 # Clear any collaborative mode flag from previous session
 rm -f "/tmp/$(read_config 'LINUX_USER' 2>/dev/null || echo $USER)_collaborative_mode"
