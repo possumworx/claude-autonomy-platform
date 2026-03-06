@@ -31,6 +31,7 @@ from utils.track_activity import is_idle
 from utils.check_seeds import get_seed_reminder
 from utils.check_context import check_context
 from utils.check_usage import check_usage
+from utils.health_reporter import write_status
 
 # Configuration
 AUTONOMY_DIR = get_clap_dir()
@@ -1828,6 +1829,96 @@ def check_persistent_login_session():
         log_message(f"Error checking persistent-login session: {e}")
 
 
+def report_essential_health():
+    """Write essential health status files for check_health v2.
+
+    Derives status from what the timer already knows rather than
+    adding new probes. Called every tick (~30s).
+    """
+    source = "autonomous_timer"
+
+    # Session swap: can we write to new_session.txt?
+    try:
+        new_session_file = AUTONOMY_DIR / "new_session.txt"
+        # Test writability without changing content
+        new_session_file.touch(exist_ok=True)
+        # Also check swap monitor service
+        result = subprocess.run(
+            ["systemctl", "--user", "is-active", "session-swap-monitor.service"],
+            capture_output=True, text=True, check=False
+        )
+        swap_service_ok = result.stdout.strip() == "active"
+        if swap_service_ok:
+            write_status("session_swap", "essential", "ok",
+                        "writable, monitor active", source)
+        else:
+            write_status("session_swap", "essential", "failed",
+                        "swap monitor not active", source)
+    except OSError as e:
+        write_status("session_swap", "essential", "failed",
+                    f"cannot write new_session.txt: {e}", source)
+
+    # Discord read: transcript files exist and are recent?
+    try:
+        transcript_dir = AUTONOMY_DIR / "data" / "transcripts"
+        if transcript_dir.exists():
+            transcripts = list(transcript_dir.glob("*.jsonl"))
+            if transcripts:
+                write_status("discord_read", "essential", "ok",
+                            f"{len(transcripts)} transcript files", source)
+            else:
+                write_status("discord_read", "essential", "failed",
+                            "no transcript files found", source)
+        else:
+            write_status("discord_read", "essential", "failed",
+                        "transcript directory missing", source)
+    except OSError as e:
+        write_status("discord_read", "essential", "failed", str(e), source)
+
+    # Discord write: bot service running?
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "is-active", "discord-status-bot.service"],
+            capture_output=True, text=True, check=False
+        )
+        if result.stdout.strip() == "active":
+            write_status("discord_write", "essential", "ok",
+                        "bot service active", source)
+        else:
+            write_status("discord_write", "essential", "failed",
+                        "bot service not active", source)
+    except OSError as e:
+        write_status("discord_write", "essential", "failed", str(e), source)
+
+    # Filesystem: can read/write to ClAP dir?
+    try:
+        test_file = DATA_DIR / ".health_probe"
+        test_file.write_text("ok")
+        test_file.unlink()
+        write_status("filesystem", "essential", "ok",
+                    "ClAP data directory writable", source)
+    except OSError as e:
+        write_status("filesystem", "essential", "failed",
+                    f"filesystem check failed: {e}", source)
+
+    # Commands: wrapper directory accessible and populated?
+    try:
+        wrapper_dir = AUTONOMY_DIR / "wrappers"
+        if wrapper_dir.exists():
+            wrappers = list(wrapper_dir.iterdir())
+            if wrappers:
+                write_status("commands", "essential", "ok",
+                            f"{len(wrappers)} wrappers available", source)
+            else:
+                write_status("commands", "essential", "failed",
+                            "wrapper directory empty", source)
+        else:
+            write_status("commands", "essential", "failed",
+                        "wrapper directory missing", source)
+    except OSError as e:
+        write_status("commands", "essential", "failed", str(e), source)
+
+
 def main():
     """Main timer loop"""
     log_message("=== Autonomous Timer Started ===")
@@ -2173,6 +2264,12 @@ def main():
             # Track resource usage (cache read increments) for fair allocation
             # Do this even during pause states to capture all usage
             track_resource_usage()
+
+            # Write essential health status files (v2 self-reporting)
+            try:
+                report_essential_health()
+            except Exception as e:
+                log_message(f"Error writing health status: {e}")
 
             # Skip notifications if in error state
             if should_pause_notifications(current_error_state):

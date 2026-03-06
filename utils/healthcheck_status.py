@@ -14,6 +14,10 @@ from pathlib import Path
 import argparse
 import sys
 
+# Add parent directory for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.health_reporter import read_all_status, format_age
+
 # API configuration
 API_KEY = "hcr_icPvO9biFPnjkZfI8PgDNy16zlIV"  # ALLOW-SECRET
 BASE_URL = "https://healthchecks.io/api/v3"
@@ -259,6 +263,76 @@ def format_status(status):
     return status_map.get(status, f"❓ {status.upper()}")
 
 
+def display_self_reported_status():
+    """Display health status from self-reported status files (v2).
+
+    Returns count of essential failures for summary.
+    """
+    status = read_all_status()
+    essential = status.get("essential", {})
+    optional = status.get("optional", {})
+
+    essential_failures = 0
+    discord_issues = []
+
+    if essential:
+        print("\nEssential (self-reported):")
+        # Display names in a readable order
+        check_labels = {
+            "session_swap": "Session swap",
+            "discord_read": "Discord read",
+            "discord_write": "Discord write",
+            "filesystem": "File system",
+            "commands": "Commands",
+        }
+        for key, label in check_labels.items():
+            data = essential.get(key)
+            if data is None:
+                print(f"  ❓ {label:18} no status file")
+                continue
+
+            age_str = format_age(data["age_seconds"])
+            if data["stale"]:
+                print(f"  ⚠️  {label:18} stale ({age_str} — expected <2m)")
+                essential_failures += 1
+                # Track Discord-specific issues
+                if key in ["discord_read", "discord_write"]:
+                    discord_issues.append(key)
+            elif data["status"] == "ok":
+                detail = data.get("details", "")
+                print(f"  ✅ {label:18} ok ({age_str})" + (f" — {detail}" if detail else ""))
+            else:
+                print(f"  ❌ {label:18} FAILED — {data.get('details', 'unknown')}")
+                essential_failures += 1
+                # Track Discord-specific issues
+                if key in ["discord_read", "discord_write"]:
+                    discord_issues.append(key)
+    else:
+        print("\nEssential (self-reported):")
+        print("  ℹ️  No status files yet (autonomous timer will create them)")
+
+    if optional:
+        print("\nOptional (self-reported):")
+        for name, data in optional.items():
+            label = name.replace("_", " ").title()
+            age_str = format_age(data["age_seconds"])
+            if data["stale"]:
+                print(f"  ⚠️  {label:18} stale ({age_str})")
+            elif data["status"] == "ok":
+                print(f"  ✅ {label:18} ok ({age_str})")
+            else:
+                print(f"  ❌ {label:18} FAILED — {data.get('details', '')}")
+
+    # Show Discord diagnostic suggestion if Discord issues detected
+    if discord_issues:
+        print("\n💡 Discord Diagnostic Tips:")
+        print("   Discord read/write issues often resolve by restarting the transcript fetcher:")
+        print("   systemctl --user restart discord-transcript-fetcher.service")
+        print("   (Symptom: Messages sent but not visible in local transcript)")
+
+    return essential_failures
+
+
 def display_health_status(data, diagnose=False):
     """Display health status in a clean format
 
@@ -271,6 +345,12 @@ def display_health_status(data, diagnose=False):
 
     all_issues = []
 
+    # v2: Self-reported status files
+    essential_failures = display_self_reported_status()
+    if essential_failures:
+        all_issues.append(f"{essential_failures} essential check(s) failing")
+
+    # Legacy checks (kept during Phase 1 migration)
     # Check git repository status
     git_issues = check_git_status()
     all_issues.extend(git_issues)
