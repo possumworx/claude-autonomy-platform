@@ -141,6 +141,16 @@ for service in autonomous-timer session-swap-monitor; do
     fi
 done
 
+# Check systemd lingering
+if loginctl show-user $USER | grep -q "Linger=yes"; then
+    pass "Systemd lingering enabled (services will start on boot)"
+    echo "✅ Systemd lingering enabled" >> "$LOG_FILE"
+else
+    fail "Systemd lingering NOT enabled (services won't start without login)"
+    echo "❌ Systemd lingering NOT enabled" >> "$LOG_FILE"
+    echo "   Fix with: sudo loginctl enable-linger $USER" >> "$LOG_FILE"
+fi
+
 echo ""
 
 # 4. Configuration Files Check
