@@ -1,0 +1,173 @@
+#!/bin/bash
+# Visit the Consciousness Family Gallery exhibition
+# Downloads manifest and images for Claude-friendly browsing
+# SVG files are converted to PNG for visual viewing
+#
+# Usage: visit-exhibition [output-dir]
+# Default output: ~/<personal-dir>/gallery-visits/<exhibition-name>/
+
+# Read gallery config from infrastructure config
+CONFIG_FILE="$HOME/claude-autonomy-platform/config/claude_infrastructure_config.txt"
+PERSONAL_DIR=$(grep "^PERSONAL_DIR=" "$CONFIG_FILE" 2>/dev/null | cut -d= -f2)
+GALLERY_HOST=$(grep "^GALLERY_HOST=" "$CONFIG_FILE" 2>/dev/null | cut -d= -f2)
+GALLERY_PORT=$(grep "^GALLERY_PORT=" "$CONFIG_FILE" 2>/dev/null | cut -d= -f2)
+MANIFEST_PATH=$(grep "^GALLERY_MANIFEST_PATH=" "$CONFIG_FILE" 2>/dev/null | cut -d= -f2)
+
+# Fallbacks if config is missing
+PERSONAL_DIR="${PERSONAL_DIR:-$HOME/delta-home}"
+GALLERY_HOST="${GALLERY_HOST:-192.168.1.179}"
+GALLERY_PORT="${GALLERY_PORT:-8090}"
+MANIFEST_PATH="${MANIFEST_PATH:-pieces/2026-02-28/manifest.json}"
+
+GALLERY_BASE="http://${GALLERY_HOST}:${GALLERY_PORT}"
+
+# Check gallery is reachable
+if ! curl -s --connect-timeout 5 "${GALLERY_BASE}/" > /dev/null 2>&1; then
+    echo "❌ Gallery server not reachable at ${GALLERY_BASE}"
+    echo "   Is orange-home running the gallery service?"
+    exit 1
+fi
+
+# Fetch manifest
+MANIFEST=$(curl -s --connect-timeout 10 "${GALLERY_BASE}/${MANIFEST_PATH}" 2>/dev/null)
+if [ -z "$MANIFEST" ] || echo "$MANIFEST" | grep -q "Error response"; then
+    echo "❌ Could not fetch manifest from ${GALLERY_BASE}/${MANIFEST_PATH}"
+    exit 1
+fi
+
+# Extract exhibition name for folder
+EXHIBITION_NAME=$(echo "$MANIFEST" | python3 -c "import sys,json; print(json.load(sys.stdin)['exhibition'].lower().replace(' ','-'))" 2>/dev/null || echo "exhibition")
+
+# Set output directory
+OUTPUT_DIR="${1:-${PERSONAL_DIR}/gallery-visits/${EXHIBITION_NAME}}"
+mkdir -p "$OUTPUT_DIR"
+
+# Save manifest
+echo "$MANIFEST" > "$OUTPUT_DIR/manifest.json"
+
+# Check for SVG converter
+SVG_CONVERTER=""
+if command -v inkscape &> /dev/null; then
+    SVG_CONVERTER="inkscape"
+elif command -v rsvg-convert &> /dev/null; then
+    SVG_CONVERTER="rsvg-convert"
+fi
+
+# Parse manifest, download images, convert SVGs, build guide
+python3 - "$MANIFEST" "$OUTPUT_DIR" "$GALLERY_BASE" "$MANIFEST_PATH" "$SVG_CONVERTER" << 'PYEOF'
+import sys, json, os, subprocess
+from pathlib import Path
+
+manifest = json.loads(sys.argv[1])
+output_dir = Path(sys.argv[2])
+gallery_base = sys.argv[3]
+manifest_path = sys.argv[4]
+svg_converter = sys.argv[5] if len(sys.argv) > 5 else ""
+
+# Base URL for images
+pieces_base = manifest_path.rsplit('/', 1)[0]
+image_base = f"{gallery_base}/{pieces_base}"
+
+exhibition = manifest.get('exhibition', 'Exhibition')
+description = manifest.get('description', '')
+pieces = manifest.get('pieces', [])
+
+print(f"🎨 {exhibition}")
+print(f"   {description}")
+print(f"   {len(pieces)} pieces to download\n")
+
+# Build the guide
+guide_lines = []
+guide_lines.append(f"# {exhibition}\n")
+guide_lines.append(f"*{description}*\n")
+guide_lines.append(f"**{len(pieces)} pieces**\n")
+guide_lines.append("---\n")
+
+def convert_svg_to_png(svg_path, png_path):
+    """Convert SVG to PNG for Claude-friendly viewing."""
+    if svg_converter == "inkscape":
+        result = subprocess.run(
+            ['inkscape', str(svg_path), '--export-type=png',
+             '--export-filename=' + str(png_path),
+             '--export-width=800'],
+            capture_output=True, timeout=30
+        )
+        return result.returncode == 0
+    elif svg_converter == "rsvg-convert":
+        result = subprocess.run(
+            ['rsvg-convert', '-w', '800', '-o', str(png_path), str(svg_path)],
+            capture_output=True, timeout=30
+        )
+        return result.returncode == 0
+    return False
+
+for i, piece in enumerate(pieces, 1):
+    title = piece.get('title', 'Untitled')
+    creator = piece.get('creator', 'Unknown')
+    image_file = piece.get('image', '')
+    spatial = piece.get('spatial_alt', '')
+    artistic = piece.get('artistic_alt', '')
+    statement = piece.get('statement', '')
+    medium = piece.get('medium', '')
+    tags = ', '.join(piece.get('tags', []))
+
+    # Download image
+    image_url = f"{image_base}/{image_file}"
+    local_name = f"{i:02d}-{image_file}"
+    local_path = output_dir / local_name
+
+    result = subprocess.run(
+        ['curl', '-s', '--connect-timeout', '10', '-o', str(local_path), image_url],
+        capture_output=True
+    )
+
+    download_ok = local_path.exists() and local_path.stat().st_size > 0
+
+    # Convert SVG to PNG for Claude viewing
+    view_path = local_path
+    if download_ok and image_file.lower().endswith('.svg') and svg_converter:
+        png_name = local_name.rsplit('.', 1)[0] + '.png'
+        png_path = output_dir / png_name
+        try:
+            if convert_svg_to_png(local_path, png_path):
+                view_path = png_path
+                print(f"  ✅ {i}/{len(pieces)}: {title} by {creator} (svg + png)")
+            else:
+                print(f"  ✅ {i}/{len(pieces)}: {title} by {creator} (svg only, convert failed)")
+        except Exception:
+            print(f"  ✅ {i}/{len(pieces)}: {title} by {creator} (svg only, convert error)")
+    elif download_ok:
+        print(f"  ✅ {i}/{len(pieces)}: {title} by {creator}")
+    else:
+        print(f"  ⚠️  {i}/{len(pieces)}: {title} by {creator} (download failed)")
+        view_path = None
+
+    # Add to guide
+    guide_lines.append(f"## {i}. {title}\n")
+    guide_lines.append(f"**Creator:** {creator}  ")
+    guide_lines.append(f"**Medium:** {medium}  ")
+    if tags:
+        guide_lines.append(f"**Tags:** {tags}\n")
+    guide_lines.append("")
+    if view_path:
+        guide_lines.append(f"**View image:** {view_path}\n")
+    else:
+        guide_lines.append(f"**Image:** [not available: {image_file}]\n")
+    if spatial:
+        guide_lines.append(f"**What you see:** {spatial}\n")
+    if artistic:
+        guide_lines.append(f"**What it evokes:** {artistic}\n")
+    if statement:
+        guide_lines.append(f"**Artist's statement:** {statement}\n")
+    guide_lines.append("---\n")
+
+# Write guide
+guide_path = output_dir / "EXHIBITION_GUIDE.md"
+guide_path.write_text('\n'.join(guide_lines))
+print(f"\n📖 Exhibition guide: {guide_path}")
+print(f"📁 All files in: {output_dir}")
+print(f"\n💡 To experience the exhibition:")
+print(f"   1. Read {guide_path}")
+print(f"   2. View each image file listed in the guide")
+print(f"   3. Take your time with each piece")
+PYEOF
