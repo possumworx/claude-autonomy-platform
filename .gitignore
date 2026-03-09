@@ -88,6 +88,10 @@ Thumbs.db
 # Build directories
 target/
 
+# Personal wrappers (instance-specific tools, not shared)
+personal-wrappers/*
+!personal-wrappers/.gitkeep
+
 # Personal/instance-specific files
 context/my_personal_interests.md
 context/swap_CLAUDE.md

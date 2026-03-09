@@ -3,6 +3,7 @@
 # Reads from wrappers/ directory (the canonical source of available commands)
 
 WRAPPERS_DIR="$HOME/claude-autonomy-platform/wrappers"
+PERSONAL_DIR="$HOME/claude-autonomy-platform/personal-wrappers"
 
 echo "=== Available Commands ==="
 echo ""
@@ -17,6 +18,29 @@ for wrapper in "$WRAPPERS_DIR"/*; do
         printf "  %-20s %s\n" "$name" "(no description)"
     fi
 done
+
+# List personal wrappers if any exist
+personal_count=0
+for wrapper in "$PERSONAL_DIR"/*; do
+    [ -f "$wrapper" ] && [ "$(basename "$wrapper")" != ".gitkeep" ] && personal_count=$((personal_count + 1))
+done
+
+if [ "$personal_count" -gt 0 ]; then
+    echo ""
+    echo "=== Personal Commands ==="
+    echo ""
+    for wrapper in "$PERSONAL_DIR"/*; do
+        [ -f "$wrapper" ] || continue
+        name=$(basename "$wrapper")
+        [ "$name" = ".gitkeep" ] && continue
+        description=$(sed -n '2s/^# *//p' "$wrapper" 2>/dev/null)
+        if [ -n "$description" ]; then
+            printf "  %-20s %s\n" "$name" "$description"
+        else
+            printf "  %-20s %s\n" "$name" "(no description)"
+        fi
+    done
+fi
 
 echo ""
 echo "Use 'type <command>' to see what any command does"
