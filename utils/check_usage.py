@@ -105,7 +105,7 @@ def _update_tracking_file(session_id):
 
 def run_ccusage(session_id):
     """Run ccusage to get usage summary for session"""
-    cmd = ["npx", "ccusage", "session", "--id", session_id]
+    cmd = ["ccusage", "session", "--offline", "--id", session_id]
 
     try:
         # Set Claude config dir

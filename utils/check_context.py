@@ -27,7 +27,7 @@ TOTAL_CONTEXT = 200000  # 200k token limit
 
 def run_ccusage(session_id):
     """Run ccusage to get token count for session"""
-    cmd = ["npx", "ccusage", "session", "--id", session_id]
+    cmd = ["ccusage", "session", "--offline", "--id", session_id]
 
     try:
         # Set Claude config dir
