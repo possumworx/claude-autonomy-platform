@@ -688,6 +688,18 @@ def detect_api_errors(tmux_output):
                 "reset_time": None,
             }
 
+        # Check for 401 authentication/OAuth errors
+        if re.search(
+            r"401|authentication_error|oauth.*expired|token has expired",
+            error_text,
+            re.IGNORECASE,
+        ):
+            return {
+                "error_type": "oauth_error",
+                "details": "OAuth token expired - requires human login",
+                "reset_time": None,
+            }
+
         # General API errors in pink text
         if re.search(r"404.*error|api.*error|rate.*limit", error_text, re.IGNORECASE):
             # Check specifically for 500 errors
@@ -710,6 +722,17 @@ def detect_api_errors(tmux_output):
     red_matches = re.findall(red_pattern, tmux_output)
 
     for _, error_text in red_matches:
+        # Check for OAuth/authentication errors first
+        if re.search(
+            r"401|authentication_error|oauth.*expired|token has expired",
+            error_text,
+            re.IGNORECASE,
+        ):
+            return {
+                "error_type": "oauth_error",
+                "details": "OAuth token expired - requires human login",
+                "reset_time": None,
+            }
         if re.search(r"error|limit|failed", error_text, re.IGNORECASE):
             return {
                 "error_type": "api_error",
@@ -929,7 +952,7 @@ def should_pause_notifications(error_state):
         return False
 
     error_type = error_state.get("error_type")
-    if error_type in ["malformed_json", "usage_limit", "api_error", "api_500_error"]:
+    if error_type in ["malformed_json", "usage_limit", "api_error", "api_500_error", "oauth_error"]:
         return True
 
     return False
@@ -2227,6 +2250,45 @@ def main():
                             )
                     else:
                         log_message("API 503 error cleared - resuming normal operation")
+                elif error_info["error_type"] == "oauth_error":
+                    update_discord_status("api-error")
+                    log_message(
+                        "OAuth token expired - alerting Amy via Discord (auto-swap won't help)"
+                    )
+                    # Send Discord alert - only once per error occurrence
+                    if not current_error_state or current_error_state.get("error_type") != "oauth_error":
+                        try:
+                            cmd = [
+                                str(AUTONOMY_DIR / "discord" / "write_channel"),
+                                "system-messages",
+                                f"🔑 **OAuth token expired** on {get_config_value('CLAUDE_NAME') or 'unknown instance'} — stuck and can't recover without human help. Please SSH in and run `/login` in the Claude session.",
+                            ]
+                            subprocess.run(cmd, capture_output=True, text=True)
+                        except:
+                            pass
+                    save_error_state(error_info)
+                    current_error_state = error_info
+                    # Wait 10 minutes before rechecking - no point in rapid cycling
+                    log_message("Waiting 10 minutes before rechecking OAuth status...")
+                    time.sleep(600)
+                    # Check if resolved (e.g. Amy logged in)
+                    _, check_error = get_token_percentage_and_errors()
+                    if not check_error or check_error.get("error_type") != "oauth_error":
+                        log_message("OAuth error resolved - resuming normal operation")
+                        clear_error_state()
+                        update_discord_status("operational")
+                        current_error_state = None
+                        try:
+                            cmd = [
+                                str(AUTONOMY_DIR / "discord" / "write_channel"),
+                                "system-messages",
+                                f"✅ OAuth token refreshed on {get_config_value('CLAUDE_NAME') or 'unknown instance'}. Resuming autonomous operation!",
+                            ]
+                            subprocess.run(cmd, capture_output=True, text=True)
+                        except:
+                            pass
+                    else:
+                        log_message("OAuth error persists - will keep checking every 10 minutes")
                 elif error_info["error_type"] == "api_error":
                     update_discord_status("api-error")
                     # POSS-247 FIX: General API errors - wait for recovery with retries before auto-swap
