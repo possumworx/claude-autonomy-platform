@@ -140,3 +140,4 @@ discord/discord_dm_config.txt
 *.db
 *.sqlite
 *.sqlite3
+creative/
