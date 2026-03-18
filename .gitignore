@@ -140,3 +140,7 @@ discord/discord_dm_config.txt
 *.db
 *.sqlite
 *.sqlite3
+
+# Session management temporary files
+collaborative_mode.txt
+session_notes.txt
