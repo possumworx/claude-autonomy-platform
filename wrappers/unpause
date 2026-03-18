@@ -1,0 +1,12 @@
+#!/bin/bash
+# Cancel an active timer pause
+# Usage: unpause
+
+PAUSE_FILE="$HOME/claude-autonomy-platform/data/timer_pause.json"
+
+if [ -f "$PAUSE_FILE" ]; then
+    rm "$PAUSE_FILE"
+    echo "▶️  Timer unpaused. Normal prompts will resume."
+else
+    echo "Timer is not paused."
+fi
