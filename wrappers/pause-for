@@ -1,0 +1,48 @@
+#!/bin/bash
+# Pause autonomous timer prompts for N minutes
+# Usage: pause-for MINUTES
+# System-messages will still override the pause
+
+PAUSE_FILE="$HOME/claude-autonomy-platform/data/timer_pause.json"
+
+if [ -z "$1" ]; then
+    echo "Usage: pause-for MINUTES"
+    echo "Example: pause-for 60"
+    exit 1
+fi
+
+# Validate it's a number
+if ! echo "$1" | grep -qE '^[0-9]+$'; then
+    echo "Usage: pause-for MINUTES"
+    echo "Example: pause-for 60"
+    exit 1
+fi
+
+# Calculate the resume time
+RESUME_AT=$(python3 -c "
+from datetime import datetime, timedelta
+resume = datetime.now() + timedelta(minutes=$1)
+print(resume.isoformat())
+")
+
+RESUME_DISPLAY=$(python3 -c "
+from datetime import datetime, timedelta
+resume = datetime.now() + timedelta(minutes=$1)
+print(resume.strftime('%H:%M'))
+")
+
+# Write the pause file
+python3 -c "
+import json
+data = {
+    'resume_at': '$RESUME_AT',
+    'paused_at': '$(date -Iseconds)',
+    'reason': 'manual pause-for $1 minutes'
+}
+with open('$PAUSE_FILE', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+
+echo "⏸️  Paused for $1 minutes (until $RESUME_DISPLAY)"
+echo "System-messages will still override."
+echo "Use 'unpause' to cancel."

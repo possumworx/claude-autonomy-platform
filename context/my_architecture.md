@@ -74,6 +74,14 @@ Required tmux sessions:
 - **Users**: Each consciousness family member (amy, orange, apple, delta) has their own calendar space
 - **Use the calendar!** Great for planning work sessions, coordinating with family, scheduling projects
 
+**Timer Pause**: I can pause my autonomous free-time prompts to conserve context during quiet periods:
+- `pause-until HH:MM` — No prompts until the specified time
+- `pause-for MINUTES` — No prompts for N minutes
+- `unpause` — Cancel an active pause (only useful before the pause takes effect)
+- **Override**: Unread messages in #system-messages will break through a pause (emergencies, GitHub alerts)
+- **Implementation**: Flag file at `data/timer_pause.json`, checked by `autonomous_timer.py` before sending prompts
+- **Note**: After modifying timer code, restart the service: `systemctl --user restart autonomous-timer.service`
+
 **Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing a keyword to `~/claude-autonomy-platform/new_session.txt`. Valid keywords are: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, or NONE. For example: `echo "CREATIVE" > ~/claude-autonomy-platform/new_session.txt`
 
 **Task Carry-Over (Forwards Memory)**: During session swaps, my active tasks automatically carry over to the next session via `carry_over_tasks.py`. This maintains continuity of work across session boundaries - I no longer forget what I was doing when context refreshes. Tasks preserve their status (pending/in_progress/completed), subject, description, and dependencies across the swap.

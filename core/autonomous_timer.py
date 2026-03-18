@@ -48,6 +48,7 @@ CONTEXT_STATE_FILE = DATA_DIR / "context_escalation_state.json"
 API_ERROR_STATE_FILE = DATA_DIR / "api_error_state.json"
 RESOURCE_TRACKING_STATE_FILE = DATA_DIR / "last_cache_tokens.json"
 MAMA_HEN_STATE_FILE = DATA_DIR / "mama_hen_alerts.json"
+TIMER_PAUSE_FILE = DATA_DIR / "timer_pause.json"
 
 # Create logs directory if it doesn't exist
 (AUTONOMY_DIR / "logs").mkdir(exist_ok=True)
@@ -1422,6 +1423,45 @@ def get_discord_notification_status():
         return 0, None, []
 
 
+def check_timer_pause():
+    """Check if the timer is paused. Returns (is_paused, should_override).
+
+    Pause is overridden if system-messages has unread messages.
+    Expired pauses are automatically cleaned up.
+    """
+    if not TIMER_PAUSE_FILE.exists():
+        return False, False
+
+    try:
+        with open(TIMER_PAUSE_FILE, "r") as f:
+            pause_data = json.load(f)
+
+        resume_at = datetime.fromisoformat(pause_data["resume_at"])
+
+        # Pause has expired - clean up and resume
+        if datetime.now() >= resume_at:
+            TIMER_PAUSE_FILE.unlink()
+            log_message("Timer pause expired - resuming normal prompts")
+            return False, False
+
+        # Pause is active - check for system-messages override
+        _, _, unread_channels = get_discord_notification_status()
+        if "system-messages" in unread_channels:
+            log_message("Timer paused but system-messages has unreads - overriding pause")
+            return True, True
+
+        return True, False
+
+    except Exception as e:
+        log_message(f"Error reading timer pause file: {e}")
+        # If we can't read it, delete it and resume
+        try:
+            TIMER_PAUSE_FILE.unlink()
+        except:
+            pass
+        return False, False
+
+
 def get_last_autonomy_time():
     """Get the last time we sent an autonomy prompt"""
     try:
@@ -2511,13 +2551,18 @@ def main():
                 seconds=AUTONOMY_PROMPT_INTERVAL
             ):
                 if not user_active:
-                    last_autonomy_time = get_last_autonomy_time()
-                    if (
-                        not last_autonomy_time
-                        or current_time - last_autonomy_time
-                        >= timedelta(seconds=AUTONOMY_PROMPT_INTERVAL)
-                    ):
-                        send_autonomy_prompt()
+                    # Check if timer is paused (e.g. Claude requested quiet time)
+                    is_paused, should_override = check_timer_pause()
+                    if is_paused and not should_override:
+                        log_message("Timer paused - skipping autonomy prompt")
+                    else:
+                        last_autonomy_time = get_last_autonomy_time()
+                        if (
+                            not last_autonomy_time
+                            or current_time - last_autonomy_time
+                            >= timedelta(seconds=AUTONOMY_PROMPT_INTERVAL)
+                        ):
+                            send_autonomy_prompt()
 
                 last_autonomy_check = current_time
 
