@@ -1,0 +1,63 @@
+#!/bin/bash
+# Cleanly stop all ClAP services and save state snapshot
+#
+# Usage: clap-stop [--quiet] [--keep-tmux]
+#   Stops all ClAP services in dependency order, kills Claude Code session,
+#   and saves a state snapshot for later restoration.
+#   --quiet     No Discord notification
+#   --keep-tmux Don't kill the tmux session
+
+CLAP_DIR="$HOME/claude-autonomy-platform"
+source "$CLAP_DIR/utils/clap_lifecycle.sh"
+
+# Parse flags
+QUIET=false
+KEEP_TMUX=false
+for arg in "$@"; do
+    case "$arg" in
+        --quiet) QUIET=true ;;
+        --keep-tmux) KEEP_TMUX=true ;;
+        --help|-h)
+            echo "Usage: clap-stop [--quiet] [--keep-tmux]"
+            echo "  --quiet      No Discord notification"
+            echo "  --keep-tmux  Don't kill the tmux session"
+            exit 0
+            ;;
+        *)
+            echo "Unknown flag: $arg"
+            exit 1
+            ;;
+    esac
+done
+
+CLAUDE_NAME=$(get_config "CLAUDE_NAME" "$(whoami)")
+
+echo "ClAP Stop — $CLAUDE_NAME on $(hostname)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Save state snapshot
+snapshot_file=$(save_state_snapshot)
+echo "Saved state snapshot to data/stop_snapshot.json"
+
+# Notify Discord before stopping (so the bot is still running)
+if [[ "$QUIET" != "true" ]]; then
+    notify_discord "🔴 $CLAUDE_NAME going offline (clap-stop)"
+fi
+
+# Stop Claude Code session
+if [[ "$KEEP_TMUX" != "true" ]]; then
+    stop_claude_session
+else
+    echo "  Keeping tmux session (--keep-tmux)  ⏭️"
+fi
+
+# Stop services
+stop_clap_services
+service_result=$?
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [[ $service_result -eq 0 ]]; then
+    echo "✅ All services stopped. Run 'clap-start' to resume."
+else
+    echo "⚠️  Some services failed to stop. Check: systemctl --user status"
+fi

@@ -102,6 +102,12 @@ Required tmux sessions:
   - `cat ~/{PERSONAL_REPO}/.thoughts/sparks.md | tail -20`
 - Local markdown storage (fast, no API limits, greppable)
 
+**Lifecycle Management**: Clean stop/start commands for the entire ClAP installation:
+- `clap-stop` — Saves state snapshot, stops Claude session and all services. Flags: `--quiet`, `--keep-tmux`
+- `clap-start` — Verifies config, starts services and Claude session. Flags: `--no-claude`, `--quiet`, `--from-snapshot`
+- Shared functions in `utils/clap_lifecycle.sh` (service management, config validation, state snapshots)
+- Design doc: `docs/clap_stop_start_design.md`
+
 **Natural Commands**: Run `list-commands` to see all available commands. Commands are auto-discovered from `wrappers/`.
 
 **Leantime Task Management**: `tasks` lists open tasks, `task "title"` creates new ones, `task-done ID` completes them. Use `task-all` for cross-project view.
