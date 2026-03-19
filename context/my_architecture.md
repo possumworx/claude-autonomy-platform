@@ -78,7 +78,7 @@ Required tmux sessions:
 - `pause-until HH:MM` — No prompts until the specified time
 - `pause-for MINUTES` — No prompts for N minutes
 - `unpause` — Cancel an active pause (only useful before the pause takes effect)
-- **Override**: Unread messages in #system-messages will break through a pause (emergencies, GitHub alerts)
+- **Override**: Unread messages in #system-messages will break through a pause, UNLESS the recent messages are all MAMA-HEN alerts (which would otherwise create a wake-up loop). Non-MAMA-HEN content (GitHub notifications, real alerts) still breaks through.
 - **Implementation**: Flag file at `data/timer_pause.json`, checked by `autonomous_timer.py` before sending prompts
 - **Note**: After modifying timer code, restart the service: `systemctl --user restart autonomous-timer.service`
 

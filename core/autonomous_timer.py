@@ -16,6 +16,7 @@ import subprocess
 import sys
 import glob
 import re
+import collections
 import requests
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -1426,7 +1427,8 @@ def get_discord_notification_status():
 def check_timer_pause():
     """Check if the timer is paused. Returns (is_paused, should_override).
 
-    Pause is overridden if system-messages has unread messages.
+    Pause is overridden if system-messages has NEW unread messages
+    (not the same ones that already triggered a previous override).
     Expired pauses are automatically cleaned up.
     """
     if not TIMER_PAUSE_FILE.exists():
@@ -1447,7 +1449,39 @@ def check_timer_pause():
         # Pause is active - check for system-messages override
         _, _, unread_channels = get_discord_notification_status()
         if "system-messages" in unread_channels:
-            log_message("Timer paused but system-messages has unreads - overriding pause")
+            # Check if recent messages are just MAMA-HEN alerts (not worth waking for)
+            try:
+                transcript_file = DATA_DIR / "transcripts" / "system-messages.jsonl"
+                if transcript_file.exists():
+                    # Read the last few lines of the transcript
+                    recent_msgs = collections.deque(maxlen=5)
+                    with open(transcript_file, "r") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line:
+                                recent_msgs.append(line)
+
+                    # Check if ALL recent messages are MAMA-HEN alerts
+                    all_mama_hen = True
+                    for line in recent_msgs:
+                        try:
+                            msg = json.loads(line)
+                            content = msg.get("content", "")
+                            if "[MAMA-HEN:" not in content:
+                                all_mama_hen = False
+                                break
+                        except json.JSONDecodeError:
+                            all_mama_hen = False
+                            break
+
+                    if all_mama_hen and recent_msgs:
+                        log_message("Timer paused - system-messages recent activity is only MAMA-HEN alerts, staying paused")
+                        return True, False
+            except Exception as e:
+                log_message(f"Error checking system-messages content: {e}")
+                # Fall through to override on error (safer)
+
+            log_message("Timer paused but system-messages has important unreads - overriding pause")
             return True, True
 
         return True, False
