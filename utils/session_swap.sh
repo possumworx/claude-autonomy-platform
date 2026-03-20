@@ -232,6 +232,14 @@ if [[ -n "$DISPLAY_NAME" ]]; then
     sleep 2
 fi
 
+# Set session color for visual identification across SSH terminals
+SESSION_COLOR=$(read_config "SESSION_COLOR" 2>/dev/null || echo "")
+if [[ -n "$SESSION_COLOR" ]]; then
+    echo "[SESSION_SWAP] Setting session color to '$SESSION_COLOR'..."
+    send_to_claude "/color $SESSION_COLOR"
+    sleep 2
+fi
+
 # Activate Remote Control so session is visible in claude.ai/phone app
 # DISABLED: Remote Control was killing sessions unexpectedly (2026-03-04)
 # Re-enable manually with /rc when needed

@@ -59,6 +59,7 @@ monitor_debug.log
 # EXCEPT shared hooks (infrastructure)
 !.claude/hooks/
 !.claude/settings.json
+!.claude/statusline.sh
 
 # Personal configuration
 claude_infrastructure_config.txt

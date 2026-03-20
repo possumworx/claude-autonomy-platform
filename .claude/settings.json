@@ -1,5 +1,9 @@
 {
   "outputStyle": "identity",
+  "statusLine": {
+    "type": "command",
+    "command": "$HOME/claude-autonomy-platform/.claude/statusline.sh"
+  },
   "hooks": {
     "UserPromptSubmit": [
       {
