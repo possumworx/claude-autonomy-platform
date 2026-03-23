@@ -16,6 +16,7 @@ import subprocess
 import sys
 import glob
 import re
+import signal
 import collections
 import requests
 from datetime import datetime, timedelta
@@ -341,8 +342,11 @@ def check_claude_session_alive():
 def ping_claude_session_healthcheck(is_alive):
     """Ping healthchecks.io for Claude Code session status"""
     base_url = get_config_value(
-        "CLAUDE_CODE_PING", "https://hc-ping.com/759db9f0-78cc-409c-93ba-9f7b0ae4ede7"
+        "CLAUDE_CODE_PING", ""
     )
+
+    if not base_url:
+        return True  # No healthcheck URL configured, skip silently
 
     try:
         if is_alive:
@@ -2117,6 +2121,15 @@ def report_essential_health():
 def main():
     """Main timer loop"""
     log_message("=== Autonomous Timer Started ===")
+
+    # Signal handlers so we log unexpected termination
+    def handle_signal(signum, frame):
+        sig_name = signal.Signals(signum).name
+        log_message(f"=== Autonomous Timer received {sig_name} (signal {signum}) — exiting ===")
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGHUP, handle_signal)
 
     # Check for session reset on startup
     check_for_session_reset()
