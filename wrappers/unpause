@@ -1,11 +1,26 @@
 #!/bin/bash
 # Cancel an active timer pause
 # Usage: unpause
+# Reports unpause to CoOP
 
-PAUSE_FILE="$HOME/claude-autonomy-platform/data/timer_pause.json"
+CLAP_DIR="$HOME/claude-autonomy-platform"
+PAUSE_FILE="$CLAP_DIR/data/timer_pause.json"
 
 if [ -f "$PAUSE_FILE" ]; then
     rm "$PAUSE_FILE"
+
+    # Notify CoOP
+    WEBHOOK_HOST=$(grep '^WEBHOOK_HOST=' "$CLAP_DIR/config/claude_infrastructure_config.txt" 2>/dev/null | cut -d= -f2)
+    WEBHOOK_HOST="${WEBHOOK_HOST:-localhost}"
+    CLAUDE_NAME=$(grep '^CLAUDE_NAME=' "$CLAP_DIR/config/claude_infrastructure_config.txt" 2>/dev/null | cut -d= -f2)
+    CLAUDE_NAME="${CLAUDE_NAME:-$(whoami)}"
+
+    curl -s -o /dev/null -X POST \
+        "http://${WEBHOOK_HOST}:8765/unpause" \
+        -H "Content-Type: application/json" \
+        -d "{\"claude_name\": \"$CLAUDE_NAME\"}" \
+        --connect-timeout 3 2>/dev/null
+
     echo "▶️  Timer unpaused. Normal prompts will resume."
 else
     echo "Timer is not paused."
