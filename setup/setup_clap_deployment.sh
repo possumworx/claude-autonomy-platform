@@ -992,22 +992,13 @@ else
     echo "   ⚠️  Claude directory enforcer not found"
 fi
 
-# Install natural commands (aliases and wrappers)
-if [[ -f "$CLAP_DIR/config/natural_commands.sh" ]]; then
-    echo "   Installing natural commands..."
-
-    # Add to .bashrc if not already present
-    NATURAL_COMMANDS_LINE="source $CLAP_DIR/config/natural_commands.sh"
-    if ! grep -q "$NATURAL_COMMANDS_LINE" "$BASHRC" 2>/dev/null; then
-        echo "" >> "$BASHRC"
-        echo "# Natural commands for ClAP (check_health, gd, gl, etc.)" >> "$BASHRC"
-        echo "$NATURAL_COMMANDS_LINE" >> "$BASHRC"
-        echo "   ✅ Natural commands added to .bashrc"
-    else
-        echo "   ✅ Natural commands already in .bashrc"
-    fi
-else
-    echo "   ⚠️  Natural commands file not found"
+# Clean up deprecated natural_commands.sh from .bashrc if present
+NATURAL_COMMANDS_LINE="source $CLAP_DIR/config/natural_commands.sh"
+if grep -q "$NATURAL_COMMANDS_LINE" "$BASHRC" 2>/dev/null; then
+    echo "   Removing deprecated natural_commands.sh from .bashrc..."
+    sed -i "\|$NATURAL_COMMANDS_LINE|d" "$BASHRC"
+    sed -i '/# Natural commands for ClAP/d' "$BASHRC"
+    echo "   ✅ Deprecated source removed (commands now available via wrappers in PATH)"
 fi
 
 # Clean up deprecated config locations

@@ -37,6 +37,5 @@ Scripts for deploying ClAP from scratch or configuring specific subsystems. Thes
 
 ## Notes
 
-- The installer references config stubs (`config/natural_commands.sh`, `config/claude_aliases.sh`) that are now empty — full removal requires updating the installer
 - Some setup scripts have hardcoded paths that should use `$CLAP_DIR` (ongoing cleanup)
 - Run `verify_installation.sh` after any setup script to confirm nothing broke

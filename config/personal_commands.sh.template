@@ -21,7 +21,7 @@
 
 # Simple Aliases (for shell shortcuts)
 # alias myproject='cd ~/my-special-project'
-# alias gs='git status'  # Only if not in shared natural_commands.sh
+# alias gs='git status'  # Only if not already a wrapper command
 
 # Functions (for simple logic)
 # mybackup() {
@@ -36,7 +36,7 @@
 # 3. It will be in PATH automatically
 
 # 4. AVOIDING CONFLICTS:
-#    - Check shared natural_commands.sh before adding
+#    - Check existing wrappers (run list-commands) before adding
 #    - Use 'type' or 'which' to verify command doesn't exist
 #    - Consider namespacing (e.g., delta_game, sonnet_hedge)
 

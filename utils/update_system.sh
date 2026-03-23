@@ -45,12 +45,7 @@ fi
 echo "🔗 Updating command symlinks..."
 bash ~/claude-autonomy-platform/utils/setup_natural_command_symlinks.sh > /dev/null 2>&1 || echo "⚠️  Symlink update failed (non-critical)"
 
-# Source the updated natural commands
-echo "🔧 Reloading natural commands..."
-# shellcheck source=/dev/null
-source ~/claude-autonomy-platform/config/natural_commands.sh
-
-# Source bashrc to ensure all aliases are loaded
+# Source bashrc to ensure PATH and environment are current
 echo "🔧 Reloading bashrc..."
 # shellcheck source=/dev/null
 source ~/.bashrc
@@ -85,7 +80,7 @@ echo ""
 echo "🎉 System update complete!"
 echo "   - Latest code pulled from GitHub"
 echo "   - Command symlinks updated"
-echo "   - Natural commands reloaded"
+echo "   - Environment reloaded"
 echo "   - Services restarted"
 echo ""
 echo "💡 Tip: Run 'check_health' to verify everything is working properly"

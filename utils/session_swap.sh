@@ -5,7 +5,7 @@
 
 # Load path utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Note: The 'swap' command is a bash function in natural_commands.sh that writes to new_session.txt
+# Note: Session swaps are triggered by writing a keyword to new_session.txt
 CLAP_DIR="$HOME/claude-autonomy-platform"
 source "$CLAP_DIR/config/claude_env.sh"
 
