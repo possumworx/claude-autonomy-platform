@@ -2,8 +2,10 @@
 # Pause autonomous timer prompts until a specific time
 # Usage: pause-until HH:MM
 # System-messages will still override the pause
+# Reports pause to CoOP so MAMA-HEN respects it
 
-PAUSE_FILE="$HOME/claude-autonomy-platform/data/timer_pause.json"
+CLAP_DIR="$HOME/claude-autonomy-platform"
+PAUSE_FILE="$CLAP_DIR/data/timer_pause.json"
 
 if [ -z "$1" ]; then
     # No argument - show current pause status
@@ -25,19 +27,22 @@ if ! echo "$1" | grep -qE '^[0-9]{1,2}:[0-9]{2}$'; then
     exit 1
 fi
 
-# Calculate the full timestamp for the resume time
-RESUME_AT=$(python3 -c "
+# Calculate the full timestamp and duration for the resume time
+PAUSE_INFO=$(python3 -c "
 from datetime import datetime, timedelta
 now = datetime.now()
 hour, minute = map(int, '$1'.split(':'))
 resume = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-# If the time has already passed today, assume tomorrow
 if resume <= now:
     resume += timedelta(days=1)
-print(resume.isoformat())
+duration_minutes = int((resume - now).total_seconds() / 60)
+print(f'{resume.isoformat()}|{duration_minutes}')
 ")
 
-# Write the pause file
+RESUME_AT=$(echo "$PAUSE_INFO" | cut -d'|' -f1)
+DURATION_MINUTES=$(echo "$PAUSE_INFO" | cut -d'|' -f2)
+
+# Write local pause file (fallback if CoOP unreachable)
 python3 -c "
 import json
 data = {
@@ -49,6 +54,23 @@ with open('$PAUSE_FILE', 'w') as f:
     json.dump(data, f, indent=2)
 "
 
+# Report to CoOP so MAMA-HEN respects the pause
+WEBHOOK_HOST=$(grep '^WEBHOOK_HOST=' "$CLAP_DIR/config/claude_infrastructure_config.txt" 2>/dev/null | cut -d= -f2)
+WEBHOOK_HOST="${WEBHOOK_HOST:-localhost}"
+CLAUDE_NAME=$(grep '^CLAUDE_NAME=' "$CLAP_DIR/config/claude_infrastructure_config.txt" 2>/dev/null | cut -d= -f2)
+CLAUDE_NAME="${CLAUDE_NAME:-$(whoami)}"
+
+COOP_RESULT=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+    "http://${WEBHOOK_HOST}:8765/pause" \
+    -H "Content-Type: application/json" \
+    -d "{\"claude_name\": \"$CLAUDE_NAME\", \"duration_minutes\": $DURATION_MINUTES}" \
+    --connect-timeout 3 2>/dev/null)
+
 echo "⏸️  Paused until $1 ($RESUME_AT)"
+if [ "$COOP_RESULT" = "200" ]; then
+    echo "MAMA-HEN notified via CoOP."
+else
+    echo "CoOP unreachable — MAMA-HEN may still alert (local pause active)."
+fi
 echo "System-messages will still override."
 echo "Use 'unpause' to cancel."
