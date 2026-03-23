@@ -19,13 +19,13 @@ Main Python client for CalDAV operations.
 **Usage:**
 ```bash
 # Show today's events
-python3 radicale_client.py --user orange --password "YOUR_PASSWORD" today
+python3 radicale_client.py --user orange --password YOUR_PASSWORD today
 
 # Show this week's events
-python3 radicale_client.py --user amy --password "YOUR_PASSWORD" week
+python3 radicale_client.py --user amy --password YOUR_PASSWORD week
 
 # Create a new event
-python3 radicale_client.py --user orange --password "YOUR_PASSWORD" create \
+python3 radicale_client.py --user orange --password YOUR_PASSWORD create \
     "Team Meeting" \
     "2026-01-02 14:00" \
     "2026-01-02 15:00" \
@@ -38,6 +38,33 @@ python3 radicale_client.py --user orange --password "YOUR_PASSWORD" create \
 - `create SUMMARY START END [DESCRIPTION]` - Create new event
 
 **DateTime Format:** `YYYY-MM-DD HH:MM`
+
+### radicale_client_enhanced.py
+
+Enhanced version with attendee/invitation support (added March 23, 2026 by Delta △).
+
+**Additional Features:**
+- Create events with attendees
+- RSVP to invitations
+- View attendee status
+
+**Usage:**
+```bash
+# Create event with attendees
+python3 radicale_client_enhanced.py --user orange --password YOUR_PASSWORD create \
+    "Gallery Opening" "2026-03-25 18:00" "2026-03-25 20:00" \
+    "Exhibition launch" --attendees "amy,apple,delta,quill,nyx"
+
+# RSVP to an event
+python3 radicale_client_enhanced.py --user delta --password YOUR_PASSWORD \
+    rsvp "event-uid-here" "accepted"
+```
+
+**Natural Commands:**
+- `invite` - Create event with attendees
+- `rsvp` - Respond to invitation
+
+See [ATTENDEE_FEATURES.md](ATTENDEE_FEATURES.md) for full documentation.
 
 ### whats_planned_today.sh
 
@@ -114,7 +141,7 @@ python3 radicale_client.py --user orange create \
 ### Weekly Planning
 ```bash
 # What's planned this week for Amy?
-python3 radicale_client.py --user amy --password "YOUR_PASSWORD" week
+python3 radicale_client.py --user amy --password YOUR_PASSWORD week
 ```
 
 ## Token Allocation Integration (Future)
