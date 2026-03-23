@@ -1,0 +1,125 @@
+#!/bin/bash
+# Start all ClAP services and verify health
+#
+# Usage: clap-start [--no-claude] [--quiet] [--from-snapshot]
+#   Verifies config, starts services, launches Claude Code session,
+#   and runs a basic health check.
+#   --no-claude      Start services but don't launch Claude Code
+#   --quiet          No Discord notification
+#   --from-snapshot  Only start services that were running before clap-stop
+
+CLAP_DIR="$HOME/claude-autonomy-platform"
+source "$CLAP_DIR/utils/clap_lifecycle.sh"
+
+# Parse flags
+NO_CLAUDE=false
+QUIET=false
+FROM_SNAPSHOT=false
+for arg in "$@"; do
+    case "$arg" in
+        --no-claude) NO_CLAUDE=true ;;
+        --quiet) QUIET=true ;;
+        --from-snapshot) FROM_SNAPSHOT=true ;;
+        --help|-h)
+            echo "Usage: clap-start [--no-claude] [--quiet] [--from-snapshot]"
+            echo "  --no-claude       Start services only, no Claude Code session"
+            echo "  --quiet           No Discord notification"
+            echo "  --from-snapshot   Restore services from stop_snapshot.json"
+            exit 0
+            ;;
+        *)
+            echo "Unknown flag: $arg"
+            exit 1
+            ;;
+    esac
+done
+
+CLAUDE_NAME=$(get_config "CLAUDE_NAME" "$(whoami)")
+
+echo "ClAP Start — $CLAUDE_NAME on $(hostname)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Verify config
+echo -n "Config: "
+if verify_clap_config; then
+    echo "✅ claude_infrastructure_config.txt valid"
+else
+    echo "❌ Config validation failed"
+    exit 1
+fi
+
+# Check service unit files exist
+for svc in "${CLAP_SERVICES[@]}"; do
+    if [[ ! -f "$HOME/.config/systemd/user/$svc" ]]; then
+        warn "Service unit file missing: $svc"
+    fi
+done
+
+# Start services
+if [[ "$FROM_SNAPSHOT" == "true" ]]; then
+    snapshot="$CLAP_DIR/data/stop_snapshot.json"
+    if [[ -f "$snapshot" ]]; then
+        echo "Restoring from snapshot..."
+        # Read services from snapshot and start only those
+        snapshot_services=$(python3 -c "
+import json
+with open('$snapshot') as f:
+    data = json.load(f)
+for svc in data.get('running_services', []):
+    print(svc)
+")
+        for svc in $snapshot_services; do
+            if systemctl --user start "$svc" 2>/dev/null; then
+                echo "  Started $svc  ✅"
+            else
+                echo "  Failed to start $svc  ❌"
+            fi
+        done
+    else
+        echo "No snapshot found, starting all services..."
+        start_clap_services
+    fi
+else
+    start_clap_services
+fi
+service_result=$?
+
+# Start Claude Code session
+if [[ "$NO_CLAUDE" != "true" ]]; then
+    start_claude_session
+else
+    echo "  Skipping Claude Code session (--no-claude)  ⏭️"
+fi
+
+# Brief health verification
+echo ""
+echo "Health verification:"
+all_ok=true
+for svc in "${CLAP_SERVICES[@]}"; do
+    if systemctl --user is-active --quiet "$svc" 2>/dev/null; then
+        echo "  $svc  ✅"
+    else
+        echo "  $svc  ❌"
+        all_ok=false
+    fi
+done
+if tmux has-session -t autonomous-claude 2>/dev/null; then
+    echo "  tmux:autonomous-claude  ✅"
+else
+    if [[ "$NO_CLAUDE" != "true" ]]; then
+        echo "  tmux:autonomous-claude  ❌"
+        all_ok=false
+    fi
+fi
+
+# Notify Discord
+if [[ "$QUIET" != "true" ]]; then
+    notify_discord "🟢 $CLAUDE_NAME back online (clap-start)"
+fi
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [[ "$all_ok" == "true" ]]; then
+    echo "✅ All services running. Health check passed."
+else
+    echo "⚠️  Some services not running. Check: systemctl --user status"
+fi
