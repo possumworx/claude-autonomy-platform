@@ -39,6 +39,13 @@ def get_config_value(key, default=None):
     return config.get(key, default)
 
 if __name__ == "__main__":
-    config = read_infrastructure_config()
-    print(f"CONTINUITY_BRIDGE_PING: {config.get('CONTINUITY_BRIDGE_PING')}")
-    print(f"HISTORY_TURNS: {config.get('HISTORY_TURNS')}")
+    if len(sys.argv) > 1:
+        # Get specific config value
+        key = sys.argv[1]
+        value = get_config_value(key, "")
+        print(value)
+    else:
+        # Print all config for debugging
+        config = read_infrastructure_config()
+        for key, value in sorted(config.items()):
+            print(f"{key}: {value}")
