@@ -71,7 +71,7 @@ data/context_escalation_state.json → Tracks context warning history
 - Discord/paths/names → `config/claude_infrastructure_config.txt`
 - Timer intervals → `config/autonomous_timer_config.json`
 - MCP servers → `~/.config/Claude/.claude.json`
-- Natural commands → `config/natural_commands.sh`
+- Natural commands → `wrappers/` (each command is a wrapper script)
 
 ## 🚨 Emergency Procedures
 
