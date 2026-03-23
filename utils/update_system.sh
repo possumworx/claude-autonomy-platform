@@ -59,6 +59,8 @@ source ~/.bashrc
 echo "🔄 Restarting autonomous services..."
 # Need to handle services differently based on user
 if [ -n "$DBUS_SESSION_BUS_ADDRESS" ]; then
+    # Reload service definitions in case unit files changed
+    systemctl --user daemon-reload
     # If we have a proper session bus, use systemctl directly
     systemctl --user restart autonomous-timer.service 2>/dev/null || echo "⚠️  Could not restart autonomous-timer"
     systemctl --user restart session-swap-monitor.service 2>/dev/null || echo "⚠️  Could not restart session-swap-monitor"
