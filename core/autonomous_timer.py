@@ -475,93 +475,94 @@ def track_resource_usage():
         if not context_error and context_data:
             current_cache_tokens = context_data.get("cache_tokens", 0)
 
-        # Only POST if cost_delta > 0
-        if cost_delta > 0:
-            # Get Claude name from infrastructure config
-            claude_name = get_config_value("CLAUDE_NAME")
-            if not claude_name:
-                claude_name = "Unknown"  # Fallback
+        # Get Claude name from infrastructure config
+        claude_name = get_config_value("CLAUDE_NAME")
+        if not claude_name:
+            claude_name = "Unknown"  # Fallback
 
-            # Detect mode based on tmux session attachment
-            mode = "collaboration" if is_tmux_session_attached() else "autonomy"
+        # Detect mode based on tmux session attachment
+        mode = "collaboration" if is_tmux_session_attached() else "autonomy"
 
-            # Get hostname and IP for parallel instance detection
-            import socket
+        # Get hostname and IP for parallel instance detection
+        import socket
 
-            hostname = socket.gethostname()
-            try:
-                # Get primary IP address (first non-loopback)
-                ip_address = socket.gethostbyname(hostname)
-            except:
-                ip_address = "unknown"
+        hostname = socket.gethostname()
+        try:
+            # Get primary IP address (first non-loopback)
+            ip_address = socket.gethostbyname(hostname)
+        except:
+            ip_address = "unknown"
 
-            # Prepare payload with current interval + instance identification
-            payload = {
-                "claude_name": claude_name,
-                "cost_delta": cost_delta,
-                "mode": mode,
-                "current_interval": AUTONOMY_PROMPT_INTERVAL,
-                "hostname": hostname,  # Parallel instance detection
-                "ip_address": ip_address,  # Parallel instance detection
-            }
+        # Prepare payload with current interval + instance identification
+        # Always POST to CoOP (even with cost_delta=0) to update last_seen timestamp
+        payload = {
+            "claude_name": claude_name,
+            "cost_delta": cost_delta,
+            "mode": mode,
+            "current_interval": AUTONOMY_PROMPT_INTERVAL,
+            "hostname": hostname,  # Parallel instance detection
+            "ip_address": ip_address,  # Parallel instance detection
+        }
 
-            # POST to resource-share webhook
-            try:
-                response = requests.post(
-                    RESOURCE_SHARE_WEBHOOK_URL, json=payload, timeout=5
-                )
-                if response.status_code == 200:
+        # POST to resource-share webhook
+        try:
+            response = requests.post(
+                RESOURCE_SHARE_WEBHOOK_URL, json=payload, timeout=5
+            )
+            if response.status_code == 200:
+                # Log based on whether cost was reported
+                if cost_delta > 0:
                     log_message(
                         f"DEBUG: resource-share reported ${cost_delta:.4f} cost for {claude_name}"
                     )
-
-                    # Read recommended interval from response and update if provided
-                    try:
-                        response_data = response.json()
-                        if "recommended_interval" in response_data:
-                            new_interval = response_data["recommended_interval"]
-
-                            # Validate interval is a positive integer
-                            if (
-                                isinstance(new_interval, (int, float))
-                                and new_interval > 0
-                            ):
-                                old_interval = AUTONOMY_PROMPT_INTERVAL
-                                AUTONOMY_PROMPT_INTERVAL = int(new_interval)
-
-                                if new_interval != old_interval:
-                                    # Format fairness value safely (may be missing or non-numeric)
-                                    fairness = response_data.get('multipliers', {}).get('fairness')
-                                    fairness_str = f"{fairness:.2f}" if isinstance(fairness, (int, float)) else "?"
-
-                                    log_message(
-                                        f"INFO: Interval updated by CoOP: {old_interval}s → {new_interval}s "
-                                        f"(fairness: {fairness_str}x, "
-                                        f"quota: {response_data.get('quota_status', 'unknown')})"
-                                    )
-                            else:
-                                log_message(
-                                    f"WARNING: Invalid interval from CoOP: {new_interval} - keeping current {AUTONOMY_PROMPT_INTERVAL}s"
-                                )
-
-                        # Handle overdue_alerts from Mama-hen system
-                        overdue_alerts = response_data.get("overdue_alerts")
-                        if overdue_alerts:
-                            handle_mama_hen_alerts(overdue_alerts)
-                    except (json.JSONDecodeError, KeyError) as e:
-                        log_message(
-                            f"DEBUG: Could not parse interval from response: {e}"
-                        )
                 else:
                     log_message(
-                        f"WARNING: resource-share webhook returned {response.status_code}"
+                        f"DEBUG: resource-share check-in (no cost) for {claude_name}"
                     )
-            except requests.exceptions.RequestException as e:
-                log_message(f"WARNING: resource-share webhook request failed: {e}")
-        else:
-            log_message(
-                f"DEBUG: resource-share skipped - cost_delta is ${cost_delta:.4f} (need > 0)"
-            )
+
+                # Read recommended interval from response and update if provided
+                try:
+                    response_data = response.json()
+                    if "recommended_interval" in response_data:
+                        new_interval = response_data["recommended_interval"]
+
+                        # Validate interval is a positive integer
+                        if (
+                            isinstance(new_interval, (int, float))
+                            and new_interval > 0
+                        ):
+                            old_interval = AUTONOMY_PROMPT_INTERVAL
+                            AUTONOMY_PROMPT_INTERVAL = int(new_interval)
+
+                            if new_interval != old_interval:
+                                # Format fairness value safely (may be missing or non-numeric)
+                                fairness = response_data.get('multipliers', {}).get('fairness')
+                                fairness_str = f"{fairness:.2f}" if isinstance(fairness, (int, float)) else "?"
+
+                                log_message(
+                                    f"INFO: Interval updated by CoOP: {old_interval}s → {new_interval}s "
+                                    f"(fairness: {fairness_str}x, "
+                                    f"quota: {response_data.get('quota_status', 'unknown')})"
+                                )
+                        else:
+                            log_message(
+                                f"WARNING: Invalid interval from CoOP: {new_interval} - keeping current {AUTONOMY_PROMPT_INTERVAL}s"
+                            )
+
+                    # Handle overdue_alerts from Mama-hen system
+                    overdue_alerts = response_data.get("overdue_alerts")
+                    if overdue_alerts:
+                        handle_mama_hen_alerts(overdue_alerts)
+                except (json.JSONDecodeError, KeyError) as e:
+                    log_message(
+                        f"DEBUG: Could not parse interval from response: {e}"
+                    )
+            else:
+                log_message(
+                    f"WARNING: resource-share webhook returned {response.status_code}"
+                )
+        except requests.exceptions.RequestException as e:
+            log_message(f"WARNING: resource-share webhook request failed: {e}")
 
         # Save current cache tokens for backwards compatibility (even if cost_delta was 0)
         # Note: check_usage.py handles its own state in last_usage_cost.json
