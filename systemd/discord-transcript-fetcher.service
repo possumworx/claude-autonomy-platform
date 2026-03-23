@@ -5,6 +5,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=%h/claude-autonomy-platform
+Environment=PYTHONUNBUFFERED=1
 ExecStart=/usr/bin/python3 %h/claude-autonomy-platform/discord/discord_transcript_fetcher.py
 Restart=always
 RestartSec=10
