@@ -16,6 +16,37 @@ CPU temperature monitoring tools for Raspberry Pi (vcgencmd) and generic Linux s
 
 These loggers are designed to run via a systemd timer (`temp-logger.timer`). The timer must be enabled for `temp-history` and `temp-stats` to have data.
 
+## Features
+
+- **Automatic Temperature Logging**: Records CPU temperature, load, and throttling status every minute
+- **Persistent Journaling**: Logs survive reboots for long-term analysis
+- **Temperature Analysis**: Quick tool to view current status and historical trends
+
+## Usage Examples
+
+### View Real-time Temperatures
+```bash
+journalctl -t temp-monitor -f
+```
+
+### Check for Warnings
+```bash
+journalctl -t temp-monitor -p warning --since "1 hour ago"
+```
+
+### Export Temperature Data
+```bash
+journalctl -t temp-monitor --since yesterday -o json | jq -r '.TEMPERATURE'
+```
+
+## Installation
+
+The temperature monitoring is automatically set up by the ClAP installer on Raspberry Pi systems. The installer will:
+
+1. Enable persistent journaling (requires sudo)
+2. Install and enable the temp-logger systemd timer
+3. Create the `temp_analysis` command
+
 ## Thresholds
 
 | Range | Status |

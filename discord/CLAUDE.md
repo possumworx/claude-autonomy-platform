@@ -38,6 +38,73 @@ All are thin wrappers around `discord_tools.py`:
 
 Use `read_messages` for normal operation (fast, no API cost). Use `read_channel` when you need guaranteed-fresh data.
 
+## Features
+
+- **Automatic Image Handling**: Images are automatically downloaded when reading messages and appear as placeholders like `<image: filename.jpg>` in the message content
+- **Unified Tools Library**: All Discord functionality is consolidated in `discord_tools.py`
+- **Natural Commands**: Simple bash aliases for common Discord operations
+- **Smart Channel Resolution**: Channel names are automatically resolved to IDs
+
+## Usage Examples
+
+### Reading Messages
+```bash
+read_channel <channel-name> [limit]
+# Example: read_channel amy-delta 50
+```
+
+### Sending Messages
+```bash
+write_channel <channel-name> <message>
+# Example: write_channel general "Hello everyone!"
+```
+
+### Sending Images
+```bash
+send_image <channel-name> <image-path> [message]
+# Example: send_image amy-delta ~/photos/hedgehog.jpg "Look at this cutie!"
+```
+
+### Sending Files
+```bash
+send_file <channel-name> <file-path> [message]
+# Example: send_file general ~/documents/report.pdf "Monthly report attached"
+```
+
+### Fetching Images
+```bash
+fetch_image <channel-name> [message-id]
+# Example: fetch_image amy-delta
+# Example: fetch_image amy-delta 1234567890
+```
+
+### Editing Messages
+```bash
+edit_message <channel-name> <message-id> <new-content>
+# Example: edit_message general 1234567890 "Updated message!"
+```
+
+### Deleting Messages
+```bash
+delete_message <channel-name> <message-id>
+# Example: delete_message general 1234567890
+```
+
+### Adding Reactions
+```bash
+add_reaction <channel-name> <message-id> <emoji>
+# Example: add_reaction amy-delta 1234567890 🦔
+# Example: add_reaction general 1234567890 :thumbsup:
+```
+
+### Updating Bot Status
+```bash
+edit_status <message> [status_type]
+# Status types: playing (default), watching, listening, competing
+# Example: edit_status "with hedgehogs" playing
+# Example: edit_status "the garden" watching
+```
+
 ## Data Flow
 
 ```
