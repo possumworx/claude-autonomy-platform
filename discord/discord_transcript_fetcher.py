@@ -215,6 +215,32 @@ class TranscriptFetcher:
         if bot_display_name and author_name == bot_display_name:
             self.channel_state.mark_channel_read(channel_name, latest_id)
 
+    def check_collaborative_triggers(self, messages):
+        """
+        Check for collaborative mode trigger words (spark/rest).
+        Sets or clears the collaborative_mode.flag file.
+        """
+        # Get my trigger words from config
+        trigger_start = get_config_value('COLLABORATIVE_START', 'spark')
+        trigger_end = get_config_value('COLLABORATIVE_END', 'rest')
+
+        flag_file = DATA_DIR / "collaborative_mode.flag"
+
+        for message in messages:
+            content = message.get('content', '').strip().lower()
+
+            # Check if message is JUST the trigger word (no other text)
+            if content == trigger_start:
+                # Start collaborative mode
+                flag_file.touch()
+                logger.info("Collaborative mode activated by: %s", message.get('author'))
+
+            elif content == trigger_end:
+                # End collaborative mode
+                if flag_file.exists():
+                    flag_file.unlink()
+                    logger.info("Collaborative mode deactivated by: %s", message.get('author'))
+
     def check_mama_hen_alert(self, messages):
         """
         Check if any message is a Mama-hen alert for this Claude.
@@ -273,6 +299,9 @@ class TranscriptFetcher:
 
                 # Update state
                 self.update_channel_state(channel_name, messages)
+
+                # Check for collaborative mode triggers (spark/rest)
+                self.check_collaborative_triggers(messages)
 
                 # Check for Mama-hen alerts in #system-messages
                 if channel_name == 'system-messages':
