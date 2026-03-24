@@ -35,6 +35,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from discord.channel_state import ChannelState
 from discord.discord_tools import DiscordTools
 from utils.infrastructure_config_reader import get_config_value
+from utils.clap_logger import get_logger
+
+logger = get_logger("discord-transcript-fetcher")
 
 # Configuration
 CLAP_ROOT = Path(__file__).parent.parent
@@ -70,9 +73,9 @@ class TranscriptFetcher:
         # If no channels exist yet, start with general
         if not self.channels_to_track:
             self.channels_to_track = ['general']
-            print("⚠️  No channels in state yet, starting with ['general']")
+            logger.warning("No channels in state yet, starting with ['general']")
         else:
-            print(f"📡 Tracking {len(self.channels_to_track)} channels from state")
+            logger.info("Tracking %d channels from state", len(self.channels_to_track))
 
     def initialize_channels(self):
         """Initialize tracked channels if not already in state"""
@@ -82,7 +85,7 @@ class TranscriptFetcher:
                 channel_id = self._get_channel_id(channel_name)
                 if channel_id:
                     self.channel_state.add_channel(channel_id, channel_name)
-                    print(f"Added channel to tracking: {channel_name} ({channel_id})")
+                    logger.info("Added channel to tracking: %s (%s)", channel_name, channel_id)
 
     def _get_channel_id(self, channel_name):
         """Get Discord channel ID from name"""
@@ -91,7 +94,7 @@ class TranscriptFetcher:
             channel_id = self.discord.resolve_channel(channel_name)
             return channel_id
         except Exception as e:
-            print(f"Error resolving channel {channel_name}: {e}")
+            logger.error("Error resolving channel %s: %s", channel_name, e)
             return None
 
     def fetch_new_messages(self, channel_name):
@@ -110,7 +113,7 @@ class TranscriptFetcher:
             result = self.discord.read_messages(channel_name, limit=limit)
 
             if not result.get('success'):
-                print(f"Failed to read channel {channel_name}: {result.get('error')}")
+                logger.warning("Failed to read channel %s: %s", channel_name, result.get('error'))
                 return []
 
             messages = result.get('messages', [])
@@ -126,7 +129,7 @@ class TranscriptFetcher:
             return messages
 
         except Exception as e:
-            print(f"Error fetching messages for {channel_name}: {e}")
+            logger.error("Error fetching messages for %s: %s", channel_name, e)
             return []
 
     def get_attachment_info(self, message, channel_name):
@@ -190,7 +193,7 @@ class TranscriptFetcher:
             f.flush()
             os.fsync(f.fileno())
 
-        print(f"Appended {len(messages)} messages to {channel_name} transcript")
+        logger.info("Appended %d messages to %s transcript", len(messages), channel_name)
 
     def update_channel_state(self, channel_name, messages):
         """Update channel state after processing messages"""
@@ -227,7 +230,7 @@ class TranscriptFetcher:
         for message in messages:
             content = message.get('content', '')
             if re.search(pattern, content, re.IGNORECASE):
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] 🐔 Mama-hen alert detected for {my_name}!")
+                logger.info("Mama-hen alert detected for %s", my_name)
 
                 # Trigger send_to_claude to wake up the Claude session
                 try:
@@ -246,14 +249,14 @@ class TranscriptFetcher:
                     )
 
                     if result.returncode == 0:
-                        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🐔 Sent Mama-hen nudge to Claude session")
+                        logger.info("Sent Mama-hen nudge to Claude session")
                     else:
-                        print(f"[{datetime.now().strftime('%H:%M:%S')}] WARNING: Failed to send Mama-hen nudge: {result.stderr}")
+                        logger.warning("Failed to send Mama-hen nudge: %s", result.stderr)
 
                 except subprocess.TimeoutExpired:
-                    print(f"[{datetime.now().strftime('%H:%M:%S')}] WARNING: Mama-hen nudge timed out (Claude may be busy)")
+                    logger.warning("Mama-hen nudge timed out (Claude may be busy)")
                 except Exception as e:
-                    print(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR: Mama-hen nudge failed: {e}")
+                    logger.error("Mama-hen nudge failed: %s", e)
 
                 # Only process first matching alert
                 return
@@ -275,19 +278,16 @@ class TranscriptFetcher:
                 if channel_name == 'system-messages':
                     self.check_mama_hen_alert(messages)
 
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] Processed {len(messages)} new messages in #{channel_name}")
+                logger.info("Processed %d new messages in #%s", len(messages), channel_name)
 
         except Exception as e:
-            print(f"Error processing channel {channel_name}: {e}")
+            logger.error("Error processing channel %s: %s", channel_name, e)
 
     def run(self):
         """Main loop: monitor channels and build transcripts"""
-        print("Starting Discord Transcript Fetcher")
-        print(f"Tracking channels: {', '.join(self.channels_to_track)}")
-        print(f"Check interval: {CHECK_INTERVAL}s")
-        print(f"Transcripts: {TRANSCRIPT_DIR}")
-        print(f"Attachments: {ATTACHMENTS_DIR}")
-        print("---")
+        logger.info("Starting Discord Transcript Fetcher")
+        logger.info("Tracking channels: %s", ", ".join(self.channels_to_track))
+        logger.info("Check interval: %ds | Transcripts: %s", CHECK_INTERVAL, TRANSCRIPT_DIR)
 
         # Initialize channels
         self.initialize_channels()
@@ -302,10 +302,10 @@ class TranscriptFetcher:
                 time.sleep(CHECK_INTERVAL)
 
             except KeyboardInterrupt:
-                print("\nStopping transcript fetcher...")
+                logger.info("Stopping transcript fetcher")
                 break
             except Exception as e:
-                print(f"Error in main loop: {e}")
+                logger.error("Error in main loop: %s", e)
                 time.sleep(CHECK_INTERVAL)
 
 
