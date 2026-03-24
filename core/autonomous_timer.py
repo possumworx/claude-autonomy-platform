@@ -373,78 +373,22 @@ def ping_claude_session_healthcheck(is_alive):
 
 
 def get_token_percentage():
-    """Get current session token usage percentage from monitor script or tmux"""
+    """Get current session token usage percentage from statusline JSON."""
     try:
-        # First try Delta's accurate context monitoring system
-        log_message("DEBUG: Attempting check_context(return_data=True)")
         context_data, error = check_context(return_data=True)
         if not error and context_data:
             percentage = context_data["percentage"] * 100  # Convert to percentage
-            # Determine emoji based on percentage
             if percentage >= 85:
                 emoji = "🔴"
             elif percentage >= 70:
                 emoji = "🟡"
             else:
                 emoji = "🟢"
-            log_message(f"DEBUG: check_context SUCCESS - {percentage:.1f}% {emoji}")
             return f"Context: {percentage:.1f}% {emoji}"
 
         log_message(
-            f"DEBUG: check_context FAILED - error: {error}, has_data: {context_data is not None}"
+            f"DEBUG: check_context failed - error: {error}, has_data: {context_data is not None}"
         )
-
-        # Fallback to tmux capture method if check_context fails
-        # Capture the tmux session output WITH COLOR CODES
-        result = subprocess.run(
-            ["tmux", "capture-pane", "-t", CLAUDE_SESSION, "-p", "-e"],
-            capture_output=True,
-            text=True,
-        )
-
-        if result.returncode != 0:
-            return f"Tmux capture failed: {result.stderr}"
-
-        # Look for context percentage patterns in the captured output
-        import re
-
-        console_output = result.stdout
-
-        # Pattern 1: Look for simple "XX% remaining" anywhere
-        simple_remaining = re.search(
-            r"(\d+(?:\.\d+)?)%\s*remaining", console_output, re.IGNORECASE
-        )
-        if simple_remaining:
-            remaining_percentage = float(simple_remaining.group(1))
-            used_percentage = 100 - remaining_percentage
-            return f"Context: {used_percentage:.1f}%"
-
-        # Pattern 2: Look for Claude Code's specific format: "Context low (XX% remaining)"
-        claude_format = re.search(
-            r"Context\s+\w+\s+\((\d+(?:\.\d+)?)%\s+remaining\)",
-            console_output,
-            re.IGNORECASE,
-        )
-        if claude_format:
-            remaining_percentage = float(claude_format.group(1))
-            used_percentage = 100 - remaining_percentage
-            return f"Context: {used_percentage:.1f}%"
-
-        # Pattern 3: Look for other "Context: XX%" warnings/messages
-        context_match = re.search(
-            r"Context:\s*(\d+(?:\.\d+)?)%", console_output, re.IGNORECASE
-        )
-        if context_match:
-            percentage = context_match.group(1)
-            return f"Context: {percentage}%"
-
-        # Pattern 4: Look for percentage warnings like "(XX%)"
-        percent_match = re.search(r"\((\d+(?:\.\d+)?)%\)", console_output)
-        if percent_match:
-            percentage = percent_match.group(1)
-            return f"Context: {percentage}%"
-
-        # No context percentage found in console output
         return None
 
     except Exception as e:
