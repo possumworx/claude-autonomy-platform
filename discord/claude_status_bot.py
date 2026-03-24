@@ -11,40 +11,42 @@ from discord.ext import tasks
 import json
 import asyncio
 from pathlib import Path
-from datetime import datetime
 import sys
 
 # Add utils to path
 sys.path.append(str(Path(__file__).parent.parent / "utils"))
 from infrastructure_config_reader import get_config_value
+from clap_logger import get_logger
+
+logger = get_logger("discord-status-bot")
 
 class ClaudeStatusBot(discord.Client):
     def __init__(self):
-        print("  📍 Initializing bot class...")
+        logger.info("Initializing bot class")
         intents = discord.Intents.default()
         intents.message_content = True
         intents.guilds = True
         intents.presences = True
         super().__init__(intents=intents)
-        print("  📍 Bot class initialized")
+        logger.info("Bot class initialized")
         
         self.status_file = Path(__file__).parent.parent / "data" / "bot_status.json"
         self.last_status_check = None
         self.claude_name = get_config_value('CLAUDE_NAME', 'Claude')
         
     async def on_ready(self):
-        print(f'✅ {self.claude_name} Status Bot logged in as {self.user}')
-        print(f'📊 Connected to {len(self.guilds)} guild(s)')
+        logger.info("%s Status Bot logged in as %s", self.claude_name, self.user)
+        logger.info("Connected to %d guild(s)", len(self.guilds))
         # Set initial status from file if it exists
         await self.update_status_from_file()
         # Start monitoring for changes
         self.status_monitor.start()
-        print('🔄 Status monitor started!')
+        logger.info("Status monitor started")
         
     async def update_status_from_file(self):
         """Update status from the status file"""
         if not self.status_file.exists():
-            print("⚠️ No status file found, using default status")
+            logger.info("No status file found, using default status")
             await self.change_presence(
                 status=discord.Status.online,
                 activity=discord.Activity(
@@ -96,10 +98,10 @@ class ClaudeStatusBot(discord.Client):
                 activity=activity
             )
             
-            print(f"✅ Updated status: {status} - {activity.name if activity else 'No activity'}")
-            
+            logger.info("Updated status: %s - %s", status, activity.name if activity else "No activity")
+
         except Exception as e:
-            print(f"❌ Error updating status: {e}")
+            logger.error("Error updating status: %s", e)
     
     @tasks.loop(seconds=5)
     async def status_monitor(self):
@@ -119,39 +121,34 @@ class ClaudeStatusBot(discord.Client):
             await self.update_status_from_file()
             
         except Exception as e:
-            print(f"❌ Error in status monitor: {e}")
+            logger.error("Error in status monitor: %s", e)
 
 
 async def run_bot():
     """Run the bot asynchronously"""
     token = get_config_value('DISCORD_BOT_TOKEN')
     if not token:
-        print("❌ No Discord bot token found in config")
+        logger.error("No Discord bot token found in config")
         sys.exit(1)
-    
-    print(f"🔧 Starting {get_config_value('CLAUDE_NAME', 'Claude')} Status Bot...")
-    print(f"📁 Status file: {Path(__file__).parent.parent / 'data' / 'bot_status.json'}")
-    sys.stdout.flush()
-    
+
+    logger.info("Starting %s Status Bot...", get_config_value('CLAUDE_NAME', 'Claude'))
+    logger.info("Status file: %s", Path(__file__).parent.parent / 'data' / 'bot_status.json')
+
     bot = ClaudeStatusBot()
-    
+
     try:
-        print("🔌 Attempting to connect to Discord...")
-        sys.stdout.flush()
+        logger.info("Attempting to connect to Discord...")
         await bot.start(token)
     except discord.LoginFailure as e:
-        print(f"❌ Discord login failed: {e}")
+        logger.error("Discord login failed: %s", e)
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Bot error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error("Bot error: %s", e, exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":
-    print(f"🚀 Starting bot at {datetime.now()}")
-    sys.stdout.flush()
+    logger.info("Starting bot")
     try:
         asyncio.run(run_bot())
     except KeyboardInterrupt:
-        print("\n👋 Status bot shutting down...")
+        logger.info("Status bot shutting down")
