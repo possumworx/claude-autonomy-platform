@@ -32,7 +32,7 @@ START
 │              (get_token_percentage())                       │
 │                                                             │
 │  Runs: check_context.py                                    │
-│  Uses: ccusage to get accurate token counts                │
+│  Uses: data/statusline_data.json for token counts          │
 │  Returns: "Context: 67.3% 🟡"                              │
 └─────────────────────────────────────────────────────────────┘
   │
