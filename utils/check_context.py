@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 """
-Check current Claude session context usage by running ccusage on the tracked session
-and adding the system overhead (15.6k tokens).
+Check current Claude session context usage from the statusline JSON data.
+
+Reads context window information from data/statusline_data.json (written by
+Claude Code's statusline) instead of shelling out to ccusage.
 """
 
-import subprocess
 import json
-import re
 from pathlib import Path
-from datetime import datetime
 
-# Import shared session detection (works whether called from repo root or utils/)
+# Import shared functions
 try:
-    from utils.check_usage import get_current_session_id
+    from utils.check_usage import get_current_session_id, _get_statusline_data
 except ImportError:
-    from check_usage import get_current_session_id
+    from check_usage import get_current_session_id, _get_statusline_data
 
 # System overhead (system prompt + system tools)
 SYSTEM_OVERHEAD = 15600  # tokens
@@ -25,85 +24,22 @@ RED_THRESHOLD = 0.85  # 85% = 170k tokens
 TOTAL_CONTEXT = 200000  # 200k token limit
 
 
-def run_ccusage(session_id):
-    """Run ccusage to get token count for session"""
-    cmd = ["ccusage", "session", "--offline", "--id", session_id]
-
-    try:
-        # Set Claude config dir
-        env = subprocess.os.environ.copy()
-        env["CLAUDE_CONFIG_DIR"] = str(Path.home() / ".config/Claude")
-
-        # Run ccusage and pipe to tail to get just the last part
-        # This avoids memory issues with huge outputs
-        ccusage_proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
-            env=env,
-            cwd=Path.home(),
-        )
-
-        # Get just the last 3 lines which should contain the final entry
-        tail_proc = subprocess.Popen(
-            ["tail", "-n", "3"],
-            stdin=ccusage_proc.stdout,
-            stdout=subprocess.PIPE,
-            text=True,
-        )
-
-        ccusage_proc.stdout.close()
-        output, _ = tail_proc.communicate()
-
-        return output
-    except Exception as e:
-        print(f"❌ Error running ccusage: {e}")
-        return None
-
-
-def parse_ccusage_output(output):
-    """Parse ccusage output to find cache read tokens"""
-    if not output:
-        return None
-
-    # Remove ANSI color codes
-    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-    clean_output = ansi_escape.sub("", output)
-
-    # Since we're getting the last 3 lines, look for the pattern in the data row
-    # The last data row should have a format like: │ ... │ 139,171 │ $0.00 │
-    # We want the number right before the dollar amount
-
-    # Look for a pattern: number (possibly with commas) followed by │ and then $
-    pattern = r"(\d{1,3}(?:,\d{3})*)\s*│\s*\$"
-
-    matches = re.findall(pattern, clean_output)
-
-    if matches:
-        # Get the last match (should be cache read value)
-        cache_value = int(matches[-1].replace(",", ""))
-        # Sanity check: should be at least 1000 tokens (even fresh sessions have history)
-        if cache_value > 1000:
-            return cache_value
-
-    return None
-
-
 def format_context_display(cache_tokens, total_tokens, percentage):
     """Format context usage for display"""
-    # Determine color/status
     if percentage >= RED_THRESHOLD:
         status = "🔴"
-        color = "critical"
     elif percentage >= YELLOW_THRESHOLD:
         status = "🟡"
-        color = "warning"
     else:
         status = "🟢"
+
+    if percentage >= RED_THRESHOLD:
+        color = "critical"
+    elif percentage >= YELLOW_THRESHOLD:
+        color = "warning"
+    else:
         color = "good"
 
-    # Format the display
     display = f"""
 📊 Context Usage Status
 ═══════════════════════════════
@@ -119,41 +55,43 @@ Free: {TOTAL_CONTEXT - total_tokens:,} tokens ({(1-percentage):.1%})
 
 
 def check_context(return_data=False):
-    """Main function to check context usage"""
+    """Main function to check context usage.
 
-    # Get current session ID
-    session_id = get_current_session_id()
+    Reads from statusline JSON instead of shelling out to ccusage.
+    """
+    # Get statusline data
+    statusline = _get_statusline_data()
+    if not statusline:
+        error_msg = "❌ No statusline data found (data/statusline_data.json)"
+        if return_data:
+            return None, error_msg
+        print(error_msg)
+        return None
+
+    session_id = statusline.get("session_id")
     if not session_id:
-        error_msg = "❌ No session JSONL files found in Claude Code projects directory."
+        error_msg = "❌ No session_id in statusline data"
         if return_data:
             return None, error_msg
         print(error_msg)
         return None
 
-    # Run ccusage
-    output = run_ccusage(session_id)
-    if not output:
-        error_msg = "❌ Failed to get ccusage output"
-        if return_data:
-            return None, error_msg
-        print(error_msg)
-        return None
+    # Extract context window data
+    context_window = statusline.get("context_window", {})
+    current_usage = context_window.get("current_usage", {})
 
-    # Parse cache tokens
-    cache_tokens = parse_ccusage_output(output)
-    if cache_tokens is None:
-        error_msg = "❌ Could not parse token count from ccusage"
-        if return_data:
-            return None, error_msg
-        print(error_msg)
-        return None
+    # Cache read tokens = the main session context size
+    cache_tokens = current_usage.get("cache_read_input_tokens", 0)
 
-    # Calculate total
+    # If cache_read is 0, try summing input tokens as fallback
+    if cache_tokens == 0:
+        cache_tokens = current_usage.get("input_tokens", 0)
+
+    # Calculate total with system overhead
     total_tokens = cache_tokens + SYSTEM_OVERHEAD
     percentage = total_tokens / TOTAL_CONTEXT
 
     if return_data:
-        # Return data for other scripts to use
         return {
             "session_id": session_id,
             "cache_tokens": cache_tokens,

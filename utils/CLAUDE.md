@@ -17,14 +17,14 @@
 - **`update_conversation_history.py`** — Parses exported transcript into rolling context.
 - **`conversation_history_utils.py`** — Shared utilities for history processing.
 - **`trim_claude_history.py`** — Trims Claude Code command history to prevent context bloat.
-- **`track_current_session.py`** — *(Removed)* Session detection now handled by `check_usage.py` via filesystem (most recently modified JSONL file).
+- **`track_current_session.py`** — *(Removed)* Session detection now handled by `check_usage.py` via statusline JSON (falls back to filesystem scan).
 - **`send_to_claude.sh`** — Sends text to the Claude tmux session with retry logic.
 
 ## Health & Monitoring
 - **`check_health`** — Main health check script (services, git, config, remote family status).
 - **`healthcheck_status.py`** — Pings healthchecks.io endpoints.
-- **`check_context.py`** — Reports current context token usage.
-- **`check_usage.py`** — Checks API usage/spending.
+- **`check_context.py`** — Reports current context token usage (reads from statusline JSON).
+- **`check_usage.py`** — Checks API usage/spending (reads from statusline JSON).
 - **`track_activity.py`** — Activity tracking for autonomous timer.
 
 ## Emergency

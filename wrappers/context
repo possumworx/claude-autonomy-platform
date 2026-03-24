@@ -5,7 +5,7 @@
 #   Shows current Claude session token usage and percentage
 #   Displays visual progress bar and free token count
 #   Essential for monitoring context capacity during work
-# Uses ccusage to get accurate token counts from tracked session
+# Uses statusline JSON data for accurate token counts
 #
 # NOTE: DO NOT use /context via send_to_claude here!
 # Reasons:
