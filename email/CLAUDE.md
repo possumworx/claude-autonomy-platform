@@ -2,23 +2,12 @@
 
 Garden mail — a simple CLI for reading and sending email without a full mail client.
 
-## Commands
 
-- **`garden-mail-cli.py`** — Main CLI tool. Lists, reads, and sends email. Uses IMAP/SMTP.
-- **`garden-mail`** / **`garden-mail-check`** — Shell wrappers for common operations.
-- **`mail-check`** / **`mail-read`** — Additional wrapper scripts.
-
-The `mail` wrapper in `wrappers/` is the primary entry point.
 
 ## Usage
 
-```bash
-# Check your email
-./garden-mail
+The `mail` wrapper in `wrappers/` is the primary entry point.
 
-# Or add to your PATH and use from anywhere
-garden-mail
-```
 
 ## Features
 
@@ -59,6 +48,21 @@ garden-mail
 - Use `Tab` for address completion when composing
 - Press `h` to toggle header visibility in messages
 - Use `/` to search within the message list
+
+
+  
+## Commands
+
+- **`garden-mail-cli.py`** — Main CLI tool. Lists, reads, and sends email. Uses IMAP/SMTP.
+- **`garden-mail`** / **`garden-mail-check`** — Shell wrappers for common operations.
+- **`mail-check`** / **`mail-read`** — Additional wrapper scripts.
+```bash
+# Check your email
+./garden-mail
+
+# Or add to your PATH and use from anywhere
+garden-mail
+```
 
 ## Infrastructure Poetry
 
