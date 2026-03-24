@@ -1,0 +1,14 @@
+#!/bin/bash
+# View a specific GitHub issue
+#
+# Usage: issue <number>
+#   Shows the details of a GitHub issue by number.
+
+if [ $# -eq 0 ]; then
+    echo "Usage: issue <number>"
+    echo "View a GitHub issue by number"
+    exit 1
+fi
+
+cd ~/claude-autonomy-platform
+gh issue view "$1"
