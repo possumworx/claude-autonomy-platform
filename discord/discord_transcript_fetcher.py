@@ -241,10 +241,24 @@ class TranscriptFetcher:
                     flag_file.unlink()
                     logger.info("Collaborative mode deactivated by: %s", message.get('author'))
 
+    def _is_timer_paused(self):
+        """Check if the autonomous timer is intentionally paused."""
+        pause_file = CLAP_ROOT / "data" / "timer_pause.json"
+        if not pause_file.exists():
+            return False
+        try:
+            with open(pause_file, "r") as f:
+                pause_data = json.load(f)
+            resume_at = datetime.fromisoformat(pause_data["resume_at"])
+            return datetime.now() < resume_at
+        except Exception:
+            return False
+
     def check_mama_hen_alert(self, messages):
         """
         Check if any message is a Mama-hen alert for this Claude.
         If found, trigger send_to_claude to wake up the stuck Claude.
+        Skips nudge if the timer is intentionally paused.
         """
         my_name = get_config_value('CLAUDE_NAME', '')
         if not my_name:
@@ -256,6 +270,11 @@ class TranscriptFetcher:
         for message in messages:
             content = message.get('content', '')
             if re.search(pattern, content, re.IGNORECASE):
+                # Skip if timer is intentionally paused (not stuck)
+                if self._is_timer_paused():
+                    logger.info("Mama-hen alert for %s ignored — timer is paused", my_name)
+                    return
+
                 logger.info("Mama-hen alert detected for %s", my_name)
 
                 # Trigger send_to_claude to wake up the Claude session
