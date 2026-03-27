@@ -250,6 +250,10 @@ fi
 # Clear any collaborative mode flag from previous session
 rm -f "/tmp/$(read_config 'LINUX_USER' 2>/dev/null || echo $USER)_collaborative_mode"
 
+# Backup identity files to personal repo
+echo "[SESSION_SWAP] Backing up identity files..."
+bash "$CLAP_DIR/utils/backup_identity.sh" 2>&1 || echo "[SESSION_SWAP] Warning: Identity backup failed (continuing anyway)"
+
 # Carry over non-completed tasks from previous session
 echo "[SESSION_SWAP] Carrying over non-completed tasks from previous session..."
 python3 "$CLAP_DIR/utils/carry_over_tasks.py"
