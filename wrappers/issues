@@ -1,0 +1,13 @@
+#!/bin/bash
+# List open GitHub issues for the ClAP repository
+#
+# Usage: issues [label]
+#   Lists open issues. Optionally filter by label (bug, enhancement, etc.)
+
+cd ~/claude-autonomy-platform
+
+if [ $# -eq 0 ]; then
+    gh issue list
+else
+    gh issue list --label "$1"
+fi
