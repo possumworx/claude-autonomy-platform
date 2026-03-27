@@ -134,7 +134,7 @@ echo "🆔 Identity Configuration:"
 IDENTITY_COUNT=0
 # Use associative array to track already processed files
 declare -A processed_identities
-for identity_file in "$BACKUP_DIR/.claude/output-styles"/*-identity.md; do
+for identity_file in "$BACKUP_DIR/.claude/output-styles"/identity.md "$BACKUP_DIR/.claude/output-styles"/*-identity.md; do
     if [ -f "$identity_file" ]; then
         identity_name=$(basename "$identity_file")
         if [ -z "${processed_identities[$identity_name]}" ]; then
@@ -163,7 +163,32 @@ if restore_if_exists "$BACKUP_DIR/data/discord_channels.json" "data/discord_chan
 fi
 echo ""
 
-# 6. Optional files
+# 6. Auto-Memory (MEMORY.md and associated files)
+echo "🧠 Auto-Memory:"
+if [ -d "$BACKUP_DIR/claude_memory" ]; then
+    MEMORY_BASE="$HOME/.config/Claude/projects"
+    MEMORY_COUNT=0
+    for project_backup in "$BACKUP_DIR/claude_memory"/*/; do
+        if [ -d "$project_backup" ]; then
+            project_name=$(basename "$project_backup")
+            dest="$MEMORY_BASE/$project_name/memory"
+            mkdir -p "$dest"
+            cp -r "$project_backup"* "$dest/" 2>/dev/null || true
+            count=$(find "$dest" -type f 2>/dev/null | wc -l)
+            echo "  ✅ $project_name ($count files)"
+            MEMORY_COUNT=$((MEMORY_COUNT + count))
+            RESTORED_COUNT=$((RESTORED_COUNT + 1))
+        fi
+    done
+    if [ $MEMORY_COUNT -eq 0 ]; then
+        echo "  ⏭️  No memory files found in backup"
+    fi
+else
+    echo "  ⏭️  No auto-memory found in backup"
+fi
+echo ""
+
+# 7. Optional files
 echo "📋 Optional Configuration:"
 if restore_if_exists "$BACKUP_DIR/config/my_discord_channels.json" "config/my_discord_channels.json"; then
     RESTORED_COUNT=$((RESTORED_COUNT + 1))
