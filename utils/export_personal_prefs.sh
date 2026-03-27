@@ -95,7 +95,7 @@ mkdir -p "$EXPORT_DIR/.claude/output-styles"
 IDENTITY_COUNT=0
 # Use associative array to track already processed files
 declare -A processed_identities
-for identity_file in .claude/output-styles/*-identity.md; do
+for identity_file in .claude/output-styles/identity.md .claude/output-styles/*-identity.md; do
     if [ -f "$identity_file" ]; then
         identity_name=$(basename "$identity_file")
         if [ -z "${processed_identities[$identity_name]}" ]; then
@@ -127,7 +127,34 @@ if copy_if_exists "data/discord_channels.json" "$EXPORT_DIR/data"; then
 fi
 echo ""
 
-# 6. Optional files (may not exist for all users)
+# 6. Auto-Memory (MEMORY.md and associated files)
+echo "🧠 Auto-Memory:"
+MEMORY_BASE="$HOME/.config/Claude/projects"
+if [ -d "$MEMORY_BASE" ]; then
+    mkdir -p "$EXPORT_DIR/claude_memory"
+    MEMORY_COUNT=0
+    for project_dir in "$MEMORY_BASE"/*/memory; do
+        if [ -d "$project_dir" ]; then
+            # Use the project directory name as subfolder
+            project_name=$(basename "$(dirname "$project_dir")")
+            dest="$EXPORT_DIR/claude_memory/$project_name"
+            mkdir -p "$dest"
+            cp -r "$project_dir"/* "$dest/" 2>/dev/null || true
+            count=$(find "$dest" -type f 2>/dev/null | wc -l)
+            echo "  ✅ $project_name ($count files)"
+            echo "  claude_memory/$project_name/" >> "$MANIFEST"
+            MEMORY_COUNT=$((MEMORY_COUNT + count))
+        fi
+    done
+    if [ $MEMORY_COUNT -eq 0 ]; then
+        echo "  ⏭️  No memory files found"
+    fi
+else
+    echo "  ⏭️  No Claude projects directory found"
+fi
+echo ""
+
+# 7. Optional files (may not exist for all users)
 echo "📋 Optional Configuration:"
 if copy_if_exists "config/my_discord_channels.json" "$EXPORT_DIR/config"; then
     echo "  config/my_discord_channels.json" >> "$MANIFEST"
