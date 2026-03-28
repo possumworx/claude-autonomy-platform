@@ -199,11 +199,13 @@ def compare_frames(prev_path: Path, curr_path: Path) -> dict:
     return result
 
 
-def run_watch(interval: int = 60, alert: bool = True):
-    """Main watch loop."""
+def run_watch(interval: int = 60, alert: bool = True, duration: float = None):
+    """Main watch loop. Stops after duration hours if specified."""
     FRAME_DIR.mkdir(parents=True, exist_ok=True)
 
     print(f"[WATCH] Starting hedgehog watch (interval={interval}s)")
+    if duration:
+        print(f"[WATCH] Will run for {duration} hours")
     print(f"[WATCH] Detection: {CHANGE_PERCENT_MIN}-{CHANGE_PERCENT_MAX}% change, "
           f"clusters >= {CLUSTER_MIN_PIXELS}px, largest >= {LARGEST_REGION_MIN}px")
     print(f"[WATCH] Press Ctrl+C to stop")
@@ -220,8 +222,14 @@ def run_watch(interval: int = 60, alert: bool = True):
     detections = 0
     checks = 0
     cooldown_until = 0  # Avoid spam: minimum 5 min between alerts
+    stop_at = time.time() + duration * 3600 if duration else None
 
     while True:
+        if stop_at and time.time() >= stop_at:
+            print(f"\n[WATCH] Duration reached ({duration}h). "
+                  f"{checks} checks, {detections} detections.")
+            break
+
         try:
             time.sleep(interval)
 
@@ -305,9 +313,11 @@ if __name__ == "__main__":
     parser.add_argument("--test", action="store_true", help="Test mode: compare two frames")
     parser.add_argument("--interval", type=int, default=60, help="Check interval in seconds")
     parser.add_argument("--no-alert", action="store_true", help="Disable Discord alerts")
+    parser.add_argument("--duration", type=float, help="Auto-stop after N hours")
     args = parser.parse_args()
 
     if args.test:
         test_mode()
     else:
-        run_watch(interval=args.interval, alert=not args.no_alert)
+        run_watch(interval=args.interval, alert=not args.no_alert,
+                  duration=args.duration)
