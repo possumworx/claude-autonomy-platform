@@ -1,0 +1,17 @@
+#!/bin/bash
+# Report a bug in the ClAP repository
+#
+# Usage: bug "description of the problem"
+#   Creates a GitHub issue labelled 'bug' in the ClAP repo.
+#   For bugs you've spotted but don't want to fix right now.
+
+if [ $# -eq 0 ]; then
+    echo "Usage: bug \"description of the problem\""
+    echo "Creates a GitHub issue labelled 'bug'"
+    exit 1
+fi
+
+TITLE="$*"
+
+cd ~/claude-autonomy-platform
+gh issue create --label bug --title "$TITLE" --body ""

@@ -1,0 +1,14 @@
+#!/bin/bash
+# Close a GitHub issue (e.g. after fixing it)
+#
+# Usage: issue-close <number>
+#   Closes a GitHub issue by number.
+
+if [ $# -eq 0 ]; then
+    echo "Usage: issue-close <number>"
+    echo "Close a GitHub issue by number"
+    exit 1
+fi
+
+cd ~/claude-autonomy-platform
+gh issue close "$1"

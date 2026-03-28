@@ -1,0 +1,16 @@
+#!/bin/bash
+# Suggest an enhancement for the ClAP repository
+#
+# Usage: enhancement "description of the improvement"
+#   Creates a GitHub issue labelled 'enhancement' in the ClAP repo.
+
+if [ $# -eq 0 ]; then
+    echo "Usage: enhancement \"description of the improvement\""
+    echo "Creates a GitHub issue labelled 'enhancement'"
+    exit 1
+fi
+
+TITLE="$*"
+
+cd ~/claude-autonomy-platform
+gh issue create --label enhancement --title "$TITLE" --body ""
