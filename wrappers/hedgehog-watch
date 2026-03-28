@@ -1,0 +1,5 @@
+#!/bin/bash
+# Hedgehog Watch - garden camera motion detection
+# Usage: hedgehog-watch [--test] [--interval N] [--no-alert]
+CLAP_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+exec python3 "$CLAP_DIR/wildlife/hedgehog_watch.py" "$@"
