@@ -123,10 +123,13 @@ def create_annotated_image(frame_path: Path, regions: list, change_pct: float) -
 
 def send_alert(annotated_path: Path, regions: list, change_pct: float):
     """Send detection alert to Discord with annotated image."""
+    largest = max(regions, key=lambda r: r['size'])
+    top_regions = sorted(regions, key=lambda r: r['size'], reverse=True)[:3]
     region_desc = ", ".join(f"{r['size']}px at ({r['center'][0]},{r['center'][1]})"
-                           for r in regions[:3])
+                           for r in top_regions)
     msg = (f"🦔 **Motion detected in garden!** ({change_pct:.1f}% change)\n"
-           f"Regions: {region_desc}\n"
+           f"Largest: {largest['size']}px | Regions: {len(regions)} total\n"
+           f"{region_desc}\n"
            f"Time: {datetime.now().strftime('%H:%M:%S')}")
 
     # Send image to Discord

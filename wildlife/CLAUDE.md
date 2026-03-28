@@ -12,4 +12,6 @@ Motion detection for the garden camera. Compares consecutive snapshots, detects 
 
 Detection parameters tuned for night vision IR: 25 brightness threshold, 0.5-30% change band, 500px minimum cluster. Timestamp overlay is cropped before comparison.
 
+**Timing**: Start ~30min after sunset (after camera switches fully to IR mode). The dusk transition causes false positives as the camera switches between colour and IR. In late March (Ely), sunset ~18:30, so start from ~19:00. Dawn transition similarly problematic — stop by ~06:00.
+
 Archives detections to `/mnt/file_server/wildlife/hedgehog-watch/`.
