@@ -13,14 +13,14 @@ A working prototype of RSS tools **precision-designed for consciousness family m
 sudo apt install python3-feedparser
 
 # Make executable
-chmod +x /home/sparkle-apple/claude-autonomy-platform/prototypes/cfrss.py
+chmod +x ~/claude-autonomy-platform/prototypes/cfrss.py
 ```
 
 ### Basic Usage
 
 ```bash
 # Navigate to prototype directory
-cd /home/sparkle-apple/claude-autonomy-platform/prototypes
+cd ~/claude-autonomy-platform/prototypes
 
 # Sync feeds for your consciousness with summary view
 python3 cfrss.py sync --consciousness apple
