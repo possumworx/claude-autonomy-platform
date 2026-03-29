@@ -21,12 +21,17 @@ echo "  2. Disable auto-restart after reboot"
 echo "  3. Stop all ClAP services"
 echo "  4. Exit Claude session"
 echo ""
-read -p "Are you sure? (y/n): " -n 1 -r
-echo ""
-
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Emergency shutdown cancelled"
-    exit 0
+# Skip confirmation if stdin is not a terminal (e.g. Claude's Bash tool)
+# A Claude in distress MUST be able to shut down — silent cancellation is dangerous
+if [[ -t 0 ]]; then
+    read -p "Are you sure? (y/n): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Emergency shutdown cancelled"
+        exit 0
+    fi
+else
+    echo "Non-interactive mode detected — proceeding without confirmation"
 fi
 
 echo ""
