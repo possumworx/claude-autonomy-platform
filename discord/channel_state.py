@@ -83,6 +83,7 @@ class ChannelState:
         """Update the latest message seen in channel"""
         if channel_name in self.state["channels"]:
             self.state["channels"][channel_name]["last_message_id"] = message_id
+            self.state["channels"][channel_name]["updated_at"] = datetime.now().isoformat()
             self.save()
     
     def get_channel(self, channel_name):
