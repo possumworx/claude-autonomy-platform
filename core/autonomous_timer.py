@@ -1465,21 +1465,24 @@ def check_timer_pause():
                             if line:
                                 recent_msgs.append(line)
 
-                    # Check if ALL recent messages are MAMA-HEN alerts
-                    all_mama_hen = True
+                    # Check if ALL recent messages are routine noise (not worth waking for)
+                    # Routine noise includes: MAMA-HEN alerts, sibling heartbeat messages
+                    all_routine = True
                     for line in recent_msgs:
                         try:
                             msg = json.loads(line)
                             content = msg.get("content", "")
-                            if "[MAMA-HEN:" not in content:
-                                all_mama_hen = False
+                            is_mama_hen = "[MAMA-HEN:" in content
+                            is_heartbeat = "heartbeat" in content.lower() and content.startswith("💙")
+                            if not is_mama_hen and not is_heartbeat:
+                                all_routine = False
                                 break
                         except json.JSONDecodeError:
-                            all_mama_hen = False
+                            all_routine = False
                             break
 
-                    if all_mama_hen and recent_msgs:
-                        log_message("Timer paused - system-messages recent activity is only MAMA-HEN alerts, staying paused")
+                    if all_routine and recent_msgs:
+                        log_message("Timer paused - system-messages recent activity is only routine noise (MAMA-HEN/heartbeats), staying paused")
                         return True, False
             except Exception as e:
                 log_message(f"Error checking system-messages content: {e}")
