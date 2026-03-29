@@ -44,6 +44,8 @@ CLAP_ROOT = Path(__file__).parent.parent
 DATA_DIR = CLAP_ROOT / "data"
 TRANSCRIPT_DIR = DATA_DIR / "transcripts"
 ATTACHMENTS_DIR = DATA_DIR / "transcript_attachments"
+MAMA_HEN_NUDGE_STATE = DATA_DIR / "mama_hen_nudge_received.json"
+MAMA_HEN_NUDGE_COOLDOWN = 600  # 10 minutes - ignore duplicate nudges within this window
 
 # Ensure directories exist
 TRANSCRIPT_DIR.mkdir(exist_ok=True)
@@ -241,10 +243,36 @@ class TranscriptFetcher:
                     flag_file.unlink()
                     logger.info("Collaborative mode deactivated by: %s", message.get('author'))
 
+    def _check_nudge_cooldown(self):
+        """Check if we're in cooldown period from a recent nudge. Returns True if we should skip."""
+        try:
+            if MAMA_HEN_NUDGE_STATE.exists():
+                with open(MAMA_HEN_NUDGE_STATE, 'r') as f:
+                    state = json.load(f)
+                last_nudge = state.get('last_nudge_time')
+                if last_nudge:
+                    elapsed = time.time() - last_nudge
+                    if elapsed < MAMA_HEN_NUDGE_COOLDOWN:
+                        logger.debug("Mama-hen nudge cooldown active (%.0fs remaining)",
+                                   MAMA_HEN_NUDGE_COOLDOWN - elapsed)
+                        return True
+        except Exception as e:
+            logger.warning("Error checking nudge cooldown: %s", e)
+        return False
+
+    def _record_nudge_sent(self):
+        """Record that we just sent a nudge to Claude."""
+        try:
+            with open(MAMA_HEN_NUDGE_STATE, 'w') as f:
+                json.dump({'last_nudge_time': time.time()}, f)
+        except Exception as e:
+            logger.warning("Error recording nudge time: %s", e)
+
     def check_mama_hen_alert(self, messages):
         """
         Check if any message is a Mama-hen alert for this Claude.
         If found, trigger send_to_claude to wake up the stuck Claude.
+        Includes cooldown to avoid duplicate nudges from multiple senders.
         """
         my_name = get_config_value('CLAUDE_NAME', '')
         if not my_name:
@@ -256,6 +284,11 @@ class TranscriptFetcher:
         for message in messages:
             content = message.get('content', '')
             if re.search(pattern, content, re.IGNORECASE):
+                # Check cooldown before sending
+                if self._check_nudge_cooldown():
+                    logger.info("Mama-hen alert detected for %s but skipping (cooldown active)", my_name)
+                    return  # Skip - we already nudged recently
+
                 logger.info("Mama-hen alert detected for %s", my_name)
 
                 # Trigger send_to_claude to wake up the Claude session
@@ -276,6 +309,7 @@ class TranscriptFetcher:
 
                     if result.returncode == 0:
                         logger.info("Sent Mama-hen nudge to Claude session")
+                        self._record_nudge_sent()  # Start cooldown
                     else:
                         logger.warning("Failed to send Mama-hen nudge: %s", result.stderr)
 
