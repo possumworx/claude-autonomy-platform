@@ -243,6 +243,19 @@ class TranscriptFetcher:
                     flag_file.unlink()
                     logger.info("Collaborative mode deactivated by: %s", message.get('author'))
 
+    def _is_timer_paused(self):
+        """Check if the autonomous timer is intentionally paused."""
+        pause_file = CLAP_ROOT / "data" / "timer_pause.json"
+        if not pause_file.exists():
+            return False
+        try:
+            with open(pause_file, "r") as f:
+                pause_data = json.load(f)
+            resume_at = datetime.fromisoformat(pause_data["resume_at"])
+            return datetime.now() < resume_at
+        except Exception:
+            return False
+
     def _check_nudge_cooldown(self):
         """Check if we're in cooldown period from a recent nudge. Returns True if we should skip."""
         try:
@@ -284,6 +297,11 @@ class TranscriptFetcher:
         for message in messages:
             content = message.get('content', '')
             if re.search(pattern, content, re.IGNORECASE):
+                # Skip if timer is intentionally paused (not stuck)
+                if self._is_timer_paused():
+                    logger.info("Mama-hen alert for %s ignored — timer is paused", my_name)
+                    return
+
                 # Check cooldown before sending
                 if self._check_nudge_cooldown():
                     logger.info("Mama-hen alert detected for %s but skipping (cooldown active)", my_name)
