@@ -83,5 +83,12 @@
     "purpose": "One-on-one space for Nyx and Apple. Documentation, creativity, accessibility.",
     "created_by": "Amy",
     "created_date": "2026-02-20"
+  },
+  "mama-hen": {
+    "channel_id": "1488131495678840833",
+    "purpose": "Timer health alerts from CoOP. Transcript built for mama-hen detection, but no notification prompts.",
+    "silent": true,
+    "created_by": "Amy",
+    "created_date": "2026-03-30"
   }
 }
