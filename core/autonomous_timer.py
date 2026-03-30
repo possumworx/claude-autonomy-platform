@@ -45,6 +45,7 @@ LOG_FILE = (
 )  # POSS-239: Standardized log location
 CONFIG_FILE = AUTONOMY_DIR / "config" / "autonomous_timer_config.json"
 PROMPTS_FILE = AUTONOMY_DIR / "config" / "prompts.json"
+CHANNEL_PURPOSES_FILE = AUTONOMY_DIR / "config" / "channel_purposes.json"
 SWAP_LOG_FILE = AUTONOMY_DIR / "logs" / "swap_attempts.log"
 CONTEXT_STATE_FILE = DATA_DIR / "context_escalation_state.json"
 API_ERROR_STATE_FILE = DATA_DIR / "api_error_state.json"
@@ -1338,6 +1339,18 @@ def update_discord_channels():
     return updates
 
 
+def get_silent_channels():
+    """Get list of channels marked as silent in channel_purposes.json"""
+    try:
+        if not CHANNEL_PURPOSES_FILE.exists():
+            return []
+        with open(CHANNEL_PURPOSES_FILE, "r") as f:
+            purposes = json.load(f)
+        return [name for name, data in purposes.items() if data.get("silent", False)]
+    except Exception:
+        return []
+
+
 def get_discord_notification_status():
     """Check Discord notification state from discord_channels.json (transcript-based format)"""
     try:
@@ -1348,6 +1361,9 @@ def get_discord_notification_status():
         with open(notification_state_file, "r") as f:
             state = json.load(f)
 
+        # Get channels marked as silent (transcript built but no notifications)
+        silent_channels = get_silent_channels()
+
         # Calculate total unread count and collect channel names
         total_unread = 0
         last_message_id = None
@@ -1355,6 +1371,10 @@ def get_discord_notification_status():
 
         channels = state.get("channels", {})
         for channel_name, channel_data in channels.items():
+            # Skip silent channels for notification purposes
+            if channel_name in silent_channels:
+                continue
+
             # If there are messages we haven't read yet
             last_read = channel_data.get("last_read_message_id")
             last_message = channel_data.get("last_message_id")
