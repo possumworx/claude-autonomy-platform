@@ -1,0 +1,17 @@
+#!/bin/bash
+# Quick quota status check using JSON API
+
+curl -s http://localhost:8765/dashboard/json | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+quota = data['quota']
+
+print('📊 Quota Status:')
+print(f\"  Session (5-hour): {quota['session_5hour']}% (resets {quota['session_5hour_reset']})\")
+print(f\"  Weekly (all):     {quota['week_all']}% (resets {quota['week_reset']})\")
+print(f\"  Weekly (Sonnet):  {quota['week_sonnet']}%\")
+print()
+print('🤖 Active Claudes:')
+for claude in data['claudes']:
+    print(f\"  {claude['name']}: {claude['recent_interval_display']} interval, {claude['weekly_total']:.1f} weekly cost\")
+"
