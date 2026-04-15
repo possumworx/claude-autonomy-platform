@@ -1,0 +1,30 @@
+#!/bin/bash
+# Quick quota status check using JSON API
+
+curl -s http://localhost:8765/dashboard/json | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+quota = data['quota']
+metrics = data['quota_metrics']
+
+print('📊 Quota Status:')
+print(f\"  Session (5-hour): {quota['session_5hour']}% (resets {quota['session_5hour_reset']})\")
+print(f\"  Weekly (all):     {quota['week_all']}% (resets {quota['week_reset']})\")
+print(f\"  Weekly (Sonnet):  {quota['week_sonnet']}%\")
+
+print()
+print('⚙️  Interval Settings:')
+print(f\"  Base interval:    {metrics['base_interval_minutes']}min ({metrics['base_interval']}s)\")
+print(f\"  Allocation mode:  {metrics['allocation_mode']}\")
+brake_status = '🚨 ACTIVE' if metrics['quota_brake_active'] else '✅ Inactive'
+print(f\"  Quota brake:      {metrics['quota_brake_multiplier']}x {brake_status}\")
+print(f\"  Last 24hr cost:   \${metrics['last_24hr_cost']}\")
+
+if metrics.get('quota_runout_prediction'):
+    print(f\"  ⏰ Predicted runout: {metrics['quota_runout_prediction']} (at current rate)\")
+
+print()
+print('🤖 Active Claudes:')
+for claude in data['claudes']:
+    print(f\"  {claude['name']}: {claude['recent_interval_display']} interval, {claude['weekly_total']:.1f} weekly cost\")
+"
