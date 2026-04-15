@@ -340,36 +340,43 @@ def check_claude_session_alive():
         return False
 
 
-def ping_claude_session_healthcheck(is_alive):
-    """Ping healthchecks.io for Claude Code session status"""
-    base_url = get_config_value(
-        "CLAUDE_CODE_PING", ""
-    )
+def restart_claude_session():
+    """Restart Claude Code session after unexpected death (e.g., OOM kill).
 
-    if not base_url:
-        return True  # No healthcheck URL configured, skip silently
+    Only restarts if:
+    - RESTART_AFTER_REBOOT is enabled in config
+    - No session swap is in progress
+    Uses --continue to preserve conversation context.
+    """
+    # Check if auto-resume is enabled (same setting as reboot resume)
+    restart_enabled = get_config_value("RESTART_AFTER_REBOOT", "false").lower()
+    if restart_enabled != "true":
+        log_message("RESTART_AFTER_REBOOT not enabled - not auto-restarting Claude session")
+        return False
+
+    lockfile = DATA_DIR / "session_swap.lock"
+    if lockfile.exists():
+        log_message("Session swap in progress - not restarting Claude")
+        return False
 
     try:
-        if is_alive:
-            # Normal ping for success
-            url = base_url
-        else:
-            # Ping /fail to signal Claude session is down
-            url = f"{base_url}/fail"
+        log_message("Attempting to restart Claude Code session with --continue")
 
+        # Send claude --continue to the tmux session
         result = subprocess.run(
-            ["curl", "-fsS", "-m", "10", "--retry", "3", "-o", "/dev/null", url],
+            ["tmux", "send-keys", "-t", CLAUDE_SESSION, "claude --continue", "Enter"],
             capture_output=True,
             text=True,
         )
 
         if result.returncode == 0:
+            log_message("Claude Code restart command sent successfully")
             return True
         else:
-            log_message(f"Claude session healthcheck ping failed: {result.stderr}")
+            log_message(f"Failed to send restart command: {result.stderr}")
             return False
     except Exception as e:
-        log_message(f"Claude session healthcheck ping error: {e}")
+        log_message(f"Error restarting Claude session: {e}")
         return False
 
 
@@ -2242,8 +2249,7 @@ def main():
 
                                     # Ping health checks during wait
                                     ping_healthcheck()
-                                    claude_alive = check_claude_session_alive()
-                                    ping_claude_session_healthcheck(claude_alive)
+                                    check_claude_session_alive()  # Just check, don't restart during wait loops
 
                                     # Keep health status files updated during wait (#307)
                                     try:
@@ -2557,8 +2563,7 @@ def main():
                 log_message("Pausing notifications due to active error state")
                 # Still do health checks but skip Discord/autonomy prompts
                 ping_healthcheck()
-                claude_alive = check_claude_session_alive()
-                ping_claude_session_healthcheck(claude_alive)
+                check_claude_session_alive()  # Just check, don't restart during error states
                 time.sleep(30)
                 continue
 
@@ -2653,12 +2658,11 @@ def main():
             # Ping healthcheck to signal service is alive
             ping_healthcheck()
 
-            # Check if Claude Code session is actually running
+            # Check if Claude Code session is actually running, restart if dead
             claude_alive = check_claude_session_alive()
-            ping_claude_session_healthcheck(claude_alive)
-
             if not claude_alive:
                 log_message("WARNING: Claude Code session appears to be down!")
+                restart_claude_session()
 
             # Check if persistent-login tmux session exists (POSS-315)
             check_persistent_login_session()
