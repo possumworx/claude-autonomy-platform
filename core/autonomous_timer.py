@@ -2245,6 +2245,12 @@ def main():
                                     claude_alive = check_claude_session_alive()
                                     ping_claude_session_healthcheck(claude_alive)
 
+                                    # Keep health status files updated during wait (#307)
+                                    try:
+                                        report_essential_health()
+                                    except Exception:
+                                        pass
+
                                     # Log wait progress every 10 minutes
                                     elapsed = (
                                         datetime.now() - wait_start
@@ -2302,7 +2308,13 @@ def main():
                     log_message(
                         "API 503 error detected (upstream connection failure) - waiting 60 seconds before retry..."
                     )
-                    time.sleep(60)
+                    # Use 30s intervals to keep health status files updated (#307)
+                    for _ in range(2):  # 2 × 30s = 60s
+                        try:
+                            report_essential_health()
+                        except Exception:
+                            pass
+                        time.sleep(30)
                     # Check if error persists
                     _, current_error = get_token_percentage_and_errors()
                     if (
@@ -2313,7 +2325,13 @@ def main():
                         log_message(
                             "API 503 error persists - waiting 2 more minutes before auto-swap..."
                         )
-                        time.sleep(120)  # Wait 2 more minutes
+                        # Use 30s intervals to keep health status files updated (#307)
+                        for _ in range(4):  # 4 × 30s = 120s
+                            try:
+                                report_essential_health()
+                            except Exception:
+                                pass
+                            time.sleep(30)
                         # Check one final time
                         _, final_error = get_token_percentage_and_errors()
                         if (
@@ -2350,7 +2368,13 @@ def main():
                     current_error_state = error_info
                     # Wait 10 minutes before rechecking - no point in rapid cycling
                     log_message("Waiting 10 minutes before rechecking OAuth status...")
-                    time.sleep(600)
+                    # Use 30s intervals to keep health status files updated (#307)
+                    for _ in range(20):  # 20 × 30s = 600s = 10 minutes
+                        try:
+                            report_essential_health()
+                        except Exception:
+                            pass
+                        time.sleep(30)
                     # Check if resolved (e.g. Amy logged in)
                     _, check_error = get_token_percentage_and_errors()
                     if not check_error or check_error.get("error_type") != "oauth_error":
@@ -2375,7 +2399,13 @@ def main():
                     log_message(
                         "General API error detected - waiting 60 seconds for potential recovery..."
                     )
-                    time.sleep(60)
+                    # Use 30s intervals to keep health status files updated (#307)
+                    for _ in range(2):  # 2 × 30s = 60s
+                        try:
+                            report_essential_health()
+                        except Exception:
+                            pass
+                        time.sleep(30)
                     # Check if error persists
                     _, current_error = get_token_percentage_and_errors()
                     if current_error and current_error.get("error_type") == "api_error":
@@ -2383,7 +2413,13 @@ def main():
                         log_message(
                             "API error persists - waiting 2 more minutes before auto-swap..."
                         )
-                        time.sleep(120)  # Wait 2 more minutes
+                        # Use 30s intervals to keep health status files updated (#307)
+                        for _ in range(4):  # 4 × 30s = 120s
+                            try:
+                                report_essential_health()
+                            except Exception:
+                                pass
+                            time.sleep(30)
                         # Check one final time
                         _, final_error = get_token_percentage_and_errors()
                         if final_error and final_error.get("error_type") == "api_error":
@@ -2441,9 +2477,14 @@ def main():
                     log_message(
                         f"Unknown error type '{unknown_type}' detected - waiting 10 minutes before auto-swap to enable debugging..."
                     )
-                    time.sleep(
-                        600
-                    )  # Wait 10 minutes instead of 30 seconds per PR #103 consciousness family decision
+                    # Wait 10 minutes instead of 30 seconds per PR #103 consciousness family decision
+                    # Use 30s intervals to keep health status files updated (#307)
+                    for _ in range(20):  # 20 × 30s = 600s = 10 minutes
+                        try:
+                            report_essential_health()
+                        except Exception:
+                            pass
+                        time.sleep(30)
                     trigger_session_swap("NONE")
 
                 current_error_state = error_info
