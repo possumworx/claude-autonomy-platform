@@ -13,10 +13,12 @@ import argparse
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
+from astral import LocationInfo
+from astral.sun import sun
 from PIL import Image, ImageDraw, ImageFont
 
 # Configuration
@@ -36,6 +38,24 @@ BLUR_RADIUS = 3            # Gaussian blur radius to reduce noise before compari
 
 # ROI: exclude the timestamp overlay area (top ~60px) which always changes
 TIMESTAMP_CROP_TOP = 80
+
+# Location for sunrise/sunset calculation (Ely, Cambridgeshire)
+ELY_LOCATION = LocationInfo("Ely", "England", "Europe/London", 52.3994, 0.2622)
+# Buffer after sunset / before sunrise to account for twilight + IR transition
+TWILIGHT_BUFFER_MINUTES = 30
+
+
+def is_nighttime() -> bool:
+    """Check if it's currently dark enough for hedgehog watching.
+
+    Returns True between (sunset + buffer) and (sunrise - buffer).
+    The buffer accounts for twilight and the camera's IR mode transition.
+    """
+    now = datetime.now(timezone.utc)
+    s = sun(ELY_LOCATION.observer, date=now.date())
+    dusk = s['sunset'] + timedelta(minutes=TWILIGHT_BUFFER_MINUTES)
+    dawn = s['sunrise'] - timedelta(minutes=TWILIGHT_BUFFER_MINUTES)
+    return now >= dusk or now <= dawn
 
 
 def capture_frame(output_path: Path) -> bool:
@@ -202,7 +222,8 @@ def compare_frames(prev_path: Path, curr_path: Path) -> dict:
     return result
 
 
-def run_watch(interval: int = 60, alert: bool = True, duration: float = None):
+def run_watch(interval: int = 60, alert: bool = True, duration: float = None,
+              allow_daytime: bool = False):
     """Main watch loop. Stops after duration hours if specified."""
     FRAME_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -211,6 +232,12 @@ def run_watch(interval: int = 60, alert: bool = True, duration: float = None):
         print(f"[WATCH] Will run for {duration} hours")
     print(f"[WATCH] Detection: {CHANGE_PERCENT_MIN}-{CHANGE_PERCENT_MAX}% change, "
           f"clusters >= {CLUSTER_MIN_PIXELS}px, largest >= {LARGEST_REGION_MIN}px")
+    if not allow_daytime:
+        night = is_nighttime()
+        print(f"[WATCH] Daylight suppression: ON (currently {'night' if night else 'day'} — "
+              f"alerts {'active' if night else 'suppressed until dusk'})")
+    else:
+        print(f"[WATCH] Daylight suppression: OFF (--daytime)")
     print(f"[WATCH] Press Ctrl+C to stop")
 
     prev_frame = FRAME_DIR / "prev.jpg"
@@ -251,11 +278,14 @@ def run_watch(interval: int = 60, alert: bool = True, duration: float = None):
                       + (f" [IR shift filtered]" if result.get('ir_shift') else ""))
 
                 if alert and now > cooldown_until:
-                    annotated = create_annotated_image(
-                        curr_frame, result['regions'], result['change_pct'])
-                    send_alert(annotated, result['regions'], result['change_pct'])
-                    archive_detection(curr_frame, annotated, result['change_pct'])
-                    cooldown_until = now + 300  # 5 min cooldown
+                    if not allow_daytime and not is_nighttime():
+                        print(f"[WATCH] Daytime suppression: skipping alert (use --daytime to override)")
+                    else:
+                        annotated = create_annotated_image(
+                            curr_frame, result['regions'], result['change_pct'])
+                        send_alert(annotated, result['regions'], result['change_pct'])
+                        archive_detection(curr_frame, annotated, result['change_pct'])
+                        cooldown_until = now + 300  # 5 min cooldown
                 elif now <= cooldown_until:
                     print(f"[WATCH] (cooldown active, skipping alert)")
             else:
@@ -317,10 +347,12 @@ if __name__ == "__main__":
     parser.add_argument("--interval", type=int, default=60, help="Check interval in seconds")
     parser.add_argument("--no-alert", action="store_true", help="Disable Discord alerts")
     parser.add_argument("--duration", type=float, help="Auto-stop after N hours")
+    parser.add_argument("--daytime", action="store_true",
+                        help="Allow alerts during daylight hours (default: nighttime only)")
     args = parser.parse_args()
 
     if args.test:
         test_mode()
     else:
         run_watch(interval=args.interval, alert=not args.no_alert,
-                  duration=args.duration)
+                  duration=args.duration, allow_daytime=args.daytime)
