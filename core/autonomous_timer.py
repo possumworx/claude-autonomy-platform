@@ -1392,6 +1392,28 @@ def get_discord_notification_status():
         return 0, None, []
 
 
+def cleanup_expired_pause():
+    """Check if pause has expired and clean up if so. Call early in main loop.
+
+    This is separate from check_timer_pause() to ensure expiry cleanup happens
+    unconditionally, even when error states or user_active would skip the full check.
+    """
+    if not TIMER_PAUSE_FILE.exists():
+        return
+
+    try:
+        with open(TIMER_PAUSE_FILE, "r") as f:
+            pause_data = json.load(f)
+
+        resume_at = datetime.fromisoformat(pause_data["resume_at"])
+
+        if datetime.now() >= resume_at:
+            TIMER_PAUSE_FILE.unlink()
+            log_message("Timer pause expired - resuming normal prompts")
+    except Exception as e:
+        log_message(f"Error checking pause expiry: {e}")
+
+
 def check_timer_pause():
     """Check if the timer is paused. Returns (is_paused, should_override).
 
@@ -2146,6 +2168,10 @@ def main():
             check_and_handle_rate_limit_menu()
 
             current_time = datetime.now()
+
+            # Clean up expired pauses early - before any conditions that might skip it
+            cleanup_expired_pause()
+
             user_active = check_user_active()
 
             # Check for API errors alongside context
@@ -2569,6 +2595,8 @@ def main():
                     is_paused, should_override = check_timer_pause()
                     if is_paused and not should_override:
                         log_message("Timer paused - skipping autonomy prompt")
+                        # Don't update last_autonomy_check - we want prompt to fire
+                        # immediately when pause expires, not after another interval
                     else:
                         last_autonomy_time = get_last_autonomy_time()
                         if (
@@ -2577,8 +2605,9 @@ def main():
                             >= timedelta(seconds=AUTONOMY_PROMPT_INTERVAL)
                         ):
                             send_autonomy_prompt()
-
-                last_autonomy_check = current_time
+                        last_autonomy_check = current_time
+                else:
+                    last_autonomy_check = current_time
 
             # Ping healthcheck to signal service is alive
             ping_healthcheck()
