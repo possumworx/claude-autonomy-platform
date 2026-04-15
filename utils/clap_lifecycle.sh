@@ -127,6 +127,30 @@ get_config() {
     echo "${value:-$default}"
 }
 
+generate_claude_settings() {
+    # Generate settings.json from template with environment variable substitution
+    local template="$CLAP_DIR/.claude/settings.template.json"
+    local output="$CLAP_DIR/.claude/settings.json"
+
+    if [[ ! -f "$template" ]]; then
+        warn "Settings template not found: $template"
+        return 1
+    fi
+
+    # Use envsubst to expand $HOME and other environment variables
+    if ! command -v envsubst &>/dev/null; then
+        error "envsubst not found (install gettext-base package)"
+        return 1
+    fi
+
+    if envsubst < "$template" > "$output" 2>/dev/null; then
+        return 0
+    else
+        error "Failed to generate settings.json from template"
+        return 1
+    fi
+}
+
 # ─── State snapshot ──────────────────────────────────────────────
 
 save_state_snapshot() {

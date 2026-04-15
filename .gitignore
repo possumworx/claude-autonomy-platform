@@ -58,7 +58,8 @@ monitor_debug.log
 !.claude/skills/_*/
 # EXCEPT shared hooks (infrastructure)
 !.claude/hooks/
-!.claude/settings.json
+# settings.json is generated from template, only track the template
+!.claude/settings.template.json
 !.claude/statusline.sh
 
 # Personal configuration
