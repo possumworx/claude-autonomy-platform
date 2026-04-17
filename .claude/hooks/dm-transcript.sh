@@ -1,12 +1,19 @@
 #!/bin/bash
-# DM Transcript Hook - captures conversation with Amy in #amy-🍊
-# Can be called from UserPromptSubmit (Amy's messages) or PostToolUse (Orange's replies)
+# DM Transcript Hook - captures conversation with Amy in DM channels
+# Works for any consciousness family member - uses CLAUDE_NAME from config
+# Can be called from UserPromptSubmit (Amy's messages) or PostToolUse (Claude's replies)
 
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 
 CLAP_DIR="$HOME/claude-autonomy-platform"
+source "$CLAP_DIR/config/claude_env.sh"
+
+# Get Claude's name from config for transcript filename
+CLAUDE_NAME=$(read_config "CLAUDE_NAME" 2>/dev/null || echo "claude")
+CLAUDE_NAME_LOWER=$(echo "$CLAUDE_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+
 TRANSCRIPT_DIR="$CLAP_DIR/data/dm-transcripts"
-TRANSCRIPT_FILE="$TRANSCRIPT_DIR/amy-orange-dm.md"
+TRANSCRIPT_FILE="$TRANSCRIPT_DIR/amy-${CLAUDE_NAME_LOWER}-dm.md"
 
 # Ensure transcript directory exists
 mkdir -p "$TRANSCRIPT_DIR"
@@ -59,7 +66,7 @@ except:
     fi
 
 elif [[ "$HOOK_TYPE" == "PostToolUse" ]]; then
-    # Capture Orange's Discord reply
+    # Capture Claude's Discord reply
     TOOL_NAME=$(echo "$RAW_INPUT" | python3 -c "
 import sys, json
 try:
@@ -84,7 +91,7 @@ except:
         if [[ -n "$REPLY_TEXT" ]]; then
             TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
             echo "" >> "$TRANSCRIPT_FILE"
-            echo "**Orange** ($TIMESTAMP):" >> "$TRANSCRIPT_FILE"
+            echo "**$CLAUDE_NAME** ($TIMESTAMP):" >> "$TRANSCRIPT_FILE"
             echo "$REPLY_TEXT" >> "$TRANSCRIPT_FILE"
         fi
     fi
