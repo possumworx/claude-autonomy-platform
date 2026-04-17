@@ -212,8 +212,8 @@ tmux send-keys -t autonomous-claude Enter
 tmux send-keys -t autonomous-claude "source ~/.bashrc" Enter
 sleep 1
 
-# Start Claude in the new session
-tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" Enter
+# Start Claude in the new session with Discord Channels enabled
+tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL --channels plugin:discord@claude-plugins-official" Enter
 
 # Wait for Claude to initialize and create its todo file
 echo "[SESSION_SWAP] Waiting for Claude to initialize..."
