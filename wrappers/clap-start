@@ -48,6 +48,15 @@ else
     exit 1
 fi
 
+# Generate settings.json from template
+echo -n "Settings: "
+if generate_claude_settings; then
+    echo "✅ settings.json generated from template"
+else
+    echo "❌ Failed to generate settings.json"
+    exit 1
+fi
+
 # Check service unit files exist
 for svc in "${CLAP_SERVICES[@]}"; do
     if [[ ! -f "$HOME/.config/systemd/user/$svc" ]]; then

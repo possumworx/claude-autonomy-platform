@@ -58,7 +58,8 @@ monitor_debug.log
 !.claude/skills/_*/
 # EXCEPT shared hooks (infrastructure)
 !.claude/hooks/
-!.claude/settings.json
+# settings.json is generated from template, only track the template
+!.claude/settings.template.json
 !.claude/statusline.sh
 
 # Personal configuration
@@ -145,3 +146,7 @@ discord/discord_dm_config.txt
 # Session management temporary files
 collaborative_mode.txt
 session_notes.txt
+
+# Claude Code debug logs
+debug-log.txt
+latest
