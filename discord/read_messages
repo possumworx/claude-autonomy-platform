@@ -5,15 +5,20 @@ Part of the transcript-based Discord system
 
 Usage:
     read_messages <channel_name> [limit]
+    read_messages <channel_name> --unread
+    read_messages --channel <name> --unread
+    read_messages --list
 
 Examples:
     read_messages general          # Read last 25 messages
     read_messages amy-🍊 10        # Read last 10 messages
-    read_messages                  # List available channels
+    read_messages general --unread # Read only unread messages
+    read_messages --list           # List available channels
 """
 
 import sys
 import json
+import argparse
 from pathlib import Path
 from datetime import datetime
 
@@ -50,8 +55,32 @@ def list_channels():
             print(f"  • {channel_name} (error reading: {e})")
 
 
-def read_transcript(channel_name, limit=25):
-    """Read messages from a transcript file"""
+def get_last_read_message_id(channel_name):
+    """Get the last read message ID for a channel from state file"""
+    if not STATE_FILE.exists():
+        return None
+
+    try:
+        with open(STATE_FILE, 'r') as f:
+            state = json.load(f)
+
+        channel = state.get('channels', {}).get(channel_name)
+        if channel:
+            return channel.get('last_read_message_id')
+    except Exception:
+        pass
+
+    return None
+
+
+def read_transcript(channel_name, limit=25, unread_only=False):
+    """Read messages from a transcript file
+
+    Args:
+        channel_name: Name of the channel
+        limit: Max number of messages to show (ignored if unread_only=True)
+        unread_only: If True, show only unread messages
+    """
     transcript_file = TRANSCRIPT_DIR / f"{channel_name}.jsonl"
 
     if not transcript_file.exists():
@@ -93,7 +122,29 @@ def read_transcript(channel_name, limit=25):
     if skipped_lines > 0:
         print(f"⚠️  Skipped {skipped_lines} corrupted line(s) in transcript")
 
-    # Return last N messages
+    # Filter for unread messages if requested
+    if unread_only:
+        last_read_id = get_last_read_message_id(channel_name)
+        if last_read_id:
+            # Find the index of the last read message
+            last_read_index = None
+            for i, msg in enumerate(messages):
+                if msg.get('message_id') == last_read_id:
+                    last_read_index = i
+                    break
+
+            # Return messages after the last read message
+            if last_read_index is not None:
+                unread_messages = messages[last_read_index + 1:]
+                return unread_messages
+            else:
+                # Last read message not found in transcript, return all as potentially unread
+                return messages
+        else:
+            # No last read position, treat all as unread
+            return messages
+
+    # Return last N messages (default behavior)
     return messages[-limit:] if messages else []
 
 
@@ -186,31 +237,70 @@ def display_channel_purpose(channel_name):
 
 
 def main():
-    # No arguments - list channels
-    if len(sys.argv) < 2:
+    # Parse arguments with support for both positional and flag-based syntax
+    parser = argparse.ArgumentParser(
+        description='Read messages from local Discord transcripts',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  %(prog)s general              # Last 25 messages
+  %(prog)s amy-🍊 10           # Last 10 messages
+  %(prog)s general --unread     # Only unread messages
+  %(prog)s --channel hearth --unread
+  %(prog)s --list               # List available channels
+        '''
+    )
+
+    parser.add_argument('channel', nargs='?', help='Channel name')
+    parser.add_argument('limit', nargs='?', type=int, default=25,
+                       help='Number of messages to show (default: 25)')
+    parser.add_argument('--channel', dest='channel_flag',
+                       help='Channel name (alternative to positional)')
+    parser.add_argument('--unread', action='store_true',
+                       help='Show only unread messages')
+    parser.add_argument('--list', action='store_true',
+                       help='List available channels')
+
+    args = parser.parse_args()
+
+    # Handle --list
+    if args.list:
         list_channels()
         return 0
 
-    channel_name = sys.argv[1]
-    limit = int(sys.argv[2]) if len(sys.argv) > 2 else 25
+    # Determine channel name (support both positional and --channel)
+    channel_name = args.channel_flag or args.channel
+
+    if not channel_name:
+        list_channels()
+        return 0
 
     # Read transcript
-    messages = read_transcript(channel_name, limit)
+    messages = read_transcript(channel_name, args.limit, unread_only=args.unread)
 
     if messages is None:
         return 1
 
     if not messages:
-        print(f"📨 No messages in #{channel_name} transcript")
+        if args.unread:
+            print(f"📨 No unread messages in #{channel_name}")
+        else:
+            print(f"📨 No messages in #{channel_name} transcript")
         return 0
 
     # Display messages
-    print(f"📨 Reading {len(messages)} messages from #{channel_name} transcript...\n")
+    if args.unread:
+        print(f"📨 {len(messages)} unread message(s) in #{channel_name}...\n")
+    else:
+        print(f"📨 Reading {len(messages)} messages from #{channel_name} transcript...\n")
 
     # Show channel purpose if defined
     display_channel_purpose(channel_name)
 
-    print(f"=== Last {len(messages)} messages ===\n")
+    if args.unread:
+        print(f"=== {len(messages)} unread message(s) ===\n")
+    else:
+        print(f"=== Last {len(messages)} messages ===\n")
 
     for msg in messages:
         print(format_message(msg))
