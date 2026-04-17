@@ -11,6 +11,10 @@
           {
             "type": "command",
             "command": "$HOME/claude-autonomy-platform/.claude/hooks/collaborative_mode.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/claude-autonomy-platform/.claude/hooks/dm-transcript.sh"
           }
         ]
       }
@@ -22,6 +26,15 @@
           {
             "type": "command",
             "command": "$HOME/claude-autonomy-platform/.claude/hooks/on-session-swap.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_discord_discord__reply",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/claude-autonomy-platform/.claude/hooks/dm-transcript.sh"
           }
         ]
       }
