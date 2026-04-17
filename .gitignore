@@ -146,3 +146,7 @@ discord/discord_dm_config.txt
 # Session management temporary files
 collaborative_mode.txt
 session_notes.txt
+
+# Claude Code debug logs
+debug-log.txt
+latest
