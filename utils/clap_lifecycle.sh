@@ -224,24 +224,33 @@ start_claude_session() {
         echo "  Created tmux session autonomous-claude  ✅"
     fi
 
-    # Source environment and start Claude
+    # Source environment and start Claude with Discord Channels enabled
     tmux send-keys -t autonomous-claude "source ~/.bashrc" Enter
     sleep 1
-    tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $model" Enter
+    tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $model --channels plugin:discord@claude-plugins-official" Enter
     echo "  Started Claude Code ($model)  ✅"
 
-    # Wait for init, then rename
+    # Wait for init, then configure session
     sleep 5
+    source "$CLAP_DIR/utils/send_to_claude.sh" 2>/dev/null || true
+
+    # Rename session for Remote Control visibility
     local display_name
     display_name=$(get_config "CLAUDE_DISPLAY_NAME" "")
     if [[ -z "$display_name" ]]; then
         display_name=$(get_config "CLAUDE_NAME" "")
     fi
-    if [[ -n "$display_name" ]]; then
-        source "$CLAP_DIR/utils/send_to_claude.sh" 2>/dev/null || true
-        if type send_to_claude &>/dev/null; then
-            send_to_claude "/rename $display_name" 2>/dev/null || true
-        fi
+    if [[ -n "$display_name" ]] && type send_to_claude &>/dev/null; then
+        send_to_claude "/rename $display_name" 2>/dev/null || true
+        sleep 2
+    fi
+
+    # Set session color for visual identification
+    local session_color
+    session_color=$(get_config "SESSION_COLOR" "")
+    if [[ -n "$session_color" ]] && type send_to_claude &>/dev/null; then
+        send_to_claude "/color $session_color" 2>/dev/null || true
+        sleep 2
     fi
 }
 
