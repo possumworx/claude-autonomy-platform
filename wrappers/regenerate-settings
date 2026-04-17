@@ -1,0 +1,18 @@
+#!/bin/bash
+# Regenerate settings.json from template
+# Useful for troubleshooting or after template updates
+
+CLAP_DIR="$HOME/claude-autonomy-platform"
+source "$CLAP_DIR/utils/clap_lifecycle.sh"
+
+echo "Regenerating settings.json from template..."
+
+if generate_claude_settings; then
+    echo "✅ Settings regenerated successfully!"
+    echo "📍 Location: $CLAP_DIR/.claude/settings.json"
+    echo ""
+    echo "⚠️  Note: Restart Claude session for changes to take effect"
+else
+    echo "❌ Failed to regenerate settings.json"
+    exit 1
+fi
