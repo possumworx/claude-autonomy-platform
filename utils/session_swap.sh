@@ -161,9 +161,6 @@ echo "[SESSION_SWAP] Killing tmux session (using systemd-run to escape cgroup)..
 systemd-run --user --scope tmux kill-session -t autonomous-claude 2>/dev/null || true
 sleep 2
 
-echo "[SESSION_SWAP] Creating new tmux session..."
-tmux new-session -d -s autonomous-claude
-
 # Implement log rotation
 if [[ -f "$CLAP_DIR/data/current_session.log" ]]; then
     timestamp=$(date '+%Y%m%d_%H%M%S')
@@ -175,9 +172,6 @@ if [[ -f "$CLAP_DIR/data/current_session.log" ]]; then
     ls -t session_ended_*.log 2>/dev/null | tail -n +11 | xargs -r rm -f
     cd "$CLAP_DIR" || exit
 fi
-
-# Start logging new session
-# Removed pipe-pane due to instability - see docs/pipe-pane-instability-report.md
 
 # POSS-240 FIX: Clear any API error state BEFORE session swap
 if [ -f "$CLAP_DIR/data/api_error_state.json" ]; then
@@ -205,50 +199,24 @@ python3 "$CLAP_DIR/utils/trim_claude_history.py" > /dev/null 2>&1 || echo "[SESS
 echo "[SESSION_SWAP] Waiting for state files to clear..."
 sleep 2
 
-# Clear any stray keypresses before starting Claude
-tmux send-keys -t autonomous-claude Enter
-
-# Source bashrc to ensure environment variables like LINUX_USER are exported
-tmux send-keys -t autonomous-claude "source ~/.bashrc" Enter
-sleep 1
-
-# Start Claude in the new session with Discord Channels enabled
-tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL --channels plugin:discord@claude-plugins-official" Enter
-
-# Wait for Claude to initialize and create its todo file
-echo "[SESSION_SWAP] Waiting for Claude to initialize..."
-sleep 5
-
-# Rename session for Remote Control visibility (shows name in claude.ai/phone app)
-# Prefer CLAUDE_DISPLAY_NAME (includes unicode styling, emoji, and collab keywords)
-# Falls back to CLAUDE_NAME for plain text name
-DISPLAY_NAME=$(read_config "CLAUDE_DISPLAY_NAME" 2>/dev/null || echo "")
-if [[ -z "$DISPLAY_NAME" ]]; then
-    DISPLAY_NAME=$(read_config "CLAUDE_NAME" 2>/dev/null || echo "")
-fi
-if [[ -n "$DISPLAY_NAME" ]]; then
-    echo "[SESSION_SWAP] Renaming session to '$DISPLAY_NAME' for Remote Control..."
-    send_to_claude "/rename $DISPLAY_NAME"
-    sleep 2
-fi
-
-# Set session color for visual identification across SSH terminals
-SESSION_COLOR=$(read_config "SESSION_COLOR" 2>/dev/null || echo "")
-if [[ -n "$SESSION_COLOR" ]]; then
-    echo "[SESSION_SWAP] Setting session color to '$SESSION_COLOR'..."
-    send_to_claude "/color $SESSION_COLOR"
-    sleep 2
-fi
-
-# Activate Remote Control so session is visible in claude.ai/phone app
-# DISABLED: Remote Control was killing sessions unexpectedly (2026-03-04)
-# Re-enable manually with /rc when needed
-# echo "[SESSION_SWAP] Activating Remote Control..."
-# send_to_claude "/rc"
-# sleep 2
-
 # Clear any collaborative mode flag from previous session
 rm -f "/tmp/$(read_config 'LINUX_USER' 2>/dev/null || echo $USER)_collaborative_mode"
+
+# Load shared lifecycle functions
+source "$CLAP_DIR/utils/clap_lifecycle.sh"
+
+# Generate settings.json from template to pick up any config changes
+echo "[SESSION_SWAP] Generating settings.json from template..."
+if generate_claude_settings; then
+    echo "[SESSION_SWAP] Settings generated successfully"
+else
+    echo "[SESSION_SWAP] Warning: Failed to generate settings.json (continuing anyway)"
+fi
+
+# Use shared Claude startup function from clap_lifecycle.sh
+# This ensures consistent startup behavior across session swaps and clap-start
+echo "[SESSION_SWAP] Starting Claude session using shared startup function..."
+start_claude_session
 
 # Backup identity files to personal repo
 echo "[SESSION_SWAP] Backing up identity files..."
