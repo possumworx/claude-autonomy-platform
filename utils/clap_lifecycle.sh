@@ -252,6 +252,11 @@ start_claude_session() {
         send_to_claude "/color $session_color" 2>/dev/null || true
         sleep 2
     fi
+
+    # Trigger /status to populate statusline_data.json with session_id
+    if type send_to_claude &>/dev/null; then
+        send_to_claude "/status" 2>/dev/null || true
+    fi
 }
 
 # ─── Discord notification ────────────────────────────────────────
