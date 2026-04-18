@@ -76,9 +76,9 @@ def check_context(return_data=False):
         print(error_msg)
         return None
 
-    # Extract context window data
-    context_window = statusline.get("context_window", {})
-    current_usage = context_window.get("current_usage", {})
+    # Extract context window data (use 'or {}' to handle None values)
+    context_window = statusline.get("context_window") or {}
+    current_usage = context_window.get("current_usage") or {}
 
     # Cache read tokens = the main session context size
     cache_tokens = current_usage.get("cache_read_input_tokens", 0)
