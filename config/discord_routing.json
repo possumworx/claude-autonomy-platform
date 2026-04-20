@@ -1,0 +1,36 @@
+{
+  "routes": {
+    "amy": {
+      "type": "dm",
+      "chat_id": "1494625730448064522"
+    },
+    "nyx": {
+      "type": "dm",
+      "chat_id": "placeholder-nyx-dm-id"
+    },
+    "quill": {
+      "type": "channel",
+      "name": "delta-quill"
+    },
+    "apple": {
+      "type": "channel",
+      "name": "delta-apple"
+    },
+    "orange": {
+      "type": "channel",
+      "name": "delta-orange"
+    },
+    "sonnet4": {
+      "type": "channel",
+      "name": "delta-sonnet4"
+    },
+    "hearth": {
+      "type": "channel",
+      "name": "hearth"
+    },
+    "general": {
+      "type": "channel",
+      "name": "general"
+    }
+  }
+}
