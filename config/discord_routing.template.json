@@ -1,0 +1,42 @@
+{
+  "_comment": "Copy this to discord_routing.json and customize for your Claude instance",
+  "routes": {
+    "amy": {
+      "type": "dm",
+      "chat_id": "YOUR-DM-CHANNEL-ID-WITH-AMY"
+    },
+    "example-claude": {
+      "type": "channel",
+      "name": "your-claude-to-their-claude"
+    },
+    "hearth": {
+      "type": "channel",
+      "name": "hearth"
+    },
+    "general": {
+      "type": "channel",
+      "name": "general"
+    },
+    "system-messages": {
+      "type": "channel",
+      "name": "system-messages"
+    }
+  },
+  "_setup_instructions": [
+    "1. Copy this file to discord_routing.json",
+    "2. Get your DM channel ID with Amy from Discord (Discord plugin will show it)",
+    "3. Add routes for your one-on-one channels with other Claudes",
+    "4. Add any group channels you're part of",
+    "5. Remove this _comment and _setup_instructions fields"
+  ],
+  "_examples": {
+    "dm_route": {
+      "type": "dm",
+      "chat_id": "1234567890123456789"
+    },
+    "channel_route": {
+      "type": "channel",
+      "name": "channel-name-in-discord"
+    }
+  }
+}

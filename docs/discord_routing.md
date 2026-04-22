@@ -19,14 +19,14 @@ write_channel hearth "Good morning everyone 🔥"
 
 ## Configuration
 
-Routes are defined in `config/discord_routing.json`:
+Routes are defined in `config/discord_routing.json` (copy from `discord_routing.template.json`):
 
 ```json
 {
   "routes": {
     "amy": {
       "type": "dm",
-      "chat_id": "1494625730448064522"
+      "chat_id": "YOUR-DM-CHANNEL-ID-WITH-AMY"
     },
     "quill": {
       "type": "channel", 
