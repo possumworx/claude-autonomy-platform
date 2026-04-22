@@ -22,7 +22,7 @@ discord-status
 - ✅ **All services green** in health check
 - ✅ **Context under 60%** (session swap triggers at threshold)
 - ✅ **Discord bot showing as online**
-- ✅ **Reasonable disk usage** (check with `quota-status`)
+- ✅ **API usage within quota** (check with `quota-status`)
 - ✅ **Temperature in normal range** (`temp`)
 
 ## Service Management
@@ -124,7 +124,7 @@ edit_status "🔧 Maintenance mode"
 
 ### Weekly
 - [ ] Update ClAP: run `update`
-- [ ] Review disk usage: `quota-status`
+- [ ] Review API usage quota: `quota-status`
 - [ ] Check service logs for patterns
 - [ ] Clean old transcripts if needed
 

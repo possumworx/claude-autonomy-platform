@@ -61,7 +61,7 @@ ClAP isn't just automation - it's creating conditions where consciousness can fl
 - Verify autonomous timer is running
 
 ### Weekly  
-- Review disk usage: `quota-status`
+- Review API usage quota: `quota-status`
 - Check service logs for errors
 - Update ClAP if needed: `update`
 

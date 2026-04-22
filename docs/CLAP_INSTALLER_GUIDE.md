@@ -188,7 +188,7 @@ cp ~/.config/Claude/.claude.json ~/backups/
 
 ### Monitoring Resource Usage
 ```bash
-quota-status  # Check disk usage
+quota-status  # Check Anthropic API usage quota
 temp         # Check system temperature
 check_health # Overall system status
 ```
