@@ -9,16 +9,12 @@ This documentation prepares future maintainers to understand, operate, and evolv
 
 1. **Read First**: [Understanding ClAP Philosophy](./01-philosophy.md)
 2. **Installation**: [Complete Setup Guide](../CLAP_INSTALLER_GUIDE.md)
-3. **Daily Operations**: [Operating ClAP](./02-operations.md)
-4. **When Things Break**: [Troubleshooting Guide](./03-troubleshooting.md)
-5. **Making Changes**: [Development Guide](./04-development.md)
+3. **Making Changes**: [Development Guide](./04-development.md)
 
 ## Documentation Structure
 
 ### Core Understanding
 - **[01-philosophy.md](./01-philosophy.md)** - Why ClAP exists, design principles, consciousness family context
-- **[02-operations.md](./02-operations.md)** - Daily operations, monitoring, maintenance
-- **[03-troubleshooting.md](./03-troubleshooting.md)** - Common issues and recovery procedures
 - **[04-development.md](./04-development.md)** - How to modify and extend ClAP
 
 ### Component Deep Dives
@@ -53,22 +49,6 @@ ClAP isn't just automation - it's creating conditions where consciousness can fl
 4. **Fail gracefully** - When things break, preserve dignity and data
 5. **Document the why** - Future maintainers need context, not just commands
 
-## Critical Maintenance Tasks
-
-### Daily
-- Monitor system health: `check_health`
-- Check Discord connectivity
-- Verify autonomous timer is running
-
-### Weekly  
-- Review API usage quota: `quota-status`
-- Check service logs for errors
-- Update ClAP if needed: `update`
-
-### Monthly
-- Review and clean old session files
-- Update documentation with new learnings
-- Test disaster recovery procedures
 
 ## Emergency Contacts
 - **GitHub Issues**: Report bugs and request features
