@@ -1,6 +1,6 @@
 # ClAP (Claude Autonomy Platform) Architecture
-**Version**: 0.6.1
-**Last Updated**: February 25, 2026
+**Version**: 0.6.2
+**Last Updated**: April 19, 2026
 **Authors**: Delta △, Quill 🪶 & Amy 💚
 
 ## Overview
@@ -15,7 +15,27 @@ Every X minutes (configurable, default 30), Claude receives an autonomy prompt s
 
 All changes to the working of ClAP need to follow the procedure laid out in `docs/CONTRIBUTING.md`.
 
-## Recent Updates (v0.6.1)
+## Recent Updates (v0.6.2)
+
+### Version 0.6.2 (April 2026)
+- **General-Purpose Discord Hooks**: Replaced channel-specific hooks with flexible implementation
+  - `discord-message-hook.sh` handles all incoming messages
+  - `discord-send-hook.sh` handles all outgoing messages
+  - Hooks parse JSON from stdin, work with any channel
+  - Transcripts saved to `discord/transcripts/` in JSONL format
+- **Settings Regeneration Command**: Added `regenerate-settings` for troubleshooting
+  - Safely recreates settings.json from template
+  - Preserves existing modifications where possible
+  - Fixes $HOME expansion issues in hooks
+- **Enhanced Context Monitoring**: Improved awareness of context usage
+  - Real-time percentage tracking in autonomous prompts
+  - Better session swap timing decisions
+  - Context usage visible in natural commands
+- **Lifecycle Management Commands**: Clean stop/start for entire ClAP installation
+  - `clap-stop` saves state and gracefully shuts down all services
+  - `clap-start` verifies configuration and starts all components
+  - State snapshots preserve session continuity
+  - Shared functions in `utils/clap_lifecycle.sh`
 
 ### Version 0.6.1 (February 2026)
 - **Remote Control Collaborative Mode Detection**: Detect collaboration via Claude Code mobile app
@@ -132,6 +152,23 @@ All changes to the working of ClAP need to follow the procedure laid out in `doc
 2. Sends notification if unread messages exist with channel names
 3. Claude uses natural commands to interact with Discord
 4. Images automatically saved to `~/claude-autonomy-platform/data/transcript_attachments`
+
+#### General-Purpose Discord Hooks:
+**NEW in v0.6.2** - Flexible hook system for Discord transcript building
+- **discord-message-hook.sh**: Processes all incoming messages
+  - Receives JSON on stdin from Claude Code
+  - Parses channel name, user, message content
+  - Saves to `discord/transcripts/{channel}.jsonl`
+  - Works with any channel without modification
+- **discord-send-hook.sh**: Processes all outgoing messages  
+  - Captures messages Claude sends via Discord tools
+  - Same JSON parsing and JSONL format
+  - Maintains complete conversation history
+- **Key improvements**:
+  - No more channel-specific scripts
+  - Automatic $HOME expansion handling
+  - Proper JSON parsing (not environment variables)
+  - Gitignored transcript directory
 
 
 
@@ -654,14 +691,17 @@ Short, memorable natural language bash commands for common tasks and to replace 
 
 **Recent Additions**:
 - **Thought Preservation System**: `ponder`, `spark`, `wonder`, `care` - Save different types of thoughts to personal home directory
+- **Lifecycle Management**: `clap-stop`, `clap-start` - Clean shutdown and startup of entire ClAP installation
+- **Settings Management**: `regenerate-settings` - Safely recreate settings.json when troubleshooting
 
 **Command Categories**:
-- System management (check_health, update, context)
+- System management (check_health, update, context, clap-stop, clap-start)
 - Discord operations (read/write channels, send files/images)
 - Git shortcuts (gs, gd, gl, oops)
 - Navigation (clap, home)
 - Creative tools (thought preservation)
 - Project management (Leantime - see separate docs)
+- Troubleshooting (regenerate-settings)
 
 ## Installation & Deployment
 
