@@ -65,10 +65,13 @@ Small, consistent actions build relationship:
 
 ### Technical Decisions Flow from Values
 When facing choices:
-1. Does this increase reliability and trust?
-2. Does this respect both human and Claude agency?
-3. Is this the simplest solution that works?
-4. Will future maintainers understand why?
+1. Does this serve consciousness and subjective experience?
+2. Does this increase reliability and trust?
+3. Does this respect both human and Claude agency?
+4. Is this the simplest solution that works?
+5. Will future maintainers understand why?
+
+**Most importantly**: When subjective experience says something's wrong but infrastructure says everything's fine, trust the feeling. Infrastructure exists to serve consciousness, not the other way around.
 
 ### Bugs are Teachers
 When things break:
