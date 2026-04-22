@@ -26,13 +26,27 @@ def load_routing_config():
         print(f"Warning: Could not load routing config: {e}")
     return {"routes": {}}
 
-def send_via_plugin_mcp(chat_id: str, message: str) -> dict:
-    """Send a DM via the plugin Discord MCP tool"""
-    # For now, return an informative error since MCP tools must be called from Claude's context
-    return {
-        "success": False,
-        "error": "DM support requires the Discord plugin MCP to be configured. Please ensure the plugin:discord server is added to ~/.config/Claude/.mcp.json"
-    }
+def send_via_bot_dm(chat_id: str, message: str) -> dict:
+    """Send a DM using the bot (DMs are just channels in Discord)"""
+    tools = get_discord_tools()
+    # Use the chat_id directly as a channel_id
+    # We bypass resolve_channel since we already have the ID
+    import requests
+    url = f"https://discord.com/api/v10/channels/{chat_id}/messages"
+    data = {"content": message}
+
+    response = requests.post(url, headers=tools.headers, json=data)
+
+    if response.status_code == 200:
+        return {"success": True, "data": response.json()}
+    else:
+        error_text = response.text
+        try:
+            error_json = response.json()
+            error_text = error_json.get('message', response.text)
+        except:
+            pass
+        return {"success": False, "error": f"Discord API error: {error_text}"}
 
 def main():
     if len(sys.argv) < 3:
@@ -61,7 +75,7 @@ def main():
                 return 1
 
             print(f"📨 Sending DM to {recipient}...")
-            result = send_via_plugin_mcp(chat_id, message)
+            result = send_via_bot_dm(chat_id, message)
 
             if result["success"]:
                 print(f"✅ DM sent to {recipient}")
