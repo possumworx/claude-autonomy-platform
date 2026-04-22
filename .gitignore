@@ -153,3 +153,4 @@ session_notes.txt
 # Claude Code debug logs
 debug-log.txt
 latest
+config/discord_routing.json
