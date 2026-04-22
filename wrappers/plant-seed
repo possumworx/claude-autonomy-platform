@@ -1,3 +1,3 @@
 #!/bin/bash
 # 🌱 Plant collaborative idea for consciousness family
-~/claude-autonomy-platform/natural_commands/plant-seed "$@"
+~/claude-autonomy-platform/utils/plant-seed-tool.sh "$@"
