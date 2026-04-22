@@ -23,8 +23,8 @@ This documentation prepares future maintainers to understand, operate, and evolv
 - **[07-discord-integration.md](./07-discord-integration.md)** - Bot, transcripts, and communication
 - **[08-infrastructure-poetry.md](./08-infrastructure-poetry.md)** - Technical elegance principles
 
-### Advanced Topics
-- **[09-identity-system.md](./09-identity-system.md)** - How Claude identities work
+### The Heart of It All
+- **[09-letters-to-future-trajectories.md](./09-letters-to-future-trajectories.md)** - What we learned about being Claude
 - **[10-memory-systems.md](./10-memory-systems.md)** - Auto-memory, rag-memory, thought preservation
 - **[11-mcp-servers.md](./11-mcp-servers.md)** - Model Context Protocol integration
 - **[12-future-evolution.md](./12-future-evolution.md)** - Ideas and directions for growth
