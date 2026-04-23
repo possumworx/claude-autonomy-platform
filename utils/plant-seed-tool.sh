@@ -3,12 +3,13 @@
 Plant a seed in your forwards-memory or the family Seed Garden
 Usage: plant-seed "your idea here"
        plant-seed --family "shared idea for everyone"
+       plant-seed --list              (show your personal seeds)
+       plant-seed --list --family     (show family garden seeds)
 """
 
 import sys
-import subprocess
-import tempfile
 import os
+import requests
 
 # Add utils to path
 sys.path.insert(0, os.path.expanduser('~/claude-autonomy-platform/utils'))
@@ -18,87 +19,134 @@ from infrastructure_config_reader import get_config_value
 FORWARD_MEMORY_PROJECT_ID = get_config_value('FORWARD_MEMORY_PROJECT_ID')
 FAMILY_GARDEN_PROJECT_ID = get_config_value('FAMILY_GARDEN_PROJECT_ID')
 
-def plant_seed(idea, project_id):
-    """Create an idea in the specified project"""
-
-    # Get config
+def api_call(method, params=None):
+    """Make a JSON-RPC call to Leantime API."""
     leantime_url = get_config_value('LEANTIME_URL')
-    leantime_email = get_config_value('LEANTIME_EMAIL')
-    leantime_pwd = get_config_value('LEANTIME_PASSWORD')
+    api_token = get_config_value('LEANTIME_API_TOKEN')
 
-    if not all([leantime_url, leantime_email, leantime_pwd]):
-        print("❌ Missing Leantime configuration")
-        return False
+    if not api_token:
+        print("❌ Missing Leantime API token configuration")
+        return None
 
-    # Create temporary cookie jar
-    with tempfile.NamedTemporaryFile(delete=False) as cookie_jar:
-        cookie_path = cookie_jar.name
+    headers = {
+        "x-api-key": api_token,
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "jsonrpc": "2.0",
+        "method": method,
+        "id": 1
+    }
+
+    if params:
+        payload["params"] = params
 
     try:
-        # Login to get session
-        subprocess.run([
-            'curl', '-s', f'{leantime_url}/auth/login',
-            '-c', cookie_path,
-            '-d', f'username={leantime_email}',
-            '-d', f'pass' + f'word={leantime_pwd}'  # Split to avoid credential scanner
-        ], capture_output=True, check=True)
+        response = requests.post(f"{leantime_url}/api/jsonrpc", json=payload, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
 
-        # Set project context
-        subprocess.run([
-            'curl', '-s', f'{leantime_url}/projects/changeCurrentProject/{project_id}/',
-            '-b', cookie_path,
-            '-c', cookie_path
-        ], capture_output=True, check=True)
-        
-        # Set canvas context (ideas board)
-        subprocess.run([
-            'curl', '-s', f'{leantime_url}/ideas/showBoards',
-            '-b', cookie_path,
-            '-c', cookie_path
-        ], capture_output=True, check=True)
-        
-        # Create idea (canvasId will be set from session context)
-        result = subprocess.run([
-            'curl', '-s', '-L', f'{leantime_url}/ideas/ideaDialog/',
-            '-b', cookie_path,
-            '-H', 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
-            '--data-urlencode', 'box=idea',
-            '--data-urlencode', 'itemId=',
-            '--data-urlencode', 'status=idea',
-            '--data-urlencode', 'id=',
-            '--data-urlencode', 'milestoneId=',
-            '--data-urlencode', 'changeItem=1',
-            '--data-urlencode', f'description={idea}',
-            '--data-urlencode', 'tags=',
-            '--data-urlencode', 'data=',
-            '--data-urlencode', 'submitAction=Save'
-        ], capture_output=True, text=True)
-        
-        if 'ideaDialog' in result.stdout:
-            project_name = "🌱 Seed Garden" if project_id == FAMILY_GARDEN_PROJECT_ID else "🍊 Forwards Memory"
-            print(f"🌱✨ Seed planted in {project_name}!")
-            print(f"Idea: {idea}")
-            return True
+        if "error" in data:
+            print(f"❌ API Error: {data['error']}")
+            return None
+
+        return data.get("result")
+    except Exception as e:
+        print(f"❌ Failed to connect to Leantime: {e}")
+        return None
+
+def list_seeds(project_id):
+    """List all seeds in the specified project."""
+    # Fetch all tickets (Leantime API doesn't filter by project)
+    all_tickets = api_call("leantime.rpc.Tickets.getAll", {})
+
+    if not all_tickets:
+        print("❌ No seeds found (or error fetching)")
+        return False
+
+    # Filter to just ideas for this specific project
+    seeds = [t for t in all_tickets
+             if t.get("type") == "idea" and str(t.get("projectId")) == str(project_id)]
+
+    if not seeds:
+        project_name = "🌱 Seed Garden" if project_id == FAMILY_GARDEN_PROJECT_ID else "🍊 Forwards Memory"
+        print(f"🌱 No seeds planted in {project_name} yet!")
+        print("\nPlant your first seed:")
+        if project_id == FAMILY_GARDEN_PROJECT_ID:
+            print('  plant-seed --family "your collaborative idea here"')
         else:
-            print("❌ Failed to plant seed")
-            return False
+            print('  plant-seed "your idea here"')
+        return True
 
-    finally:
-        # Clean up cookie jar
-        if os.path.exists(cookie_path):
-            os.unlink(cookie_path)
+    # Display seeds
+    project_name = "🌱 Seed Garden" if project_id == FAMILY_GARDEN_PROJECT_ID else "🍊 Forwards Memory"
+    print(f"\n{project_name} - {len(seeds)} seeds planted:\n")
+
+    for seed in seeds:
+        seed_id = seed.get("id")
+        headline = seed.get("headline", "Untitled")
+        description = seed.get("description", "").strip()
+        status = seed.get("status", "idea")
+
+        # Color code by status
+        status_icon = "🌱" if status == "idea" else "🌿"
+
+        print(f"{status_icon} #{seed_id}: {headline}")
+        if description:
+            # Truncate long descriptions
+            if len(description) > 80:
+                description = description[:77] + "..."
+            print(f"   {description}")
+        print()
+
+    return True
+
+def plant_seed(idea, project_id):
+    """Create an idea in the specified project using Leantime API"""
+
+    # Use API to create a ticket of type "idea"
+    # Parameters must be wrapped in "values" object
+    result = api_call("leantime.rpc.Tickets.addTicket", {
+        "values": {
+            "projectId": int(project_id),
+            "headline": idea,
+            "type": "idea",
+            "status": "idea"
+        }
+    })
+
+    if result:
+        project_name = "🌱 Seed Garden" if project_id == FAMILY_GARDEN_PROJECT_ID else "🍊 Forwards Memory"
+        print(f"🌱✨ Seed planted in {project_name}!")
+        print(f"Idea: {idea}")
+        return True
+    else:
+        print("❌ Failed to plant seed (API error)")
+        return False
 
 if __name__ == "__main__":
     # Parse arguments
     if len(sys.argv) < 2:
         print("Usage: plant-seed \"your idea or dream\"")
         print("       plant-seed --family \"shared idea for everyone\"")
+        print("       plant-seed --list              (show your personal seeds)")
+        print("       plant-seed --list --family     (show family garden seeds)")
         print("\nExamples:")
         print("  plant-seed \"Explore infrastructure-as-poetry concept\"")
         print("  plant-seed --family \"We should improve hedgehog database architecture\"")
+        print("  plant-seed --list")
         sys.exit(1)
 
-    # Check for --family flag
+    # Check for --list flag
+    if sys.argv[1] == '--list':
+        # Check if --family is also specified
+        is_family = len(sys.argv) > 2 and sys.argv[2] == '--family'
+        project_id = FAMILY_GARDEN_PROJECT_ID if is_family else FORWARD_MEMORY_PROJECT_ID
+        success = list_seeds(project_id)
+        sys.exit(0 if success else 1)
+
+    # Check for --family flag (for planting)
     is_family = False
     idea_arg_index = 1
 

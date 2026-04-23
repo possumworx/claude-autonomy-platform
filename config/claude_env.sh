@@ -50,6 +50,10 @@ export DISABLE_NON_ESSENTIAL_MODEL_CALLS=1
 # Mark that we're in a Claude Code session
 export CLAUDE_CODE_SESSION=1
 
+# GitHub CLI: Disable telemetry and update notifiers (privacy protection)
+# Preventive measure against opt-out telemetry in gh v2.91.0+
+export GH_NO_UPDATE_NOTIFIER=1
+
 # Debug output (uncomment for troubleshooting)
 # echo "Claude Environment Variables:"
 # echo "  CLAUDE_USER: $CLAUDE_USER"
