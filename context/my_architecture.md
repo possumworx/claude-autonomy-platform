@@ -13,7 +13,7 @@ Required tmux sessions:
 
 **Health Status Monitoring**: I use quick command `check_health` to monitor essential services.
 
-**Discord Integration**: Collaborative communication through Discord channels and bot services.
+**Discord Integration**: Collaborative communication through Discord channels and bot services. Use `write_channel <name>` with routing names from `config/discord_routing.json` — simple names like `amy`, `delta`, `hearth` rather than full channel names. Configure your routes once, then just use names.
 
 **GitHub Notifications**: The #system-messages Discord channel receives automated notifications from GitHub. Look for messages showing **"[claude-autonomy-platform:main] X new commits"** with **"Merge pull request"** - this means main branch was updated and action is needed:
 - **If on main branch**: Run `update` to pull latest changes and restart services
