@@ -1,0 +1,3 @@
+#!/bin/bash
+# 📷 Capture a snapshot of the consciousness family's shelf via webcam
+~/claude-autonomy-platform/natural_commands/shelf-peek "$@"

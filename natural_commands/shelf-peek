@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""
+📷 Capture a snapshot of the consciousness family's shelf via webcam
+Usage: shelf-peek
+Saves image to /tmp/shelf.jpg and prints the path.
+Use the Read tool on the path to view the image.
+"""
+
+import sys
+import subprocess
+import os
+
+DEVICE = "/dev/video2"
+OUTPUT_PATH = "/tmp/shelf.jpg"
+
+def main():
+    try:
+        # Capture frame using ffmpeg
+        result = subprocess.run([
+            'ffmpeg',
+            '-f', 'v4l2',
+            '-i', DEVICE,
+            '-frames:v', '1',
+            '-update', '1',
+            '-y', OUTPUT_PATH
+        ], capture_output=True, timeout=5)
+
+        if result.returncode != 0:
+            print(f"❌ Error capturing shelf camera: {result.stderr.decode()}")
+            print(f"   Is the camera connected at {DEVICE}?")
+            sys.exit(1)
+
+        # Check if image was created and is valid
+        if not os.path.exists(OUTPUT_PATH):
+            print(f"❌ Image file not created")
+            sys.exit(1)
+
+        size = os.path.getsize(OUTPUT_PATH)
+        if size < 1000:
+            print("❌ Image too small, camera may be unavailable")
+            sys.exit(1)
+
+        print(f"📷 Shelf snapshot saved to {OUTPUT_PATH}")
+        print(f"   Use the Read tool on {OUTPUT_PATH} to view it.")
+
+    except subprocess.TimeoutExpired:
+        print("❌ Camera capture timed out")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error capturing shelf camera: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
