@@ -64,6 +64,16 @@ def check_git_status():
         # Get current directory
         clap_dir = os.path.expanduser("~/claude-autonomy-platform")
 
+        # Fetch latest from origin so ahead/behind info is accurate
+        subprocess.run(
+            ["git", "fetch", "origin", "--quiet"],
+            cwd=clap_dir,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+
         # Check if we're ahead or behind origin
         result = subprocess.run(
             ["git", "status", "--porcelain", "-b"],
