@@ -17,6 +17,7 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent / "utils"))
 from infrastructure_config_reader import get_config_value
 from clap_logger import get_logger
+from systemd_notify import notify_ready, notify_watchdog
 
 logger = get_logger("discord-status-bot")
 
@@ -42,6 +43,7 @@ class ClaudeStatusBot(discord.Client):
         # Start monitoring for changes
         self.status_monitor.start()
         logger.info("Status monitor started")
+        notify_ready()
         
     async def update_status_from_file(self):
         """Update status from the status file"""
@@ -106,9 +108,10 @@ class ClaudeStatusBot(discord.Client):
     @tasks.loop(seconds=5)
     async def status_monitor(self):
         """Monitor for status update requests"""
+        notify_watchdog()
         if not self.status_file.exists():
             return
-            
+
         try:
             # Check if status file has been updated
             stat = self.status_file.stat()

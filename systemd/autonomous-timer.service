@@ -13,6 +13,7 @@ EnvironmentFile=-%h/claude-autonomy-platform/config/claude_infrastructure_config
 ExecStart=/usr/bin/python3 %h/claude-autonomy-platform/core/autonomous_timer.py
 Restart=always
 RestartSec=10
+WatchdogSec=120
 StandardOutput=journal
 StandardError=journal
 KillMode=process

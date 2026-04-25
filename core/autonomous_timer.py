@@ -32,6 +32,7 @@ from utils.infrastructure_config_reader import get_config_value
 from utils.track_activity import is_idle
 from utils.check_seeds import get_seed_reminder
 from utils.check_context import check_context
+from utils.systemd_notify import notify_ready, notify_watchdog
 from utils.check_usage import check_usage
 from utils.health_reporter import write_status
 
@@ -2117,6 +2118,7 @@ def report_essential_health():
 def main():
     """Main timer loop"""
     log_message("=== Autonomous Timer Started ===")
+    notify_ready()
 
     # Signal handlers so we log unexpected termination
     def handle_signal(signum, frame):
@@ -2669,7 +2671,7 @@ def main():
 
             # Channel monitor functionality is now integrated here
 
-            # Sleep for 30 seconds before next check (can be longer since we're doing simple string comparison)
+            notify_watchdog()
             time.sleep(30)
 
         except KeyboardInterrupt:
@@ -2677,7 +2679,8 @@ def main():
             break
         except Exception as e:
             log_message(f"Error in main loop: {e}")
-            time.sleep(30)  # Sleep longer on error
+            notify_watchdog()
+            time.sleep(30)
 
 
 if __name__ == "__main__":
