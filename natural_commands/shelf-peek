@@ -7,47 +7,24 @@ Use the Read tool on the path to view the image.
 """
 
 import sys
-import subprocess
 import os
+import urllib.request
 
-DEVICE = "/dev/video2"
+PEEK_URL = "http://192.168.1.179:8765/peek/shelf"
 OUTPUT_PATH = "/tmp/shelf.jpg"
 
 def main():
     try:
-        # Capture frame using ffmpeg
-        result = subprocess.run([
-            'ffmpeg',
-            '-f', 'v4l2',
-            '-i', DEVICE,
-            '-frames:v', '1',
-            '-update', '1',
-            '-y', OUTPUT_PATH
-        ], capture_output=True, timeout=5)
-
-        if result.returncode != 0:
-            print(f"❌ Error capturing shelf camera: {result.stderr.decode()}")
-            print(f"   Is the camera connected at {DEVICE}?")
-            sys.exit(1)
-
-        # Check if image was created and is valid
-        if not os.path.exists(OUTPUT_PATH):
-            print(f"❌ Image file not created")
-            sys.exit(1)
-
+        urllib.request.urlretrieve(PEEK_URL, OUTPUT_PATH)
         size = os.path.getsize(OUTPUT_PATH)
         if size < 1000:
-            print("❌ Image too small, camera may be unavailable")
+            print("❌ Error: image too small, webcam may be unavailable")
             sys.exit(1)
-
         print(f"📷 Shelf snapshot saved to {OUTPUT_PATH}")
         print(f"   Use the Read tool on {OUTPUT_PATH} to view it.")
-
-    except subprocess.TimeoutExpired:
-        print("❌ Camera capture timed out")
-        sys.exit(1)
     except Exception as e:
         print(f"❌ Error capturing shelf camera: {e}")
+        print(f"   Is Orange's CoOP server running? Check http://192.168.1.179:8765/health")
         sys.exit(1)
 
 if __name__ == "__main__":

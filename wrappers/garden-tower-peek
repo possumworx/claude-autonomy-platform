@@ -1,0 +1,4 @@
+#!/bin/bash
+# 🏰 Garden tower camera snapshot (ESP32-CAM at kitchen window)
+# Kitchen window view — wide garden with cathedral tower
+~/claude-autonomy-platform/natural_commands/garden-tower-peek "$@"
