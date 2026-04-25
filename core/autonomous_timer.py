@@ -1358,6 +1358,44 @@ def get_silent_channels():
         return []
 
 
+LAST_UPDATE_CHECK_FILE = DATA_DIR / "last_update_check.json"
+UPDATE_CHECK_COOLDOWN = 3600  # seconds between git fetch attempts
+
+
+def check_for_clap_updates():
+    """Check if ClAP has updates available on origin/main. Rate-limited to avoid excessive fetches."""
+    try:
+        now = time.time()
+        last_check = {"time": 0, "commits_behind": 0}
+        if LAST_UPDATE_CHECK_FILE.exists():
+            with open(LAST_UPDATE_CHECK_FILE) as f:
+                last_check = json.load(f)
+
+        if now - last_check.get("time", 0) < UPDATE_CHECK_COOLDOWN:
+            commits = last_check.get("commits_behind", 0)
+            return f"\n📦 ClAP update available: {commits} commit(s) behind origin/main. Run `update` to pull." if commits > 0 else ""
+
+        clap_dir = str(AUTONOMY_DIR)
+        subprocess.run(
+            ["git", "fetch", "origin", "--quiet"],
+            cwd=clap_dir, capture_output=True, text=True, timeout=15, check=False,
+        )
+        result = subprocess.run(
+            ["git", "rev-list", "HEAD..origin/main", "--count"],
+            cwd=clap_dir, capture_output=True, text=True, timeout=5, check=False,
+        )
+        commits_behind = int(result.stdout.strip()) if result.returncode == 0 else 0
+
+        with open(LAST_UPDATE_CHECK_FILE, "w") as f:
+            json.dump({"time": now, "commits_behind": commits_behind}, f)
+
+        if commits_behind > 0:
+            return f"\n📦 ClAP update available: {commits_behind} commit(s) behind origin/main. Run `update` to pull."
+        return ""
+    except Exception:
+        return ""
+
+
 def get_discord_notification_status():
     """Check Discord notification state from discord_channels.json (transcript-based format)"""
     try:
@@ -1573,6 +1611,10 @@ def send_autonomy_prompt():
             discord_notification = (
                 f"\n🔔 Unread messages in {unread_count} channels: {channel_list}"
             )
+
+    # Check for ClAP updates
+    update_notification = check_for_clap_updates()
+    discord_notification += update_notification
 
     # Extract percentage from token info to determine prompt type
     percentage = 0
