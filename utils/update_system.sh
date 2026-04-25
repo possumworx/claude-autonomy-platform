@@ -34,11 +34,11 @@ git reset --hard origin/main || exit 1
 
 # Ensure pre-commit hooks are set up
 echo "🔐 Checking pre-commit setup..."
-if ! command -v pre-commit &> /dev/null || [[ ! -f .git/hooks/pre-commit ]]; then
+if [[ ! -f .git/hooks/pre-commit ]]; then
     echo "   Setting up pre-commit hooks..."
     bash setup/setup_pre_commit.sh || echo "⚠️  Pre-commit setup failed (non-critical)"
 else
-    echo "   ✅ Pre-commit already configured"
+    echo "   ✅ Pre-commit hooks present"
 fi
 
 # Update command symlinks to reflect any new/removed commands

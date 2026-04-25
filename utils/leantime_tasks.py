@@ -118,11 +118,26 @@ def view_task(task_id):
         print(f"Task #{task_id} not found.")
         return
 
+    status_names = {'0': 'Done', '1': 'In Progress', '3': 'New'}
+    status = str(result.get('status', ''))
+    status_display = status_names.get(status, f'Unknown ({status})')
+
+    project_name = result.get('projectName') or f"#{result.get('projectId')}"
+
     print(f"Task #{result.get('id')}")
     print(f"Headline: {result.get('headline')}")
-    print(f"Status: {result.get('status')}")
+    print(f"Status: {status_display}")
     print(f"Type: {result.get('type')}")
-    print(f"Project: {result.get('projectId')}")
+    print(f"Project: {project_name}")
+
+    tags = result.get('tags')
+    if tags:
+        print(f"Tags: {tags}")
+
+    due = result.get('dateToFinish', '')
+    if due and due != '0000-00-00 00:00:00':
+        print(f"Due: {due}")
+
     if result.get('description'):
         print(f"\nDescription:\n{result.get('description')}")
 
