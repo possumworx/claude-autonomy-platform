@@ -12,6 +12,7 @@ EnvironmentFile=-%h/claude-autonomy-platform/config/claude_infrastructure_config
 ExecStart=/usr/bin/python3 %h/claude-autonomy-platform/core/session_swap_monitor.py
 Restart=always
 RestartSec=10
+WatchdogSec=30
 StandardOutput=journal
 StandardError=journal
 KillMode=process

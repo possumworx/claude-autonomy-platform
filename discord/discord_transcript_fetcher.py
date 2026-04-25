@@ -36,6 +36,7 @@ from discord.channel_state import ChannelState
 from discord.discord_tools import DiscordTools
 from utils.infrastructure_config_reader import get_config_value
 from utils.clap_logger import get_logger
+from utils.systemd_notify import notify_ready, notify_watchdog
 
 logger = get_logger("discord-transcript-fetcher")
 
@@ -372,6 +373,7 @@ class TranscriptFetcher:
 
         # Initialize channels
         self.initialize_channels()
+        notify_ready()
 
         # Main monitoring loop
         while True:
@@ -379,7 +381,7 @@ class TranscriptFetcher:
                 for channel_name in self.channels_to_track:
                     self.process_channel(channel_name)
 
-                # Wait before next check
+                notify_watchdog()
                 time.sleep(CHECK_INTERVAL)
 
             except KeyboardInterrupt:
@@ -387,6 +389,7 @@ class TranscriptFetcher:
                 break
             except Exception as e:
                 logger.error("Error in main loop: %s", e)
+                notify_watchdog()
                 time.sleep(CHECK_INTERVAL)
 
 

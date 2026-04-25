@@ -9,6 +9,7 @@ Environment=PYTHONUNBUFFERED=1
 ExecStart=/usr/bin/python3 %h/claude-autonomy-platform/discord/discord_transcript_fetcher.py
 Restart=always
 RestartSec=10
+WatchdogSec=120
 
 # Logging
 StandardOutput=append:%h/claude-autonomy-platform/logs/transcript_fetcher.log

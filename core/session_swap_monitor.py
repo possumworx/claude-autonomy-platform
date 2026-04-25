@@ -15,6 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
 from claude_paths import get_clap_dir
 from infrastructure_config_reader import get_config_value
 from clap_logger import get_logger
+from systemd_notify import notify_ready, notify_watchdog
 
 # Get dynamic paths
 clap_dir = get_clap_dir()
@@ -65,6 +66,7 @@ def ping_healthcheck():
 
 def main():
     logger.info("Session swap monitor service started")
+    notify_ready()
 
     # Ensure trigger file exists with default value
     if not TRIGGER_FILE.exists():
@@ -101,15 +103,16 @@ def main():
                 ping_healthcheck()
                 ping_counter = 0
 
-            # Sleep for a short interval
+            notify_watchdog()
             time.sleep(2)
-            
+
         except KeyboardInterrupt:
             logger.info("Service stopped by user")
             break
         except Exception as e:
             logger.error("Error in main loop: %s", e)
-            time.sleep(5)  # Sleep longer on error
+            notify_watchdog()
+            time.sleep(5)
 
 if __name__ == "__main__":
     main()
