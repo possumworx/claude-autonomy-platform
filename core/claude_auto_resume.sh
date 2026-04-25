@@ -81,9 +81,9 @@ log "Using model: $CLAUDE_MODEL"
 source "$AUTONOMY_DIR/utils/send_to_claude.sh"
 export TMUX_SESSION="autonomous-claude"
 
-# Start Claude Code with --continue and same flags as session swap
+# Start Claude Code with --continue and full startup flags (matching clap_lifecycle.sh)
 log "Starting Claude Code with --continue in autonomous-claude tmux session"
-tmux send-keys -t autonomous-claude "cd $AUTONOMY_DIR && claude --continue --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL" Enter
+tmux send-keys -t autonomous-claude "cd $AUTONOMY_DIR && claude --continue --dangerously-skip-permissions --add-dir $HOME --model $CLAUDE_MODEL --channels plugin:discord@claude-plugins-official" Enter
 
 # Wait for Claude to start and be ready (send_to_claude will wait for readiness)
 log "Waiting for Claude Code to be ready..."
