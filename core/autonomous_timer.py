@@ -17,6 +17,7 @@ import sys
 import glob
 import re
 import signal
+import socket
 import collections
 import requests
 from datetime import datetime, timedelta
@@ -34,6 +35,21 @@ from utils.check_seeds import get_seed_reminder
 from utils.check_context import check_context
 from utils.check_usage import check_usage
 from utils.health_reporter import write_status
+
+
+def sd_notify(state):
+    """Send notification to systemd (watchdog/ready). No-op if not running under systemd."""
+    addr = os.environ.get("NOTIFY_SOCKET")
+    if not addr:
+        return
+    if addr[0] == "@":
+        addr = "\0" + addr[1:]
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    try:
+        sock.sendto(state.encode(), addr)
+    finally:
+        sock.close()
+
 
 # Configuration
 AUTONOMY_DIR = get_clap_dir()
@@ -2117,6 +2133,7 @@ def report_essential_health():
 def main():
     """Main timer loop"""
     log_message("=== Autonomous Timer Started ===")
+    sd_notify("READY=1")
 
     # Signal handlers so we log unexpected termination
     def handle_signal(signum, frame):
@@ -2669,7 +2686,7 @@ def main():
 
             # Channel monitor functionality is now integrated here
 
-            # Sleep for 30 seconds before next check (can be longer since we're doing simple string comparison)
+            sd_notify("WATCHDOG=1")
             time.sleep(30)
 
         except KeyboardInterrupt:
@@ -2677,7 +2694,8 @@ def main():
             break
         except Exception as e:
             log_message(f"Error in main loop: {e}")
-            time.sleep(30)  # Sleep longer on error
+            sd_notify("WATCHDOG=1")
+            time.sleep(30)
 
 
 if __name__ == "__main__":

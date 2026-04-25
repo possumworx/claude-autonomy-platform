@@ -3,7 +3,9 @@ Description=Autonomous Timer for Claude
 After=network.target
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=main
+WatchdogSec=120
 WorkingDirectory=%h/claude-autonomy-platform
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=PYTHONPATH=%h/claude-autonomy-platform
