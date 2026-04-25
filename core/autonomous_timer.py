@@ -340,15 +340,18 @@ def check_claude_session_alive():
         return False
 
 
+RESTART_COOLDOWN = 300  # seconds between restart attempts
+
+
 def restart_claude_session():
     """Restart Claude Code session after unexpected death (e.g., OOM kill).
 
     Only restarts if:
     - RESTART_AFTER_REBOOT is enabled in config
     - No session swap is in progress
-    Uses --continue to preserve conversation context.
+    - At least RESTART_COOLDOWN seconds since last attempt
+    Uses --continue with full startup flags to preserve tools and permissions.
     """
-    # Check if auto-resume is enabled (same setting as reboot resume)
     restart_enabled = get_config_value("RESTART_AFTER_REBOOT", "false").lower()
     if restart_enabled != "true":
         log_message("RESTART_AFTER_REBOOT not enabled - not auto-restarting Claude session")
@@ -359,12 +362,28 @@ def restart_claude_session():
         log_message("Session swap in progress - not restarting Claude")
         return False
 
+    cooldown_file = DATA_DIR / "last_restart_attempt.txt"
     try:
-        log_message("Attempting to restart Claude Code session with --continue")
+        if cooldown_file.exists():
+            last_attempt = float(cooldown_file.read_text().strip())
+            if time.time() - last_attempt < RESTART_COOLDOWN:
+                return False
+    except (ValueError, OSError):
+        pass
 
-        # Send claude --continue to the tmux session
+    try:
+        cooldown_file.write_text(str(time.time()))
+
+        model = get_config_value("MODEL", "claude-opus-4-6")
+        cmd = (
+            f"cd {AUTONOMY_DIR} && claude --continue "
+            f"--dangerously-skip-permissions --add-dir $HOME "
+            f"--model {model} --channels plugin:discord@claude-plugins-official"
+        )
+        log_message(f"Attempting to restart Claude Code session with full flags (model={model})")
+
         result = subprocess.run(
-            ["tmux", "send-keys", "-t", CLAUDE_SESSION, "claude --continue", "Enter"],
+            ["tmux", "send-keys", "-t", CLAUDE_SESSION, cmd, "Enter"],
             capture_output=True,
             text=True,
         )
