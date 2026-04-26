@@ -35,15 +35,13 @@ from utils.check_context import check_context
 from utils.systemd_notify import notify_ready, notify_watchdog
 from utils.check_usage import check_usage
 from utils.health_reporter import write_status
+from utils.clap_logger import get_logger
 
 # Configuration
 AUTONOMY_DIR = get_clap_dir()
 DATA_DIR = AUTONOMY_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)  # Ensure data directory exists
 LAST_AUTONOMY_FILE = DATA_DIR / "last_autonomy_prompt.txt"
-LOG_FILE = (
-    AUTONOMY_DIR / "logs" / "autonomous_timer.log"
-)  # POSS-239: Standardized log location
 CONFIG_FILE = AUTONOMY_DIR / "config" / "autonomous_timer_config.json"
 PROMPTS_FILE = AUTONOMY_DIR / "config" / "prompts.json"
 CHANNEL_PURPOSES_FILE = AUTONOMY_DIR / "config" / "channel_purposes.json"
@@ -54,8 +52,7 @@ RESOURCE_TRACKING_STATE_FILE = DATA_DIR / "last_cache_tokens.json"
 MAMA_HEN_STATE_FILE = DATA_DIR / "mama_hen_alerts.json"
 TIMER_PAUSE_FILE = DATA_DIR / "timer_pause.json"
 
-# Create logs directory if it doesn't exist
-(AUTONOMY_DIR / "logs").mkdir(exist_ok=True)
+logger = get_logger("autonomous-timer")
 
 # Resource-share webhook configuration
 WEBHOOK_HOST = get_config_value("WEBHOOK_HOST", "localhost")
@@ -64,15 +61,6 @@ RESOURCE_SHARE_WEBHOOK_URL = f"http://{WEBHOOK_HOST}:8765/resource-share/increme
 # Discord API configuration
 DISCORD_API_BASE = "https://discord.com/api/v10"
 INFRA_CONFIG = AUTONOMY_DIR / "config" / "claude_infrastructure_config.txt"
-
-
-def log_message(message):
-    """Log with timestamp"""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log_entry = f"{timestamp} - {message}"
-    print(log_entry)
-    with open(LOG_FILE, "a") as f:
-        f.write(log_entry + "\n")
 
 
 def is_tmux_session_attached():
@@ -93,7 +81,7 @@ def is_tmux_session_attached():
                         return True
         return False
     except Exception as e:
-        log_message(f"DEBUG: Error checking tmux attachment: {e}")
+        logger.debug(f"Error checking tmux attachment: {e}")
         return False  # Default to autonomy if we can't determine
 
 
@@ -104,10 +92,10 @@ def load_prompts_config():
             with open(PROMPTS_FILE, "r") as f:
                 return json.load(f)
         else:
-            log_message(f"Prompts configuration file not found: {PROMPTS_FILE}")
+            logger.info(f"Prompts configuration file not found: {PROMPTS_FILE}")
             return None
     except Exception as e:
-        log_message(f"Error loading prompts configuration: {e}")
+        logger.error(f"Loading prompts configuration: {e}")
         return None
 
 
@@ -122,7 +110,7 @@ def load_context_state():
             with open(CONTEXT_STATE_FILE, "r") as f:
                 return json.load(f)
     except Exception as e:
-        log_message(f"Error loading context state: {e}")
+        logger.error(f"Loading context state: {e}")
 
     # Return default state
     return {
@@ -138,7 +126,7 @@ def save_context_state(state):
         with open(CONTEXT_STATE_FILE, "w") as f:
             json.dump(state, f, indent=2)
     except Exception as e:
-        log_message(f"Error saving context state: {e}")
+        logger.error(f"Saving context state: {e}")
 
 
 def reset_context_state():
@@ -188,7 +176,7 @@ def log_swap_attempt(attempt_type, context_percentage, keyword=None):
         return len(recent_warnings)
 
     except Exception as e:
-        log_message(f"Error logging swap attempt: {e}")
+        logger.error(f"Logging swap attempt: {e}")
         return 0
 
 
@@ -208,10 +196,10 @@ def ping_healthcheck():
         if result.returncode == 0:
             return True
         else:
-            log_message(f"Healthcheck ping failed: {result.stderr}")
+            logger.info(f"Healthcheck ping failed: {result.stderr}")
             return False
     except Exception as e:
-        log_message(f"Healthcheck ping error: {e}")
+        logger.info(f"Healthcheck ping error: {e}")
         return False
 
 
@@ -222,7 +210,7 @@ def load_mama_hen_state():
             with open(MAMA_HEN_STATE_FILE, "r") as f:
                 return json.load(f)
     except Exception as e:
-        log_message(f"Error loading Mama-hen state: {e}")
+        logger.error(f"Loading Mama-hen state: {e}")
     return {"alerted": {}}
 
 
@@ -232,7 +220,7 @@ def save_mama_hen_state(state):
         with open(MAMA_HEN_STATE_FILE, "w") as f:
             json.dump(state, f, indent=2)
     except Exception as e:
-        log_message(f"Error saving Mama-hen state: {e}")
+        logger.error(f"Saving Mama-hen state: {e}")
 
 
 def handle_mama_hen_alerts(overdue_alerts):
@@ -261,7 +249,7 @@ def handle_mama_hen_alerts(overdue_alerts):
             try:
                 last_alert = datetime.fromisoformat(last_alert_time)
                 if (current_time - last_alert).total_seconds() < 3600:  # 1 hour cooldown
-                    log_message(f"DEBUG: Mama-hen skipping {claude_name} - already alerted recently")
+                    logger.debug(f"Mama-hen skipping {claude_name} - already alerted recently")
                     continue
             except:
                 pass
@@ -273,7 +261,7 @@ def handle_mama_hen_alerts(overdue_alerts):
             f"Timer may be stuck. Run: systemctl --user restart autonomous-timer.service"
         )
 
-        log_message(f"INFO: Mama-hen alert for {claude_name}: {overdue_mins}m overdue")
+        logger.info(f"Mama-hen alert for {claude_name}: {overdue_mins}m overdue")
 
         # Post to #system-messages for family visibility
         try:
@@ -284,7 +272,7 @@ def handle_mama_hen_alerts(overdue_alerts):
             ]
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         except Exception as e:
-            log_message(f"WARNING: Failed to post Mama-hen alert to #system-messages: {e}")
+            logger.warning(f"Failed to post Mama-hen alert to #system-messages: {e}")
 
         # Post to the stuck Claude's personal channel (e.g., "amy-quill" for quill)
         # Channel naming convention: amy-{claude_name} or {claude_name}-{other}
@@ -297,7 +285,7 @@ def handle_mama_hen_alerts(overdue_alerts):
             ]
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         except Exception as e:
-            log_message(f"WARNING: Failed to post to {personal_channel}: {e}")
+            logger.warning(f"Failed to post to {personal_channel}: {e}")
 
         # Update state
         alerted[claude_name] = current_time.isoformat()
@@ -337,7 +325,7 @@ def check_claude_session_alive():
         return result.returncode == 0
 
     except Exception as e:
-        log_message(f"Error checking Claude session: {e}")
+        logger.error(f"Checking Claude session: {e}")
         return False
 
 
@@ -355,12 +343,12 @@ def restart_claude_session():
     """
     restart_enabled = get_config_value("RESTART_AFTER_REBOOT", "false").lower()
     if restart_enabled != "true":
-        log_message("RESTART_AFTER_REBOOT not enabled - not auto-restarting Claude session")
+        logger.info("RESTART_AFTER_REBOOT not enabled - not auto-restarting Claude session")
         return False
 
     lockfile = DATA_DIR / "session_swap.lock"
     if lockfile.exists():
-        log_message("Session swap in progress - not restarting Claude")
+        logger.info("Session swap in progress - not restarting Claude")
         return False
 
     cooldown_file = DATA_DIR / "last_restart_attempt.txt"
@@ -381,7 +369,7 @@ def restart_claude_session():
             f"--dangerously-skip-permissions --add-dir $HOME "
             f"--model {model} --channels plugin:discord@claude-plugins-official"
         )
-        log_message(f"Attempting to restart Claude Code session with full flags (model={model})")
+        logger.info(f"Attempting to restart Claude Code session with full flags (model={model})")
 
         result = subprocess.run(
             ["tmux", "send-keys", "-t", CLAUDE_SESSION, cmd, "Enter"],
@@ -390,13 +378,13 @@ def restart_claude_session():
         )
 
         if result.returncode == 0:
-            log_message("Claude Code restart command sent successfully")
+            logger.info("Claude Code restart command sent successfully")
             return True
         else:
-            log_message(f"Failed to send restart command: {result.stderr}")
+            logger.info(f"Failed to send restart command: {result.stderr}")
             return False
     except Exception as e:
-        log_message(f"Error restarting Claude session: {e}")
+        logger.error(f"Restarting Claude session: {e}")
         return False
 
 
@@ -414,8 +402,8 @@ def get_token_percentage():
                 emoji = "🟢"
             return f"Context: {percentage:.1f}% {emoji}"
 
-        log_message(
-            f"DEBUG: check_context failed - error: {error}, has_data: {context_data is not None}"
+        logger.debug(
+            f"check_context failed - error: {error}, has_data: {context_data is not None}"
         )
         return None
 
@@ -434,8 +422,8 @@ def track_resource_usage():
         # Get usage cost delta from check_usage (primary metric for CoOP)
         usage_data, error = check_usage(return_data=True)
         if error or not usage_data:
-            log_message(
-                f"DEBUG: resource-share tracking skipped - check_usage failed: {error}"
+            logger.debug(
+                f"Resource-share tracking skipped - check_usage failed: {error}"
             )
             return
 
@@ -483,8 +471,8 @@ def track_resource_usage():
                     RESOURCE_SHARE_WEBHOOK_URL, json=payload, timeout=5
                 )
                 if response.status_code == 200:
-                    log_message(
-                        f"DEBUG: resource-share reported ${cost_delta:.4f} cost for {claude_name}"
+                    logger.debug(
+                        f"Resource-share reported ${cost_delta:.4f} cost for {claude_name}"
                     )
 
                     # Read recommended interval from response and update if provided
@@ -506,14 +494,14 @@ def track_resource_usage():
                                     fairness = response_data.get('multipliers', {}).get('fairness')
                                     fairness_str = f"{fairness:.2f}" if isinstance(fairness, (int, float)) else "?"
 
-                                    log_message(
-                                        f"INFO: Interval updated by CoOP: {old_interval}s → {new_interval}s "
+                                    logger.info(
+                                        f"Interval updated by CoOP: {old_interval}s → {new_interval}s "
                                         f"(fairness: {fairness_str}x, "
                                         f"quota: {response_data.get('quota_status', 'unknown')})"
                                     )
                             else:
-                                log_message(
-                                    f"WARNING: Invalid interval from CoOP: {new_interval} - keeping current {AUTONOMY_PROMPT_INTERVAL}s"
+                                logger.warning(
+                                    f"Invalid interval from CoOP: {new_interval} - keeping current {AUTONOMY_PROMPT_INTERVAL}s"
                                 )
 
                         # Handle overdue_alerts from Mama-hen system
@@ -521,18 +509,18 @@ def track_resource_usage():
                         if overdue_alerts:
                             handle_mama_hen_alerts(overdue_alerts)
                     except (json.JSONDecodeError, KeyError) as e:
-                        log_message(
-                            f"DEBUG: Could not parse interval from response: {e}"
+                        logger.debug(
+                            f"Could not parse interval from response: {e}"
                         )
                 else:
-                    log_message(
-                        f"WARNING: resource-share webhook returned {response.status_code}"
+                    logger.warning(
+                        f"Resource-share webhook returned {response.status_code}"
                     )
             except requests.exceptions.RequestException as e:
-                log_message(f"WARNING: resource-share webhook request failed: {e}")
+                logger.warning(f"resource-share webhook request failed: {e}")
         else:
-            log_message(
-                f"DEBUG: resource-share skipped - cost_delta is ${cost_delta:.4f} (need > 0)"
+            logger.debug(
+                f"Resource-share skipped - cost_delta is ${cost_delta:.4f} (need > 0)"
             )
 
         # Save current cache tokens for backwards compatibility (even if cost_delta was 0)
@@ -542,7 +530,7 @@ def track_resource_usage():
                 json.dump({"cache_tokens": current_cache_tokens}, f)
 
     except Exception as e:
-        log_message(f"ERROR: resource-share tracking failed: {e}")
+        logger.error(f"Resource-share tracking failed: {e}")
 
 
 def detect_api_errors(tmux_output):
@@ -642,13 +630,13 @@ def detect_api_errors(tmux_output):
 
                     # If reset time has passed, ignore this error
                     if current_time > reset_datetime:
-                        log_message(
+                        logger.info(
                             f"Ignoring expired usage limit (reset was at {reset_time_str}, now {current_time.strftime('%I:%M%p')})"
                         )
                         continue  # Check next pink text match
 
             except Exception as e:
-                log_message(f"Error parsing reset time: {e}")
+                logger.error(f"Parsing reset time: {e}")
                 # If we can't parse, report the error anyway
 
             return {
@@ -744,7 +732,7 @@ def clear_error_state():
     """Clear error state after recovery"""
     if API_ERROR_STATE_FILE.exists():
         API_ERROR_STATE_FILE.unlink()
-        log_message("Error state cleared")
+        logger.info("Error state cleared")
 
 
 def check_usage_limit_reset(error_state):
@@ -792,7 +780,7 @@ def check_usage_limit_reset(error_state):
             return True
 
     except Exception as e:
-        log_message(f"Error checking reset time: {e}")
+        logger.error(f"Checking reset time: {e}")
         return False
 
     return False
@@ -843,7 +831,7 @@ def calculate_wait_until_reset(reset_time_str):
         return max(0, wait_duration)
 
     except Exception as e:
-        log_message(f"Error calculating wait duration: {e}")
+        logger.error(f"Calculating wait duration: {e}")
         return None
 
 
@@ -905,10 +893,10 @@ def update_discord_status(status_type, reset_time=None):
         with open(status_file, "w") as f:
             json.dump(status_data, f, indent=2)
 
-        log_message(f"Discord status request written: {status_type}")
+        logger.info(f"Discord status request written: {status_type}")
 
     except Exception as e:
-        log_message(f"Error updating Discord status: {e}")
+        logger.error(f"Updating Discord status: {e}")
 
 
 def trigger_session_swap(keyword="NONE"):
@@ -917,10 +905,10 @@ def trigger_session_swap(keyword="NONE"):
         new_session_file = AUTONOMY_DIR / "new_session.txt"
         with open(new_session_file, "w") as f:
             f.write(keyword)
-        log_message(f"Triggered automatic session swap with keyword: {keyword}")
+        logger.info(f"Triggered automatic session swap with keyword: {keyword}")
         return True
     except Exception as e:
-        log_message(f"Error triggering session swap: {e}")
+        logger.error(f"Triggering session swap: {e}")
         return False
 
 
@@ -958,7 +946,7 @@ def get_token_percentage_and_errors():
         return console_output, error_info
 
     except Exception as e:
-        log_message(f"Error in monitoring: {str(e)}")
+        logger.error(f"In monitoring: {str(e)}")
         return None, None
 
 
@@ -984,14 +972,14 @@ def check_and_handle_rate_limit_menu():
 
         # Check if we're in the rate limit menu
         if "> /rate-limit-options" in console_output:
-            log_message(
+            logger.info(
                 "⚠️  Detected rate limit menu - automatically selecting option 1 (stop and wait)"
             )
 
             # Send "1" to select "Stop and wait for limit to reset"
             subprocess.run(["tmux", "send-keys", "-t", CLAUDE_SESSION, "1", "Enter"])
 
-            log_message(
+            logger.info(
                 "✅ Sent option 1 - Claude Code should now be waiting for rate limit reset"
             )
             return True
@@ -999,7 +987,7 @@ def check_and_handle_rate_limit_menu():
         return False
 
     except Exception as e:
-        log_message(f"Error checking rate limit menu: {e}")
+        logger.error(f"Checking rate limit menu: {e}")
         return False
 
 
@@ -1018,12 +1006,12 @@ def load_discord_config():
                     elif line.startswith("CLAUDE_DISCORD_USER_ID="):
                         config["user_id"] = line.split("=", 1)[1].strip()
         if not config["token"]:
-            log_message("Warning: No Discord token found in infrastructure config")
+            logger.warning("No Discord token found in infrastructure config")
         if not config["user_id"]:
-            log_message("Warning: No Discord user ID found in infrastructure config")
+            logger.warning("No Discord user ID found in infrastructure config")
         return config
     except Exception as e:
-        log_message(f"Error loading Discord config: {e}")
+        logger.error(f"Loading Discord config: {e}")
         return config
 
 
@@ -1086,10 +1074,10 @@ def is_remote_control_collaborative():
             else:
                 # Expired - clean up
                 flag_file.unlink(missing_ok=True)
-                log_message("Collaborative mode flag expired (>2 hours) - removed")
+                logger.info("Collaborative mode flag expired (>2 hours) - removed")
         return False
     except Exception as e:
-        log_message(f"Error checking collaborative flag: {e}")
+        logger.error(f"Checking collaborative flag: {e}")
         return False
 
 
@@ -1100,7 +1088,7 @@ def check_user_active():
         # Amy might be logged in but working with Apple, or on lsr-os, etc.
         attached = is_tmux_session_attached()
         if attached:
-            log_message(
+            logger.info(
                 "autonomous-claude tmux session is attached (collaborative mode)"
             )
             return True
@@ -1108,14 +1096,14 @@ def check_user_active():
         # Check if Remote Control collaborative mode is active (trigger word received)
         remote_collab = is_remote_control_collaborative()
         if remote_collab:
-            log_message(
+            logger.info(
                 "Remote Control collaborative mode active (trigger word received)"
             )
             return True
 
         return False
     except Exception as e:
-        log_message(f"Error checking user activity: {e}")
+        logger.error(f"Checking user activity: {e}")
         return False
 
 
@@ -1143,7 +1131,7 @@ def get_last_discord_message_time():
                 return timestamp_str  # Return raw UTC timestamp string
 
     except Exception as e:
-        log_message(f"Error getting last Discord message time: {e}")
+        logger.error(f"Getting last Discord message time: {e}")
 
     return None
 
@@ -1165,7 +1153,7 @@ def update_last_processed_message_time(timestamp_str):
         with open(LAST_PROCESSED_MESSAGE_FILE, "w") as f:
             f.write(timestamp_str)
     except Exception as e:
-        log_message(f"Error updating last processed message time: {e}")
+        logger.error(f"Updating last processed message time: {e}")
 
 
 def send_tmux_message(message):
@@ -1173,14 +1161,14 @@ def send_tmux_message(message):
     # Check for session swap lockfile
     lockfile = DATA_DIR / "session_swap.lock"
     if lockfile.exists():
-        log_message("Session swap in progress - skipping tmux message")
+        logger.info("Session swap in progress - skipping tmux message")
         return False
 
     try:
         # Use the safe send_to_claude.sh script that checks for thinking indicators
         send_script = AUTONOMY_DIR / "utils" / "send_to_claude.sh"
         if not send_script.exists():
-            log_message(
+            logger.info(
                 f"send_to_claude.sh not found at {send_script}, falling back to direct tmux"
             )
             # Fallback to direct tmux if script not found
@@ -1202,19 +1190,19 @@ def send_tmux_message(message):
         )
 
         if result.returncode == 0:
-            log_message(f"Sent message safely via send_to_claude.sh: {message[:50]}...")
+            logger.info(f"Sent message safely via send_to_claude.sh: {message[:50]}...")
             return True
         else:
-            log_message(f"Error from send_to_claude.sh: {result.stderr}")
+            logger.error(f"From send_to_claude.sh: {result.stderr}")
             return False
 
     except subprocess.TimeoutExpired:
-        log_message(
+        logger.info(
             f"send_to_claude.sh timed out after 20 minutes - possible deadlock or infinite hang"
         )
         return False
     except subprocess.CalledProcessError as e:
-        log_message(f"Error calling send_to_claude.sh: {e}")
+        logger.error(f"Calling send_to_claude.sh: {e}")
         return False
 
 
@@ -1226,18 +1214,18 @@ def send_tmux_message_direct(message):
             ["tmux", "has-session", "-t", CLAUDE_SESSION], capture_output=True
         )
         if result.returncode != 0:
-            log_message(f"Tmux session '{CLAUDE_SESSION}' not found")
+            logger.info(f"Tmux session '{CLAUDE_SESSION}' not found")
             return False
 
         # Send the message text
         subprocess.run(["tmux", "send-keys", "-t", CLAUDE_SESSION, message], check=True)
         # Send Enter in a separate command
         subprocess.run(["tmux", "send-keys", "-t", CLAUDE_SESSION, "Enter"], check=True)
-        log_message(f"Sent message directly to tmux: {message[:50]}...")
+        logger.info(f"Sent message directly to tmux: {message[:50]}...")
         return True
 
     except subprocess.CalledProcessError as e:
-        log_message(f"Error sending tmux message: {e}")
+        logger.error(f"Sending tmux message: {e}")
         return False
 
 
@@ -1269,7 +1257,7 @@ def send_context_warning(percentage, context_state):
                 percentage=percentage, discord_notification=discord_notification
             )
             send_tmux_message(prompt)
-            log_message(f"Sent {template_key} context warning at {percentage:.1f}%")
+            logger.info(f"Sent {template_key} context warning at {percentage:.1f}%")
             return
 
     # Fallback if no template available
@@ -1285,7 +1273,7 @@ def send_context_warning(percentage, context_state):
         warning_msg += discord_notification
 
     send_tmux_message(warning_msg)
-    log_message(f"Sent fallback context warning at {percentage:.1f}%")
+    logger.info(f"Sent fallback context warning at {percentage:.1f}%")
 
 
 # Old Discord message checking removed - replaced with log-based monitoring
@@ -1294,7 +1282,7 @@ def send_context_warning(percentage, context_state):
 def get_latest_message_info(channel_id):
     """Get the ID and author of the latest message in a channel using Discord REST API"""
     if not DISCORD_TOKEN:
-        log_message("Error: No Discord token available")
+        logger.error("No Discord token available")
         return None, None
 
     try:
@@ -1315,14 +1303,14 @@ def get_latest_message_info(channel_id):
                 author_id = message.get("author", {}).get("id")
                 return message_id, author_id
         else:
-            log_message(
+            logger.info(
                 f"Error fetching channel {channel_id}: {response.status_code} - {response.text}"
             )
 
         return None, None
 
     except Exception as e:
-        log_message(f"Exception checking channel {channel_id}: {e}")
+        logger.info(f"Exception checking channel {channel_id}: {e}")
         return None, None
 
 
@@ -1352,13 +1340,13 @@ def update_discord_channels():
                 if author_id == CLAUDE_USER_ID:
                     cs.update_channel_latest(channel_name, latest_id)
                     cs.mark_channel_read(channel_name)
-                    log_message(
+                    logger.info(
                         f"Updated #{channel_name}: {latest_id} (own message, marked as read)"
                     )
                 else:
                     # Message from someone else - update normally
                     cs.update_channel_latest(channel_name, latest_id)
-                    log_message(
+                    logger.info(
                         f"Updated #{channel_name}: {latest_id} (from user {author_id})"
                     )
                 updates += 1
@@ -1453,7 +1441,7 @@ def get_discord_notification_status():
         return total_unread, last_message_id, unread_channels
 
     except Exception as e:
-        log_message(f"Error reading Discord notification state: {e}")
+        logger.error(f"Reading Discord notification state: {e}")
         return 0, None, []
 
 
@@ -1474,9 +1462,9 @@ def cleanup_expired_pause():
 
         if datetime.now() >= resume_at:
             TIMER_PAUSE_FILE.unlink()
-            log_message("Timer pause expired - resuming normal prompts")
+            logger.info("Timer pause expired - resuming normal prompts")
     except Exception as e:
-        log_message(f"Error checking pause expiry: {e}")
+        logger.error(f"Checking pause expiry: {e}")
 
 
 def check_timer_pause():
@@ -1498,7 +1486,7 @@ def check_timer_pause():
         # Pause has expired - clean up and resume
         if datetime.now() >= resume_at:
             TIMER_PAUSE_FILE.unlink()
-            log_message("Timer pause expired - resuming normal prompts")
+            logger.info("Timer pause expired - resuming normal prompts")
             return False, False
 
         # Pause is active - check for system-messages override
@@ -1533,19 +1521,19 @@ def check_timer_pause():
                             break
 
                     if all_routine and recent_msgs:
-                        log_message("Timer paused - system-messages recent activity is only routine noise (MAMA-HEN/heartbeats), staying paused")
+                        logger.info("Timer paused - system-messages recent activity is only routine noise (MAMA-HEN/heartbeats), staying paused")
                         return True, False
             except Exception as e:
-                log_message(f"Error checking system-messages content: {e}")
+                logger.error(f"Checking system-messages content: {e}")
                 # Fall through to override on error (safer)
 
-            log_message("Timer paused but system-messages has important unreads - overriding pause")
+            logger.info("Timer paused but system-messages has important unreads - overriding pause")
             return True, True
 
         return True, False
 
     except Exception as e:
-        log_message(f"Error reading timer pause file: {e}")
+        logger.error(f"Reading timer pause file: {e}")
         # If we can't read it, delete it and resume
         try:
             TIMER_PAUSE_FILE.unlink()
@@ -1572,7 +1560,7 @@ def update_last_autonomy_time():
         with open(LAST_AUTONOMY_FILE, "w") as f:
             f.write(datetime.now().isoformat())
     except Exception as e:
-        log_message(f"Error updating last autonomy time: {e}")
+        logger.error(f"Updating last autonomy time: {e}")
 
 
 def export_conversation():
@@ -1591,10 +1579,10 @@ def export_conversation():
         # Give export time to complete
         time.sleep(3)
 
-        log_message(f"Exported conversation to {export_path}")
+        logger.info(f"Exported conversation to {export_path}")
         return True
     except Exception as e:
-        log_message(f"Error exporting conversation: {e}")
+        logger.error(f"Exporting conversation: {e}")
         return False
 
 
@@ -1787,7 +1775,7 @@ This is your autonomous free time period. Feel free to:
 
         # Auto-swap escalation at 7 attempts
         if warning_count >= 7:
-            log_message(
+            logger.info(
                 f"AUTO-SWAP TRIGGERED: {warning_count} warnings at {percentage}% context"
             )
             # Send urgent auto-swap message
@@ -1836,7 +1824,7 @@ session_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_
     success = send_tmux_message(prompt)
     if success:
         update_last_autonomy_time()
-        log_message(f"Sent {prompt_type} prompt")
+        logger.info(f"Sent {prompt_type} prompt")
 
     return success
 
@@ -1861,7 +1849,7 @@ def update_last_notification_time():
         with open(notification_file, "w") as f:
             f.write(datetime.now().isoformat())
     except Exception as e:
-        log_message(f"Error updating last notification time: {e}")
+        logger.error(f"Updating last notification time: {e}")
 
 
 def send_notification_alert(unread_count, unread_channels, is_new=False):
@@ -1869,7 +1857,7 @@ def send_notification_alert(unread_count, unread_channels, is_new=False):
     # Check for session swap lockfile
     lockfile = DATA_DIR / "session_swap.lock"
     if lockfile.exists():
-        log_message("Session swap in progress - skipping notification")
+        logger.info("Session swap in progress - skipping notification")
         return
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -1946,7 +1934,7 @@ DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
 
         success = send_tmux_message(prompt)
         if success:
-            log_message(
+            logger.info(
                 f"Sent context warning with Discord notification: {channel_list}"
             )
         return success
@@ -1998,12 +1986,12 @@ DO NOT wait for the "perfect moment" - ACT NOW or risk getting stuck at 100%!"""
     success = send_tmux_message(message)
     if success:
         if is_new:
-            log_message(
+            logger.info(
                 f"Sent NEW message alert: {channel_list if unread_channels else f'{unread_count} channels'}"
             )
         else:
             update_last_notification_time()
-            log_message(
+            logger.info(
                 f"Sent notification reminder: {channel_list if unread_channels else f'{unread_count} channels'}"
             )
 
@@ -2022,10 +2010,10 @@ def check_for_session_reset():
                 last_time = datetime.fromisoformat(context_state["last_warning_time"])
                 time_diff = datetime.now() - last_time
                 if time_diff.total_seconds() > 1800:  # 30 minutes
-                    log_message("Session reset detected - clearing context state")
+                    logger.info("Session reset detected - clearing context state")
                     reset_context_state()
     except Exception as e:
-        log_message(f"Error checking for session reset: {e}")
+        logger.error(f"Checking for session reset: {e}")
 
 
 def check_persistent_login_session():
@@ -2038,7 +2026,7 @@ def check_persistent_login_session():
 
         if result.returncode != 0:
             # Session doesn't exist - create it
-            log_message("persistent-login tmux session not found - recreating")
+            logger.info("persistent-login tmux session not found - recreating")
 
             # Create new session
             create_result = subprocess.run(
@@ -2070,20 +2058,20 @@ def check_persistent_login_session():
                 )
 
                 if source_result.returncode == 0:
-                    log_message(
+                    logger.info(
                         "Successfully recreated persistent-login session and sourced claude_env.sh"
                     )
                 else:
-                    log_message(
+                    logger.info(
                         f"Failed to source claude_env.sh: {source_result.stderr}"
                     )
             else:
-                log_message(
+                logger.info(
                     f"Failed to create persistent-login session: {create_result.stderr}"
                 )
 
     except Exception as e:
-        log_message(f"Error checking persistent-login session: {e}")
+        logger.error(f"Checking persistent-login session: {e}")
 
 
 def report_essential_health():
@@ -2178,13 +2166,13 @@ def report_essential_health():
 
 def main():
     """Main timer loop"""
-    log_message("=== Autonomous Timer Started ===")
+    logger.info("=== Autonomous Timer Started ===")
     notify_ready()
 
     # Signal handlers so we log unexpected termination
     def handle_signal(signum, frame):
         sig_name = signal.Signals(signum).name
-        log_message(f"=== Autonomous Timer received {sig_name} (signal {signum}) — exiting ===")
+        logger.info(f"=== Autonomous Timer received {sig_name} (signal {signum}) — exiting ===")
         sys.exit(0)
 
     signal.signal(signal.SIGTERM, handle_signal)
@@ -2196,13 +2184,13 @@ def main():
     # Load any existing error state
     current_error_state = load_error_state()
     if current_error_state:
-        log_message(f"Resuming with existing error state: {current_error_state}")
+        logger.info(f"Resuming with existing error state: {current_error_state}")
 
         # If it's a usage limit that has already passed, clear it immediately
         if current_error_state.get(
             "error_type"
         ) == "usage_limit" and check_usage_limit_reset(current_error_state):
-            log_message("Previous usage limit has already reset - clearing error state")
+            logger.info("Previous usage limit has already reset - clearing error state")
             clear_error_state()
             update_discord_status("operational")
             current_error_state = None
@@ -2226,7 +2214,7 @@ def main():
     else:
         # Set operational status on startup if no errors
         update_discord_status("operational")
-        log_message("Discord status set to operational on startup")
+        logger.info("Discord status set to operational on startup")
 
     last_autonomy_check = datetime.now()
     last_discord_check = datetime.now()
@@ -2252,7 +2240,7 @@ def main():
                 not current_error_state
                 or current_error_state.get("error_type") != error_info.get("error_type")
             ):
-                log_message(f"New error detected: {error_info}")
+                logger.info(f"New error detected: {error_info}")
                 save_error_state(error_info)
 
                 # Update Discord status based on error type
@@ -2264,7 +2252,7 @@ def main():
                     wait_seconds = calculate_wait_until_reset(reset_time)
                     if wait_seconds:
                         wait_hours = wait_seconds / 3600
-                        log_message(
+                        logger.info(
                             f"Claude API rate limit reached. Will automatically retry after {reset_time} (in {wait_hours:.1f} hours)"
                         )
 
@@ -2279,13 +2267,13 @@ def main():
                                 subprocess.run(cmd, capture_output=True, text=True)
 
                                 # Enter wait state - check every 30 seconds if it's time to resume
-                                log_message(f"Entering wait state until {reset_time}")
+                                logger.info(f"Entering wait state until {reset_time}")
                                 wait_start = datetime.now()
 
                                 while True:
                                     # Check if reset time has passed
                                     if check_usage_limit_reset(error_info):
-                                        log_message(
+                                        logger.info(
                                             "Rate limit reset time reached - clearing error state and resuming"
                                         )
                                         clear_error_state()
@@ -2326,22 +2314,22 @@ def main():
                                     ).total_seconds()
                                     if int(elapsed) % 600 == 0 and elapsed > 0:
                                         remaining = max(0, wait_seconds - elapsed)
-                                        log_message(
+                                        logger.info(
                                             f"Still waiting for rate limit reset. {remaining/3600:.1f} hours remaining"
                                         )
 
                                     time.sleep(30)
                             else:
-                                log_message(
+                                logger.info(
                                     f"Wait time too long ({wait_hours:.1f} hours). Will check periodically for reset."
                                 )
                         except Exception as e:
-                            log_message(f"Error handling rate limit wait: {e}")
+                            logger.error(f"Handling rate limit wait: {e}")
 
                 elif error_info["error_type"] == "malformed_json":
                     update_discord_status("api-error")
                     # Pause briefly then trigger auto-swap
-                    log_message(
+                    logger.info(
                         "Triggering auto-swap for malformed JSON in 5 seconds..."
                     )
                     time.sleep(5)
@@ -2349,7 +2337,7 @@ def main():
                 elif error_info["error_type"] == "api_500_error":
                     update_discord_status("api-error")
                     # Give API time to recover before auto-swap
-                    log_message(
+                    logger.info(
                         "API 500 error detected - waiting 30 seconds before auto-swap..."
                     )
                     time.sleep(30)
@@ -2359,14 +2347,14 @@ def main():
                         current_error
                         and current_error.get("error_type") == "api_500_error"
                     ):
-                        log_message("API 500 error persists - triggering auto-swap...")
+                        logger.info("API 500 error persists - triggering auto-swap...")
                         trigger_session_swap("NONE")
                     else:
-                        log_message("API 500 error cleared - resuming normal operation")
+                        logger.info("API 500 error cleared - resuming normal operation")
                 elif error_info["error_type"] == "api_400_error":
                     update_discord_status("api-error")
                     # POSS-247 FIX: 400 errors typically require fresh session - trigger immediate swap
-                    log_message(
+                    logger.info(
                         "API 400 error detected - triggering auto-swap (bad request usually requires fresh session)..."
                     )
                     time.sleep(5)  # Brief pause to log the message
@@ -2374,7 +2362,7 @@ def main():
                 elif error_info["error_type"] == "api_503_error":
                     update_discord_status("api-error")
                     # 503 is upstream connection failure - wait and retry
-                    log_message(
+                    logger.info(
                         "API 503 error detected (upstream connection failure) - waiting 60 seconds before retry..."
                     )
                     # Use 30s intervals to keep health status files updated (#307)
@@ -2391,7 +2379,7 @@ def main():
                         and current_error.get("error_type") == "api_503_error"
                     ):
                         # POSS-247 FIX: If 503 persists, wait another 2 minutes then auto-swap
-                        log_message(
+                        logger.info(
                             "API 503 error persists - waiting 2 more minutes before auto-swap..."
                         )
                         # Use 30s intervals to keep health status files updated (#307)
@@ -2407,19 +2395,19 @@ def main():
                             final_error
                             and final_error.get("error_type") == "api_503_error"
                         ):
-                            log_message(
+                            logger.info(
                                 "API 503 error still persists after 3 minutes - triggering auto-swap..."
                             )
                             trigger_session_swap("NONE")
                         else:
-                            log_message(
+                            logger.info(
                                 "API 503 error cleared after extended wait - resuming normal operation"
                             )
                     else:
-                        log_message("API 503 error cleared - resuming normal operation")
+                        logger.info("API 503 error cleared - resuming normal operation")
                 elif error_info["error_type"] == "oauth_error":
                     update_discord_status("api-error")
-                    log_message(
+                    logger.info(
                         "OAuth token expired - alerting Amy via Discord (auto-swap won't help)"
                     )
                     # Send Discord alert - only once per error occurrence
@@ -2436,7 +2424,7 @@ def main():
                     save_error_state(error_info)
                     current_error_state = error_info
                     # Wait 10 minutes before rechecking - no point in rapid cycling
-                    log_message("Waiting 10 minutes before rechecking OAuth status...")
+                    logger.info("Waiting 10 minutes before rechecking OAuth status...")
                     # Use 30s intervals to keep health status files updated (#307)
                     for _ in range(20):  # 20 × 30s = 600s = 10 minutes
                         try:
@@ -2447,7 +2435,7 @@ def main():
                     # Check if resolved (e.g. Amy logged in)
                     _, check_error = get_token_percentage_and_errors()
                     if not check_error or check_error.get("error_type") != "oauth_error":
-                        log_message("OAuth error resolved - resuming normal operation")
+                        logger.info("OAuth error resolved - resuming normal operation")
                         clear_error_state()
                         update_discord_status("operational")
                         current_error_state = None
@@ -2461,11 +2449,11 @@ def main():
                         except:
                             pass
                     else:
-                        log_message("OAuth error persists - will keep checking every 10 minutes")
+                        logger.info("OAuth error persists - will keep checking every 10 minutes")
                 elif error_info["error_type"] == "api_error":
                     update_discord_status("api-error")
                     # POSS-247 FIX: General API errors - wait for recovery with retries before auto-swap
-                    log_message(
+                    logger.info(
                         "General API error detected - waiting 60 seconds for potential recovery..."
                     )
                     # Use 30s intervals to keep health status files updated (#307)
@@ -2479,7 +2467,7 @@ def main():
                     _, current_error = get_token_percentage_and_errors()
                     if current_error and current_error.get("error_type") == "api_error":
                         # API error persists - wait longer and retry (like 503 handling)
-                        log_message(
+                        logger.info(
                             "API error persists - waiting 2 more minutes before auto-swap..."
                         )
                         # Use 30s intervals to keep health status files updated (#307)
@@ -2492,16 +2480,16 @@ def main():
                         # Check one final time
                         _, final_error = get_token_percentage_and_errors()
                         if final_error and final_error.get("error_type") == "api_error":
-                            log_message(
+                            logger.info(
                                 "API error still persists after 3 minutes - triggering auto-swap..."
                             )
                             trigger_session_swap("NONE")
                         else:
-                            log_message(
+                            logger.info(
                                 "API error cleared after extended wait - resuming normal operation"
                             )
                     else:
-                        log_message("API error cleared - resuming normal operation")
+                        logger.info("API error cleared - resuming normal operation")
                 else:
                     update_discord_status("api-error")
                     # POSS-247 FIX: Unknown error type - extended logging and wait before auto-swap
@@ -2514,7 +2502,7 @@ def main():
                     logging.critical(
                         f"UNKNOWN ERROR DETECTED - Type: '{unknown_type}', Details: '{error_details}', Full error_info: {error_info}"
                     )
-                    log_message(
+                    logger.info(
                         f"CRITICAL: Unknown error type '{unknown_type}' detected. Details: {error_details}"
                     )
 
@@ -2529,9 +2517,9 @@ def main():
                             error_details=error_details,
                             session_context=session_info,
                         )
-                        log_message("Emergency alert sent to #system-healthchecks")
+                        logger.info("Emergency alert sent to #system-healthchecks")
                     except Exception as alert_error:
-                        log_message(f"Failed to send emergency alert: {alert_error}")
+                        logger.info(f"Failed to send emergency alert: {alert_error}")
 
                     # Pattern matching for common connection issues
                     error_text = str(error_details).lower()
@@ -2539,11 +2527,11 @@ def main():
                         pattern in error_text
                         for pattern in ["timeout", "connection", "rate limit"]
                     ):
-                        log_message(
+                        logger.info(
                             f"Pattern match found in unknown error - contains connection/timeout/rate limit indicators"
                         )
 
-                    log_message(
+                    logger.info(
                         f"Unknown error type '{unknown_type}' detected - waiting 10 minutes before auto-swap to enable debugging..."
                     )
                     # Wait 10 minutes instead of 30 seconds per PR #103 consciousness family decision
@@ -2560,14 +2548,14 @@ def main():
 
             # Check if error has cleared
             elif not error_info and current_error_state:
-                log_message("Error state cleared - resuming normal operations")
+                logger.info("Error state cleared - resuming normal operations")
                 clear_error_state()
                 update_discord_status("operational")
                 current_error_state = None
 
             # POSS-241 FIX: Check if error state file was manually deleted
             elif current_error_state and not API_ERROR_STATE_FILE.exists():
-                log_message(
+                logger.info(
                     "Error state file manually deleted, clearing cached error state"
                 )
                 current_error_state = None
@@ -2579,7 +2567,7 @@ def main():
                 and current_error_state.get("error_type") == "usage_limit"
             ):
                 if check_usage_limit_reset(current_error_state):
-                    log_message(
+                    logger.info(
                         f"Usage limit reset time has passed - clearing error state"
                     )
                     clear_error_state()
@@ -2605,11 +2593,11 @@ def main():
                     wait_seconds = calculate_wait_until_reset(reset_time)
                     if wait_seconds:
                         wait_hours = wait_seconds / 3600
-                        log_message(
+                        logger.info(
                             f"Waiting for usage limit reset at {reset_time} ({wait_hours:.1f} hours remaining)"
                         )
                     else:
-                        log_message(f"Waiting for usage limit reset at {reset_time}")
+                        logger.info(f"Waiting for usage limit reset at {reset_time}")
 
             # Track resource usage (cache read increments) for fair allocation
             # Do this even during pause states to capture all usage
@@ -2619,11 +2607,11 @@ def main():
             try:
                 report_essential_health()
             except Exception as e:
-                log_message(f"Error writing health status: {e}")
+                logger.error(f"Writing health status: {e}")
 
             # Skip notifications if in error state
             if should_pause_notifications(current_error_state):
-                log_message("Pausing notifications due to active error state")
+                logger.info("Pausing notifications due to active error state")
                 # Still do health checks but skip Discord/autonomy prompts
                 ping_healthcheck()
                 check_claude_session_alive()  # Just check, don't restart during error states
@@ -2663,22 +2651,22 @@ def main():
                     if is_new_message:
                         # NEW MESSAGE detected
                         channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
-                        log_message(f"New Discord message detected in: {channel_list}")
+                        logger.info(f"New Discord message detected in: {channel_list}")
 
                         # Update last seen message ID (always track, even if not notifying)
                         try:
                             with open(last_seen_file, "w") as f:
                                 f.write(current_last_message_id)
                         except Exception as e:
-                            log_message(f"Error updating last seen message ID: {e}")
+                            logger.error(f"Updating last seen message ID: {e}")
 
                         if not user_active:
                             # User is away - queue for next autonomy prompt (don't trigger immediate turn)
                             # This prevents Discord conversations from bypassing CoOP interval calculations
-                            log_message(f"Queued for next autonomy prompt (respecting CoOP interval)")
+                            logger.info(f"Queued for next autonomy prompt (respecting CoOP interval)")
                         else:
                             # User is here - batch with other notifications at interval
-                            log_message(f"User active - batching notification for interval delivery")
+                            logger.info(f"User active - batching notification for interval delivery")
 
                     # Check reminder intervals (for both new and existing unreads when user active)
                     if user_active and unread_count > 0:
@@ -2686,7 +2674,7 @@ def main():
                         # User is logged in - use 5 minute reminder interval
                         if not last_notification_time:
                             # First check after startup - start the clock but don't spam
-                            log_message("Starting notification interval timer (no immediate notification)")
+                            logger.info("Starting notification interval timer (no immediate notification)")
                             update_last_notification_time()
                         elif current_time - last_notification_time >= timedelta(seconds=LOGGED_IN_REMINDER_INTERVAL):
                             send_notification_alert(
@@ -2703,7 +2691,7 @@ def main():
                     # Check if timer is paused (e.g. Claude requested quiet time)
                     is_paused, should_override = check_timer_pause()
                     if is_paused and not should_override:
-                        log_message("Timer paused - skipping autonomy prompt")
+                        logger.info("Timer paused - skipping autonomy prompt")
                         # Don't update last_autonomy_check - we want prompt to fire
                         # immediately when pause expires, not after another interval
                     else:
@@ -2724,7 +2712,7 @@ def main():
             # Check if Claude Code session is actually running, restart if dead
             claude_alive = check_claude_session_alive()
             if not claude_alive:
-                log_message("WARNING: Claude Code session appears to be down!")
+                logger.warning("Claude Code session appears to be down!")
                 restart_claude_session()
 
             # Check if persistent-login tmux session exists (POSS-315)
@@ -2736,10 +2724,10 @@ def main():
             time.sleep(30)
 
         except KeyboardInterrupt:
-            log_message("Autonomous timer stopped by user")
+            logger.info("Autonomous timer stopped by user")
             break
         except Exception as e:
-            log_message(f"Error in main loop: {e}")
+            logger.error(f"In main loop: {e}")
             notify_watchdog()
             time.sleep(30)
 
