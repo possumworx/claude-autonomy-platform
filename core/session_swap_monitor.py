@@ -90,12 +90,11 @@ def main():
                     # Valid keywords: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE, or TRUE
                     keyword = content if content in ["AUTONOMY", "BUSINESS", "CREATIVE", "HEDGEHOGS", "NONE"] else "NONE"
                     
-                    # Run session swap
-                    run_session_swap(keyword)
-                    
-                    # Reset trigger file only after successful completion
+                    # Reset trigger before swap to prevent restart loops
+                    # (if watchdog kills us mid-swap, we don't re-trigger on restart)
                     TRIGGER_FILE.write_text("FALSE")
-                    logger.info("Reset trigger file to FALSE after swap completion")
+
+                    run_session_swap(keyword)
 
             # Ping healthcheck every 30 seconds (15 * 2 seconds)
             ping_counter += 1

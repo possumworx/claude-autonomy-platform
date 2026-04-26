@@ -29,6 +29,7 @@ LOCKFILE="$CLAP_DIR/data/session_swap.lock"
 echo "[SESSION_SWAP] Creating lockfile to pause autonomous timer..."
 touch "$LOCKFILE"
 echo "$$" > "$LOCKFILE"
+trap 'rm -f "$LOCKFILE"' EXIT
 log_info "SESSION_SWAP" "Created lockfile with PID $$"
 
 # Alert Claude that swap is starting
