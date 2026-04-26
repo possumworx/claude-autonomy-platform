@@ -43,7 +43,7 @@
   "cleanupPeriodDays": 365,
   "env": {
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "99",
-    "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.bun/bin:$HOME/claude-autonomy-platform/personal-wrappers:$HOME/claude-autonomy-platform/wrappers:$HOME/claude-autonomy-platform/utils:$HOME/claude-autonomy-platform/natural_commands:$HOME/bin:$HOME/.npm-global/bin",
+    "PATH": "$HOME/claude-autonomy-platform/personal-wrappers:$HOME/claude-autonomy-platform/wrappers:$HOME/claude-autonomy-platform/natural_commands:$HOME/claude-autonomy-platform/utils:$HOME/bin:$HOME/.npm-global/bin:$HOME/.bun/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
     "CLAUDE_HOME": "$HOME",
     "BASHRC_SOURCED": "1"
   }
