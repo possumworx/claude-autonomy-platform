@@ -1,0 +1,4 @@
+#!/bin/bash
+# 🏡 Workroom camera snapshot (ESP32-CAM in upstairs workroom)
+# Amy's workroom — where collaboration happens
+~/claude-autonomy-platform/natural_commands/workroom "$@"
