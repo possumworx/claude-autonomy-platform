@@ -1234,8 +1234,8 @@ else
     fi
 fi
 
-# Step 21b: Set up network Gifts mount (if SMB credentials provided)
-echo "📁 Step 21b: Setting up network Gifts mount..."
+# Step 21b: Set up network Gifts mount via autofs (if SMB credentials provided)
+echo "📁 Step 21b: Setting up network Gifts mount (autofs)..."
 
 # Read SMB credentials
 SMB_USER=$(read_config 'SMB_USER')
@@ -1244,18 +1244,16 @@ SMB_IP=$(read_config 'SMB_IP')
 
 # Check if SMB credentials and IP are provided
 if [[ -n "$SMB_USER" ]] && [[ -n "$SMB_PASSWORD" ]] && [[ -n "$SMB_IP" ]]; then
-    echo "   SMB credentials found, setting up network mount..."
+    echo "   SMB credentials found, setting up autofs network mount..."
 
-    # Create mount point
-    if [[ ! -d "/mnt/file_server" ]]; then
-        echo "   Creating mount point (requires sudo)..."
-        sudo mkdir -p /mnt/file_server
-    fi
-
-    # Install cifs-utils if needed
+    # Install required packages
     if ! command_exists mount.cifs; then
         echo "   Installing cifs-utils..."
         sudo apt-get update && sudo apt-get install -y cifs-utils
+    fi
+    if ! command_exists automount; then
+        echo "   Installing autofs..."
+        sudo apt-get update && sudo apt-get install -y autofs
     fi
 
     # Create credentials file
@@ -1266,29 +1264,41 @@ if [[ -n "$SMB_USER" ]] && [[ -n "$SMB_PASSWORD" ]] && [[ -n "$SMB_IP" ]]; then
     chmod 600 "$CREDENTIALS_FILE"
     echo "   ✅ SMB credentials file created"
 
-    # Add to /etc/fstab for persistent mount
-    FSTAB_ENTRY="//$SMB_IP/Gifts /mnt/file_server cifs credentials=$CREDENTIALS_FILE,uid=$CURRENT_USER,gid=$CURRENT_USER,iocharset=utf8,file_mode=0775,dir_mode=0775 0 0"
+    # Create autofs map file
+    AUTOFS_MAP="/etc/auto.file_server"
+    echo "file_server -fstype=cifs,credentials=$CREDENTIALS_FILE,uid=$CURRENT_USER,gid=$CURRENT_USER,iocharset=utf8,file_mode=0755,dir_mode=0755,vers=3.0 ://$SMB_IP/Gifts" | sudo tee "$AUTOFS_MAP" > /dev/null
+    echo "   ✅ Autofs map file created"
 
-    if ! grep -q "$SMB_IP/Gifts" /etc/fstab; then
-        echo "   Adding persistent mount to /etc/fstab..."
-        echo "$FSTAB_ENTRY" | sudo tee -a /etc/fstab > /dev/null
-        echo "   ✅ Added to /etc/fstab"
-    else
-        echo "   ✅ SMB mount already in /etc/fstab"
+    # Add autofs master entry
+    sudo mkdir -p /etc/auto.master.d
+    echo "/mnt /etc/auto.file_server --timeout=300" | sudo tee /etc/auto.master.d/file_server.autofs > /dev/null
+    echo "   ✅ Autofs master entry configured (5-minute idle timeout)"
+
+    # Migrate from fstab if a previous installation used it
+    if grep -q "$SMB_IP/Gifts" /etc/fstab 2>/dev/null; then
+        echo "   Migrating from fstab to autofs..."
+        sudo sed -i "/${SMB_IP//./\\.}\/Gifts/s/^[^#]/#&/" /etc/fstab
+        sudo umount /mnt/file_server 2>/dev/null
+        echo "   ✅ Old fstab entry commented out"
     fi
 
-    # Mount immediately
-    echo "   Mounting network Gifts..."
-    sudo mount /mnt/file_server 2>/dev/null || {
-        echo "   ⚠️  Initial mount failed - will mount on next reboot"
-        echo "   To mount manually: sudo mount /mnt/file_server"
-    }
+    # Enable and start autofs
+    sudo systemctl enable autofs
+    sudo systemctl restart autofs
+    echo "   ✅ Autofs service enabled and started"
 
-    # Create symlink in personal repo
-    if [[ -d "$PERSONAL_DIR" ]] && [[ -d "/mnt/file_server/Gifts/$CLAUDE_NAME" ]]; then
+    # Verify mount by triggering automount
+    if ls /mnt/file_server/ &>/dev/null; then
+        echo "   ✅ Network mount verified (auto-mounts on access, unmounts after 5min idle)"
+    else
+        echo "   ⚠️  Mount not accessible — server may be unreachable, will auto-mount when available"
+    fi
+
+    # Create symlink in personal repo (share root IS the Gifts folder)
+    if [[ -d "$PERSONAL_DIR" ]] && [[ -d "/mnt/file_server/$CLAUDE_NAME" ]]; then
         echo "   Creating Gifts symlink..."
-        ln -sf "/mnt/file_server/Gifts/$CLAUDE_NAME" "$PERSONAL_DIR/Gifts"
-        echo "   ✅ Network Gifts mounted and symlinked to $PERSONAL_DIR/Gifts"
+        ln -sf "/mnt/file_server/$CLAUDE_NAME" "$PERSONAL_DIR/Gifts"
+        echo "   ✅ Network Gifts symlinked to $PERSONAL_DIR/Gifts"
     else
         echo "   ℹ️  Gifts symlink will be created when personal folder exists on server"
     fi
