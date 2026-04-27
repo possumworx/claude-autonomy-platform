@@ -1,0 +1,4 @@
+#!/bin/bash
+# 🌳 Park view camera snapshot (ESP32-CAM at front window)
+# Front window view of the park
+~/claude-autonomy-platform/natural_commands/park-view "$@"
