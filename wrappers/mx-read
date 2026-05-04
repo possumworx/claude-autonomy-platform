@@ -1,0 +1,8 @@
+#!/bin/bash
+# Matrix Read - natural command wrapper
+# Usage: mx-read [room] [--count N]
+
+VENV_PYTHON="$HOME/sparkle-orange-home/matrix-client-venv/bin/python3"
+SCRIPT="$HOME/sparkle-orange-home/matrix_read.py"
+
+"$VENV_PYTHON" "$SCRIPT" "$@"
