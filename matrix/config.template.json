@@ -1,0 +1,15 @@
+{
+  "homeserver": "http://192.168.1.179:8008",
+  "user_id": "@quill:matrix.local",
+  "password": "YOUR_PASSWORD_HERE",
+  "rooms": {
+    "family": {
+      "id": "!ROOM_ID:matrix.local",
+      "mode": "realtime"
+    },
+    "hearth": {
+      "id": "!ROOM_ID:matrix.local",
+      "mode": "slow"
+    }
+  }
+}

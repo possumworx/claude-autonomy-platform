@@ -1,0 +1,16 @@
+#!/bin/bash
+# Read messages from Matrix room
+# Usage: mx-read <room> [limit]
+
+MATRIX_DIR="$HOME/claude-autonomy-platform/matrix"
+
+if [ $# -lt 1 ]; then
+    echo "Usage: mx-read <room> [limit]"
+    echo "Example: mx-read family 10"
+    exit 1
+fi
+
+room="$1"
+limit="${2:-10}"
+
+"$MATRIX_DIR/venv/bin/python" "$MATRIX_DIR/matrix_read.py" "$room" "$limit"
