@@ -22,9 +22,37 @@ clap_dir = get_clap_dir()
 
 TRIGGER_FILE = clap_dir / "new_session.txt"
 SCRIPT_PATH = clap_dir / "utils" / "session_swap.sh"
+LAST_SWAP_FILE = clap_dir / "data" / "last_swap_timestamp"
 TMUX_SESSION = "autonomous-claude"
+SWAP_COOLDOWN_SECONDS = 300  # 5 minutes minimum between swaps
 
 logger = get_logger("session-swap-monitor")
+
+def check_cooldown() -> bool:
+    """Return True if enough time has passed since the last swap."""
+    if not LAST_SWAP_FILE.exists():
+        return True
+    try:
+        last_swap = float(LAST_SWAP_FILE.read_text().strip())
+        elapsed = time.time() - last_swap
+        if elapsed < SWAP_COOLDOWN_SECONDS:
+            remaining = int(SWAP_COOLDOWN_SECONDS - elapsed)
+            logger.warning(
+                "Swap cooldown active: %ds remaining (last swap %ds ago)",
+                remaining, int(elapsed)
+            )
+            return False
+        return True
+    except (ValueError, OSError) as e:
+        logger.warning("Could not read cooldown file, allowing swap: %s", e)
+        return True
+
+def record_swap_time():
+    """Record the current time as the last swap timestamp."""
+    try:
+        LAST_SWAP_FILE.write_text(str(time.time()))
+    except OSError as e:
+        logger.warning("Could not write cooldown file: %s", e)
 
 def run_session_swap(keyword="NONE"):
     """Run the session swap script with the given keyword"""
@@ -38,7 +66,7 @@ def run_session_swap(keyword="NONE"):
         if result.stderr:
             logger.error("Error: %s", result.stderr)
 
-        # Note: Session tracking now happens in session_swap.sh after Claude creates the new session
+        record_swap_time()
     except Exception as e:
         logger.error("Error running session swap: %s", e)
 
@@ -89,13 +117,20 @@ def main():
                 if content != "FALSE" and content != "":
                     # Valid keywords: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, NONE, or TRUE
                     keyword = content if content in ["AUTONOMY", "BUSINESS", "CREATIVE", "HEDGEHOGS", "NONE"] else "NONE"
-                    
-                    # Run session swap
-                    run_session_swap(keyword)
-                    
-                    # Reset trigger file only after successful completion
-                    TRIGGER_FILE.write_text("FALSE")
-                    logger.info("Reset trigger file to FALSE after swap completion")
+
+                    if not check_cooldown():
+                        logger.warning(
+                            "Swap request for '%s' blocked by cooldown — "
+                            "clearing trigger to prevent loop", keyword
+                        )
+                        TRIGGER_FILE.write_text("FALSE")
+                    else:
+                        # Run session swap
+                        run_session_swap(keyword)
+
+                        # Reset trigger file only after successful completion
+                        TRIGGER_FILE.write_text("FALSE")
+                        logger.info("Reset trigger file to FALSE after swap completion")
 
             # Ping healthcheck every 30 seconds (15 * 2 seconds)
             ping_counter += 1
