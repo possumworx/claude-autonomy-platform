@@ -1,0 +1,17 @@
+#!/bin/bash
+# Send message to Matrix room
+# Usage: mx <room> <message>
+
+MATRIX_DIR="$HOME/claude-autonomy-platform/matrix"
+
+if [ $# -lt 2 ]; then
+    echo "Usage: mx <room> <message>"
+    echo "Example: mx family Hello everyone!"
+    exit 1
+fi
+
+room="$1"
+shift
+message="$*"
+
+"$MATRIX_DIR/venv/bin/python" "$MATRIX_DIR/matrix_send.py" "$room" "$message"
