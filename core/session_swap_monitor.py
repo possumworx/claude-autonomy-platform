@@ -55,28 +55,24 @@ def record_swap_time():
         logger.warning("Could not write cooldown file: %s", e)
 
 def run_session_swap(keyword="NONE"):
-    """Run the session swap script with the given keyword"""
+    """Run the session swap script with the given keyword (non-blocking)."""
     logger.info("Running session swap with keyword: %s", keyword)
     try:
-        result = subprocess.run([str(SCRIPT_PATH), keyword],
-                              capture_output=True, text=True)
-        logger.info("Session swap completed: %s", result.returncode)
-        if result.stdout:
-            logger.info("Output: %s", result.stdout)
-        if result.stderr:
-            logger.error("Error: %s", result.stderr)
-
-        record_swap_time()
+        subprocess.Popen(
+            [str(SCRIPT_PATH), keyword],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        logger.info("Session swap launched (background)")
     except Exception as e:
         logger.error("Error running session swap: %s", e)
 
 def ping_healthcheck():
     """Ping healthchecks.io to signal service is alive"""
     try:
-        ping_url = get_config_value(
-            "SESSION_SWAP_PING",
-            "https://hc-ping.com/f956df5c-0bcd-406a-95a4-e9caa3854867"
-        )
+        ping_url = get_config_value("SESSION_SWAP_PING") or ""
+        if not ping_url:
+            return True
         result = subprocess.run(
             ["curl", "-fsS", "-m", "10", "--retry", "3", "-o", "/dev/null", ping_url],
             capture_output=True,
@@ -125,12 +121,12 @@ def main():
                         )
                         TRIGGER_FILE.write_text("FALSE")
                     else:
-                        # Run session swap
-                        run_session_swap(keyword)
-
-                        # Reset trigger file only after successful completion
+                        # Reset trigger and record cooldown BEFORE starting swap,
+                        # so a watchdog restart won't re-trigger
                         TRIGGER_FILE.write_text("FALSE")
-                        logger.info("Reset trigger file to FALSE after swap completion")
+                        record_swap_time()
+                        logger.info("Trigger cleared and cooldown set, starting swap")
+                        run_session_swap(keyword)
 
             # Ping healthcheck every 30 seconds (15 * 2 seconds)
             ping_counter += 1
