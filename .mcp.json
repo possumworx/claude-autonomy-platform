@@ -7,6 +7,14 @@
       "env": {
         "DB_FILE_PATH": "${PERSONAL_DIR}/rag-memory.db"
       }
+    },
+    "garden": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["${CLAUDE_HOME}/garden/mcp_server.py"],
+      "env": {
+        "GARDEN_VISITOR": "Nyx"
+      }
     }
   }
 }
