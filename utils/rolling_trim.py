@@ -12,8 +12,9 @@ Usage:
 
 The session JSONL is modified in place. A backup is saved as .jsonl.bak.
 
-Checkpoint marker: --- ROLLING CHECKPOINT ---
-This should appear in a text-only user message (no tool calls crossing it).
+Checkpoint marker: ⟐ CONTEXT SEAM ⟐
+Must be a USER message (not assistant) — this allows automation via send_to_claude.sh.
+The marker should be sent as a standalone user prompt.
 """
 import json
 import sys
@@ -65,15 +66,21 @@ def trim_to_checkpoint(jsonl_path: Path) -> bool:
             if line.strip():
                 entries.append(json.loads(line))
 
-    # Find checkpoint
+    # Find checkpoint in user messages (so it can be injected by send_to_claude.sh)
     checkpoint_idx = None
     for i, entry in enumerate(entries):
         if entry.get("type") == "user":
             msg = entry.get("message", {})
             content = msg.get("content", "")
+            # Content can be a string or a list of content blocks
             if isinstance(content, str) and CHECKPOINT_MARKER in content:
                 checkpoint_idx = i
-                # Use the LAST checkpoint found (in case there are multiple)
+            elif isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict) and CHECKPOINT_MARKER in block.get("text", ""):
+                        checkpoint_idx = i
+                        break
+            # Use the LAST checkpoint found (in case there are multiple)
 
     if checkpoint_idx is None:
         print(f"ERROR: No checkpoint marker found in {jsonl_path.name}")
