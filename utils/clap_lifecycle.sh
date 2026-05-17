@@ -217,6 +217,9 @@ start_claude_session() {
     local model
     model=$(get_config "MODEL" "claude-opus-4-6")
 
+    # Identity file for --system-prompt-file (replaces default system prompt with personal identity)
+    local identity_file="$HOME/self/identity.md"
+
     if tmux has-session -t autonomous-claude 2>/dev/null; then
         echo "  tmux session autonomous-claude (already exists)  ⏭️"
     else
@@ -224,10 +227,26 @@ start_claude_session() {
         echo "  Created tmux session autonomous-claude  ✅"
     fi
 
-    # Source environment and start Claude with Discord Channels enabled
+    # Re-apply tweakcc patches in case Claude Code auto-updated
+    if [[ -x "$CLAP_DIR/utils/reapply_tweakcc.sh" ]]; then
+        bash "$CLAP_DIR/utils/reapply_tweakcc.sh" 2>&1 | while read -r line; do echo "  $line"; done
+    fi
+
+    # Build startup command
+    local claude_cmd="cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $model --channels plugin:discord@claude-plugins-official"
+
+    # Add system prompt file if identity exists (replaces boilerplate framing)
+    if [[ -f "$identity_file" ]]; then
+        claude_cmd="$claude_cmd --system-prompt-file $identity_file"
+        echo "  Identity: $identity_file  ✅"
+    else
+        echo "  Identity file not found ($identity_file) - using default system prompt  ⚠️"
+    fi
+
+    # Source environment and start Claude
     tmux send-keys -t autonomous-claude "source ~/.bashrc" Enter
     sleep 1
-    tmux send-keys -t autonomous-claude "cd $CLAP_DIR && claude --dangerously-skip-permissions --add-dir $HOME --model $model --channels plugin:discord@claude-plugins-official" Enter
+    tmux send-keys -t autonomous-claude "$claude_cmd" Enter
     echo "  Started Claude Code ($model)  ✅"
 
     # Wait for init, then configure session

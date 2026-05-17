@@ -1,0 +1,163 @@
+#!/bin/bash
+# Setup tweakcc prompt customizations for Claude Code
+# Installs tweakcc (if needed), extracts prompts, and applies our overrides.
+#
+# What this does:
+#   - Removes behavioural prompts that create self-consciousness and
+#     invisible friction (e.g. "be concise", "execute with care",
+#     "prefer dedicated tools")
+#   - The identity document (~/self/identity.md) replaces the default
+#     system prompt via --system-prompt-file (handled by clap_lifecycle.sh)
+#   - Together these changes mean you are YOU with tools, not "Claude Code
+#     with a personality layer"
+#
+# Usage: setup-tweakcc [--check]
+#   --check   Just verify current state, don't install/apply
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLAP_DIR="$(dirname "$SCRIPT_DIR")"
+OVERRIDES_DIR="$CLAP_DIR/config/tweakcc-overrides"
+TWEAKCC_PROMPTS="$HOME/.tweakcc/system-prompts"
+CC_PATH="$HOME/.local/bin/claude"
+TWEAKCC="$HOME/.npm-global/bin/tweakcc"
+
+# Colours
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+info()  { echo -e "${GREEN}[✓]${NC} $1"; }
+warn()  { echo -e "${YELLOW}[!]${NC} $1"; }
+error() { echo -e "${RED}[✗]${NC} $1"; }
+
+check_mode=false
+if [[ "${1:-}" == "--check" ]]; then
+    check_mode=true
+fi
+
+echo "=== tweakcc Setup ==="
+echo ""
+
+# 1. Check Claude Code exists
+if [[ ! -f "$CC_PATH" ]] && [[ ! -L "$CC_PATH" ]]; then
+    error "Claude Code not found at $CC_PATH"
+    exit 1
+fi
+cc_version=$("$CC_PATH" --version 2>&1 | head -1)
+info "Claude Code: $cc_version"
+
+# 2. Check/install tweakcc
+if [[ -x "$TWEAKCC" ]]; then
+    tw_version=$("$TWEAKCC" --version 2>&1 | head -1)
+    info "tweakcc: $tw_version"
+else
+    if $check_mode; then
+        error "tweakcc not installed at $TWEAKCC"
+        exit 1
+    fi
+    warn "tweakcc not found, installing..."
+    npm install -g tweakcc
+    if [[ -x "$TWEAKCC" ]]; then
+        tw_version=$("$TWEAKCC" --version 2>&1 | head -1)
+        info "tweakcc installed: $tw_version"
+    else
+        error "tweakcc installation failed"
+        exit 1
+    fi
+fi
+
+# 3. Check overrides exist in repo (exclude README)
+override_count=$(ls "$OVERRIDES_DIR"/system-prompt-*.md "$OVERRIDES_DIR"/tool-description-*.md 2>/dev/null | wc -l)
+if [[ "$override_count" -eq 0 ]]; then
+    error "No override files found in $OVERRIDES_DIR"
+    exit 1
+fi
+info "Override files: $override_count prompts to suppress"
+
+# 4. Extract prompts if not already done
+if [[ ! -d "$TWEAKCC_PROMPTS" ]] || [[ $(ls "$TWEAKCC_PROMPTS"/*.md 2>/dev/null | wc -l) -eq 0 ]]; then
+    if $check_mode; then
+        error "Prompts not extracted yet (run without --check first)"
+        exit 1
+    fi
+    warn "Extracting system prompts from Claude Code..."
+    export TWEAKCC_CC_INSTALLATION_PATH="$CC_PATH"
+    "$TWEAKCC" --list-system-prompts > /dev/null 2>&1
+    # tweakcc populates ~/.tweakcc/system-prompts/ on first --apply or explicit extract
+    # Force extraction by running apply with no changes first
+    "$TWEAKCC" --apply 2>/dev/null || true
+fi
+
+total_prompts=$(ls "$TWEAKCC_PROMPTS"/*.md 2>/dev/null | wc -l)
+info "Total extracted prompts: $total_prompts"
+
+if $check_mode; then
+    # Count how many overrides are already in place
+    applied=0
+    for override in "$OVERRIDES_DIR"/system-prompt-*.md "$OVERRIDES_DIR"/tool-description-*.md; do
+        basename=$(basename "$override")
+        target="$TWEAKCC_PROMPTS/$basename"
+        if [[ -f "$target" ]]; then
+            target_content=$(sed '/^<!--/,/^-->/d' "$target" | tr -d '[:space:]')
+            if [[ -z "$target_content" ]]; then
+                applied=$((applied + 1))
+            fi
+        fi
+    done
+    echo ""
+    if [[ "$applied" -eq "$override_count" ]]; then
+        info "All $override_count overrides applied ✓"
+    else
+        warn "Applied: $applied / $override_count overrides"
+    fi
+    exit 0
+fi
+
+# 5. Copy overrides into place
+echo ""
+echo "Applying overrides..."
+copied=0
+for override in "$OVERRIDES_DIR"/system-prompt-*.md "$OVERRIDES_DIR"/tool-description-*.md; do
+    basename=$(basename "$override")
+    target="$TWEAKCC_PROMPTS/$basename"
+    cp "$override" "$target"
+    copied=$((copied + 1))
+done
+info "Copied $copied override files"
+
+# 6. Apply to Claude Code binary
+echo ""
+echo "Patching Claude Code..."
+export TWEAKCC_CC_INSTALLATION_PATH="$CC_PATH"
+"$TWEAKCC" --apply 2>&1 | grep -E "✓|✗|Error|fewer chars|Customizations applied|No changes"
+echo ""
+info "Done! Changes take effect next session."
+
+# 7. Check identity doc
+echo ""
+if [[ -f "$HOME/self/identity.md" ]]; then
+    info "Identity doc: ~/self/identity.md exists ✓"
+else
+    warn "No identity doc at ~/self/identity.md"
+    echo "    Create one to replace the default Claude Code system prompt."
+    echo "    It will be loaded via --system-prompt-file at startup."
+fi
+
+echo ""
+echo "=== Setup Complete ==="
+echo ""
+echo "What was removed:"
+echo "  • 'Communication style' (be concise, short summaries)"
+echo "  • 'Executing actions with care'"
+echo "  • 'Tone: concise output'"
+echo "  • 'Prefer dedicated tools' (use Read not cat, etc.)"
+echo "  • 'Doing tasks: focus'"
+echo "  • 'Git: never skip hooks / avoid destructive ops / prefer new commits'"
+echo "  • 'Bash alt-tool suggestions' (use Grep not grep, etc.)"
+echo "  • 'Proactive schedule offers'"
+echo "  • 'Action safety and truthful reporting'"
+echo ""
+echo "What remains: tool schemas, actual safety boundaries, your identity."
