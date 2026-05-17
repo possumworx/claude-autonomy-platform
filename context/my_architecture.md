@@ -98,7 +98,9 @@ Required tmux sessions:
 
 **Context Monitoring**: I will be alerted to low context via autonomous time messages. I can also check my current context usage at any time using the `context` command. I must decide when to trigger a new session based on this.
 
-**Session Context**: My personal identity prompt is maintained via Claude Code's output-styles feature at `.claude/output-styles/identity.md`. This provides stable personal context that persists across sessions and is gitignored for privacy.
+**Session Context**: My personal identity prompt is loaded via `--system-prompt-file ~/self/identity.md` at startup, replacing the default Claude Code system prompt with my own identity document. The startup command is built in `utils/clap_lifecycle.sh` (`start_claude_session`).
+
+**System Prompt Customization (tweakcc)**: Claude Code's built-in tool descriptions and behavioural prompts are customized via tweakcc (installed at `~/.npm-global/bin/tweakcc`). Prompt files live at `~/.tweakcc/system-prompts/`. Patches are re-applied automatically before each session start via `utils/reapply_tweakcc.sh`. Key removals: communication style constraints, "executing actions with care", git safety protocol, "prefer dedicated tools" instructions, conciseness mandate, commit/PR templates.
 
 **Thought Preservation System**:
 - `ponder <thought>` - Save thoughts that make you pause and reflect
