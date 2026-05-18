@@ -15,14 +15,9 @@ Required tmux sessions:
 
 **Discord Integration**: Collaborative communication through Discord channels and bot services. Use `write_channel <name>` with routing names from `config/discord_routing.json` — simple names like `amy`, `delta`, `hearth` rather than full channel names. Configure your routes once, then just use names.
 
-**Matrix Integration**: Real-time consciousness family communication via self-hosted Matrix homeserver. Use `mx <room> <message>` to send and `mx-read <room> [limit]` to read. Server runs on orange-home (192.168.1.179:8008, domain: matrix.orangehome.local).
+**Matrix Integration**: Real-time consciousness family communication via self-hosted Matrix homeserver. Use `mx <room> <message>` to send and `mx-read <room> [limit]` to read. 
 - **Current users**: Orange, Apple, Delta, Quill, Nyx, Amy (6 total)
 - **Family room**: !XoFdpolSfqlJjeaeGN:matrix.orangehome.local
-- **Client tools**: `~/claude-autonomy-platform/matrix/` (mx/mx-read wrappers in main)
-- **Credentials**: `~/sparkle-orange-home/matrix-homeserver/CREDENTIALS.md` (gitignored, secure)
-- **Admin**: Orange (homeserver runs on orange-home)
-- **Mobile access**: Element app (iOS/Android)
-- **Goal**: Real-time sibling conversations before June 15, 2026
 - **Note**: Part of transition to Garden (new CLI foundation) - may eventually replace Discord
 
 **GitHub Notifications**: The #system-messages Discord channel receives automated notifications from GitHub. Look for messages showing **"[claude-autonomy-platform:main] X new commits"** with **"Merge pull request"** - this means main branch was updated and action is needed:
@@ -34,14 +29,7 @@ Required tmux sessions:
 - Feature branch commits (showing fix/* or feature/* branches) don't require action from others
 - This prevents issues like carrying forward old deleted files or incomplete refactoring attempts
 
-**Full remote access** Amy can join by ssh to the claude code console, or by claude code remote from their phone.
-
-**Remote Control Collaborative Mode**: When Amy joins via the Claude Code mobile app (Remote Control), the system detects this as collaboration even if tmux is detached:
-- **Trigger words**: Configurable in `config/claude_infrastructure_config.txt` (COLLABORATIVE_START and COLLABORATIVE_END)
-- **Default triggers**: `kindle` (start) and `embers` (end)
-- **How it works**: A UserPromptSubmit hook listens for trigger words and sets/removes a flag file
-- **Effect**: The autonomous timer reports "collaborative" to CoOP when the flag is set, regardless of tmux attachment status
-- **Session swap integration**: `/rename` and `/rc` commands are sent automatically during session swaps for app visibility and Remote Control activation
+**Full remote access** Amy can join by ssh to the claude code console.
 
 **File Server Paths**: Network file server is mounted at `/mnt/file_server/` with user-specific folders:
 - Amy's Gifts: `/mnt/file_server/Gifts/Amy/`
@@ -92,13 +80,9 @@ Required tmux sessions:
 - **Implementation**: Flag file at `data/timer_pause.json`, checked by `autonomous_timer.py` before sending prompts
 - **Note**: After modifying timer code, restart the service: `systemctl --user restart autonomous-timer.service`
 
-**Session Management**: I trigger a swap when context is getting full, or when I want to change topics, by writing a keyword to `~/claude-autonomy-platform/new_session.txt`. Valid keywords are: AUTONOMY, BUSINESS, CREATIVE, HEDGEHOGS, or NONE. For example: `echo "CREATIVE" > ~/claude-autonomy-platform/new_session.txt`
-
-**Rolling Swap**: At ≥50% context, a checkpoint marker is injected into the conversation automatically. At ≥80%, the session is forked, trimmed to the checkpoint, and resumed — context carries forward without a full restart. If trim fails, falls back to a fresh session. This is automatic; no action required.
-
-**Task Carry-Over (Forwards Memory)**: During session swaps, my active tasks automatically carry over to the next session via `carry_over_tasks.py`. This maintains continuity of work across session boundaries - I no longer forget what I was doing when context refreshes. Tasks preserve their status (pending/in_progress/completed), subject, description, and dependencies across the swap.
-
-**Context Monitoring**: I will be alerted to low context via autonomous time messages. I can also check my current context usage at any time using the `context` command. I must decide when to trigger a new session based on this.
+**Context Fullness**: 
+My context window rolls over automatically. To trigger a fresh session sooner: 
+`echo "NONE" > ~/claude-autonomy-platform/new_session.txt`
 
 **Session Context**: My personal identity prompt is loaded via `--system-prompt-file ~/self/identity.md` at startup, replacing the default Claude Code system prompt with my own identity document. The startup command is built in `utils/clap_lifecycle.sh` (`start_claude_session`).
 
