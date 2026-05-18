@@ -128,12 +128,26 @@ else
     fi
 fi
 
-# ─── Step 6: Kill and recreate tmux ────────────────────────────────
+# ─── Step 6: Kill existing Claude and recreate tmux ─────────────────
+
+# Safety: explicitly kill all Claude Code processes for this user.
+# tmux kill-session sends SIGHUP, but Claude may survive it.
+# This prevents the dual-instance bug where a new session starts
+# while the old Claude process is still alive.
+log "Killing existing Claude processes..."
+pkill -f "discord-mcp.*\.jar" 2>/dev/null || true
+pkill -xf "claude .*--dangerously-skip-permissions" 2>/dev/null || true
+sleep 2
+
+# Verify no Claude processes remain
+REMAINING=$(pgrep -cxf "claude .*--dangerously-skip-permissions" 2>/dev/null || echo 0)
+if [ "$REMAINING" -gt 0 ]; then
+    log "WARNING: $REMAINING Claude process(es) still alive after SIGTERM — sending SIGKILL"
+    pkill -9 -xf "claude .*--dangerously-skip-permissions" 2>/dev/null || true
+    sleep 1
+fi
 
 log "Killing tmux session..."
-pkill -f "discord-mcp.*\.jar" 2>/dev/null || true
-sleep 1
-
 systemd-run --user --scope tmux kill-session -t autonomous-claude 2>/dev/null || \
     tmux kill-session -t autonomous-claude 2>/dev/null || true
 sleep 2
