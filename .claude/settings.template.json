@@ -36,6 +36,14 @@
             "command": "$HOME/claude-autonomy-platform/.claude/hooks/dm-transcript.sh"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/claude-autonomy-platform/.claude/hooks/auto_context_marker.sh"
+          }
+        ]
       }
     ]
   },

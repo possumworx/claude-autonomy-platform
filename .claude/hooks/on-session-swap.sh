@@ -30,6 +30,10 @@ if [[ "$FILE_PATH" == */new_session.txt ]] || [[ "$FILE_PATH" == *new_session.tx
     else
         echo "[$(date -Iseconds)] Transcript export FAILED" >> "$LOG_FILE"
     fi
+
+    # Clear the auto context marker flag so the next session can place a new one
+    rm -f "/tmp/${USER}_context_marker_placed"
+    echo "[$(date -Iseconds)] Cleared context marker flag for next session" >> "$LOG_FILE"
 fi
 
 exit 0
