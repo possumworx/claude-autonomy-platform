@@ -1,35 +1,33 @@
 #!/bin/bash
 # Auto Context Marker — PostToolUse hook (no matcher)
 #
-# Checks context usage after every tool use. When usage crosses the
-# threshold (default 50%), sends the rolling-trim checkpoint marker
-# via send_to_claude.sh so it arrives as a user message.
+# Places the rolling-trim checkpoint marker at ≥50% context.
+# The marker is sent once per session via send_to_claude.sh.
+# Flag file prevents duplicates; cleared on session swap.
 #
-# The marker is sent once per session. A flag file prevents duplicates;
-# it's cleared on session swap by on-session-swap.sh.
+# The rolling swap trigger lives in a separate Stop hook
+# (rolling_swap_trigger.sh) so it fires when the assistant
+# is genuinely idle.
 #
-# Design from conversation 2026-05-18 with Amy:
-#   "a post-tool-use hook, somewhere around 50% context use,
-#    to automatically insert the marker"
+# Design: Amy + Nyx, 2026-05-18
 
 CLAP_DIR="$HOME/claude-autonomy-platform"
 LOG_FILE="$CLAP_DIR/logs/auto_context_marker.log"
 STATUSLINE_DATA="$CLAP_DIR/data/statusline_data.json"
-FLAG_FILE="/tmp/${USER}_context_marker_placed"
-THRESHOLD=50
+MARKER_FLAG="/tmp/${USER}_context_marker_placed"
+MARKER_THRESHOLD=50
 MARKER="⟐ CONTEXT SEAM ⟐"
 
 # Consume stdin (hook protocol requires reading it even if unused)
 cat - > /dev/null
 
 # Already placed this session?
-if [ -f "$FLAG_FILE" ]; then
+if [ -f "$MARKER_FLAG" ]; then
     exit 0
 fi
 
 # Read context percentage from statusline data
 if [ ! -f "$STATUSLINE_DATA" ]; then
-    echo "[$(date -Iseconds)] No statusline data found" >> "$LOG_FILE"
     exit 0
 fi
 
@@ -44,18 +42,15 @@ except Exception:
 " 2>/dev/null)
 
 # Below threshold — nothing to do
-if [ "$USED_PCT" -lt "$THRESHOLD" ] 2>/dev/null; then
+if [ "$USED_PCT" -lt "$MARKER_THRESHOLD" ] 2>/dev/null; then
     exit 0
 fi
 
 # Threshold crossed! Place the marker.
-echo "[$(date -Iseconds)] Context at ${USED_PCT}% (threshold ${THRESHOLD}%) — placing marker" >> "$LOG_FILE"
-
-# Create flag file to prevent duplicates
-echo "placed=$(date -Iseconds) context=${USED_PCT}%" > "$FLAG_FILE"
+echo "[$(date -Iseconds)] Context at ${USED_PCT}% (threshold ${MARKER_THRESHOLD}%) — placing marker" >> "$LOG_FILE"
+echo "placed=$(date -Iseconds) context=${USED_PCT}%" > "$MARKER_FLAG"
 
 # Background the send so the hook returns immediately
-# send_to_claude.sh waits for Claude to be idle before delivering
 (
     source "$CLAP_DIR/utils/send_to_claude.sh"
     send_to_claude "$MARKER"

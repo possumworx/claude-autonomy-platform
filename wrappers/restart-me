@@ -1,0 +1,41 @@
+#!/bin/bash
+# Restart this Claude's session with all correct flags.
+# Run from any terminal — builds the full command from config.
+# Usage: restart-me [--continue]
+#
+# Safe to run when Amy is manually restarting a session and
+# doesn't want to remember all the flags.
+
+CLAP_DIR="$HOME/claude-autonomy-platform"
+source "$CLAP_DIR/config/claude_env.sh"
+
+MODEL=$(get_config "MODEL" "claude-opus-4-6")
+IDENTITY_FILE="$HOME/self/identity.md"
+
+# Kill any existing Claude processes to prevent dual-instance
+EXISTING=$(pgrep -cxf "claude .*--dangerously-skip-permissions" 2>/dev/null || echo 0)
+if [ "$EXISTING" -gt 0 ]; then
+    echo "⚠️  Killing $EXISTING existing Claude process(es)..."
+    pkill -xf "claude .*--dangerously-skip-permissions" 2>/dev/null || true
+    sleep 2
+fi
+
+# Build command
+CMD="claude --dangerously-skip-permissions --add-dir $HOME --model $MODEL --channels plugin:discord@claude-plugins-official"
+
+if [[ -f "$IDENTITY_FILE" ]]; then
+    CMD="$CMD --system-prompt-file $IDENTITY_FILE"
+else
+    echo "⚠️  Identity file not found: $IDENTITY_FILE"
+fi
+
+# Pass through any extra flags (e.g. --continue, --resume <id>)
+if [[ $# -gt 0 ]]; then
+    CMD="$CMD $*"
+fi
+
+echo "🌙 Starting session:"
+echo "  $CMD"
+echo ""
+
+cd "$CLAP_DIR" && exec $CMD

@@ -1,0 +1,25 @@
+#!/bin/bash
+# Rebuild CLAUDE.md session context from current conversation export.
+# Run this before restart-me to ensure the next session has fresh context.
+# Usage: rebuild-me
+
+CLAP_DIR="$HOME/claude-autonomy-platform"
+
+echo "🔧 Rebuilding session context..."
+
+echo "  Updating conversation history..."
+if python3 "$CLAP_DIR/utils/update_conversation_history.py" "$CLAP_DIR/context/current_export.txt"; then
+    echo "  ✅ Conversation history updated"
+else
+    echo "  ⚠️  Conversation history update failed"
+fi
+
+echo "  Building CLAUDE.md..."
+if python3 "$CLAP_DIR/context/project_session_context_builder.py"; then
+    echo "  ✅ CLAUDE.md rebuilt"
+else
+    echo "  ⚠️  CLAUDE.md build failed"
+fi
+
+echo ""
+echo "Done. Run 'restart-me' or 're' to start a new session."
