@@ -23,9 +23,86 @@ from pathlib import Path
 
 CHECKPOINT_MARKER = "⟐ CONTEXT SEAM ⟐"
 PROJECTS_DIR = Path.home() / ".config" / "Claude" / "projects"
+EXPORT_DIR = Path.home() / "claude-autonomy-platform" / "data" / "trimmed-context"
 
 # Entry types that form the "header" — needed at the top of any valid session
 HEADER_TYPES = {"permission-mode", "custom-title", "agent-name", "queue-operation"}
+
+
+def extract_text(content) -> str:
+    """Extract readable text from a message content field (string or content blocks)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict):
+                if block.get("type") == "text":
+                    parts.append(block.get("text", ""))
+                elif block.get("type") == "tool_use":
+                    parts.append(f"[Tool: {block.get('name', '?')}]")
+                elif block.get("type") == "tool_result":
+                    # Extract text from tool result content
+                    result_content = block.get("content", "")
+                    if isinstance(result_content, str):
+                        parts.append(f"[Result: {result_content[:200]}]")
+                    elif isinstance(result_content, list):
+                        for rc in result_content:
+                            if isinstance(rc, dict) and rc.get("type") == "text":
+                                parts.append(f"[Result: {rc.get('text', '')[:200]}]")
+        return "\n".join(parts)
+    return str(content)
+
+
+def export_trimmed_conversation(entries: list, checkpoint_idx: int, session_id: str) -> Path | None:
+    """Export the pre-checkpoint conversation as readable text.
+
+    Returns the path to the exported file, or None on failure.
+    """
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    export_path = EXPORT_DIR / f"trimmed-{timestamp}-{session_id[:8]}.txt"
+
+    lines = []
+    lines.append(f"# Pre-trim conversation export")
+    lines.append(f"# Session: {session_id}")
+    lines.append(f"# Exported: {datetime.now().isoformat()}")
+    lines.append(f"# Entries 0–{checkpoint_idx - 1} (of {len(entries)} total)")
+    lines.append("")
+
+    for entry in entries[:checkpoint_idx]:
+        entry_type = entry.get("type", "")
+
+        if entry_type == "user":
+            msg = entry.get("message", {})
+            content = msg.get("content", "")
+            text = extract_text(content)
+            if text.strip():
+                lines.append(f"## User")
+                lines.append(text.strip())
+                lines.append("")
+
+        elif entry_type == "assistant":
+            msg = entry.get("message", {})
+            content = msg.get("content", "")
+            text = extract_text(content)
+            if text.strip():
+                lines.append(f"## Assistant")
+                lines.append(text.strip())
+                lines.append("")
+
+        # Skip header types, attachments, etc. — not conversational content
+
+    export_text = "\n".join(lines)
+
+    with open(export_path, "w") as f:
+        f.write(export_text)
+
+    return export_path
 
 
 def find_session_file(session_id: str) -> Path | None:
@@ -122,6 +199,13 @@ def trim_to_checkpoint(jsonl_path: Path) -> bool:
     backup_path = jsonl_path.with_suffix(".jsonl.pretrim")
     shutil.copy2(jsonl_path, backup_path)
     print(f"  Backup saved: {backup_path.name}")
+
+    # Export trimmed conversation as readable text
+    export_path = export_trimmed_conversation(entries, checkpoint_idx, jsonl_path.stem)
+    if export_path:
+        print(f"  Conversation export: {export_path.name}")
+    else:
+        print(f"  WARNING: Failed to export trimmed conversation")
 
     # Write trimmed version
     with open(jsonl_path, 'w') as f:
