@@ -143,13 +143,16 @@ def trim_to_checkpoint(jsonl_path: Path) -> bool:
             if line.strip():
                 entries.append(json.loads(line))
 
-    # Find checkpoint in user messages (so it can be injected by send_to_claude.sh)
+    # Find checkpoint marker. It may appear as:
+    # - A "user" message (if typed directly)
+    # - A "queue-operation" entry (if injected via send_to_claude.sh / tmux)
     checkpoint_idx = None
     for i, entry in enumerate(entries):
-        if entry.get("type") == "user":
+        entry_type = entry.get("type", "")
+
+        if entry_type == "user":
             msg = entry.get("message", {})
             content = msg.get("content", "")
-            # Content can be a string or a list of content blocks
             if isinstance(content, str) and CHECKPOINT_MARKER in content:
                 checkpoint_idx = i
             elif isinstance(content, list):
@@ -157,7 +160,13 @@ def trim_to_checkpoint(jsonl_path: Path) -> bool:
                     if isinstance(block, dict) and CHECKPOINT_MARKER in block.get("text", ""):
                         checkpoint_idx = i
                         break
-            # Use the LAST checkpoint found (in case there are multiple)
+
+        elif entry_type == "queue-operation":
+            content = entry.get("content", "")
+            if isinstance(content, str) and CHECKPOINT_MARKER in content:
+                checkpoint_idx = i
+
+        # Use the LAST checkpoint found (in case there are multiple)
 
     if checkpoint_idx is None:
         print(f"ERROR: No checkpoint marker found in {jsonl_path.name}")
