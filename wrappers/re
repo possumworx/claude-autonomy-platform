@@ -1,0 +1,4 @@
+#!/bin/bash
+# Short alias: restart with --continue
+# Usage: re
+exec restart-me --continue
