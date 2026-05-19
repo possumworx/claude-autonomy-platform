@@ -186,6 +186,14 @@ if [[ -x "$CLAP_DIR/utils/reapply_tweakcc.sh" ]]; then
     bash "$CLAP_DIR/utils/reapply_tweakcc.sh" >> "$LOG_FILE" 2>&1 || true
 fi
 
+# Build minimal CLAUDE.md (architecture + commands only, no conversation history)
+# The trimmed session JSONL carries conversation forward
+if python3 "$CLAP_DIR/context/project_session_context_builder.py" --minimal >> "$LOG_FILE" 2>&1; then
+    log "CLAUDE.md rebuilt (minimal — conversation in JSONL)."
+else
+    log "WARNING: Minimal CLAUDE.md build failed (continuing anyway)"
+fi
+
 tmux new-session -d -s autonomous-claude
 sleep 1
 tmux send-keys -t autonomous-claude "source ~/.bashrc" Enter
