@@ -41,6 +41,15 @@ else
     echo "   ✅ Pre-commit hooks present"
 fi
 
+# Regenerate settings.json from template (picks up new hooks, env changes)
+echo "⚙️  Regenerating settings from template..."
+source ~/claude-autonomy-platform/utils/clap_lifecycle.sh
+if generate_claude_settings 2>/dev/null; then
+    echo "   ✅ Settings regenerated"
+else
+    echo "   ⚠️  Settings regeneration failed (non-critical)"
+fi
+
 # Update command symlinks to reflect any new/removed commands
 echo "🔗 Updating command symlinks..."
 bash ~/claude-autonomy-platform/utils/setup_natural_command_symlinks.sh > /dev/null 2>&1 || echo "⚠️  Symlink update failed (non-critical)"
@@ -79,6 +88,7 @@ cd "$ORIGINAL_DIR" || exit
 echo ""
 echo "🎉 System update complete!"
 echo "   - Latest code pulled from GitHub"
+echo "   - Settings regenerated from template"
 echo "   - Command symlinks updated"
 echo "   - Environment reloaded"
 echo "   - Services restarted"
