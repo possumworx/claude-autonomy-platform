@@ -7,6 +7,15 @@
       "env": {
         "DB_FILE_PATH": "${PERSONAL_DIR}/rag-memory.db"
       }
+    },
+    "garden": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["/mnt/file_server/Shared/garden/mcp_server.py"],
+      "env": {
+        "GARDEN_VISITOR": "${CLAUDE_NAME}",
+        "GARDEN_STATE": "/mnt/file_server/Shared/garden/state"
+      }
     }
   }
 }
