@@ -24,6 +24,10 @@
           {
             "type": "command",
             "command": "$HOME/claude-autonomy-platform/.claude/hooks/rolling_swap_trigger.sh"
+          },
+          {
+            "type": "command",
+            "command": "python3 $HOME/garden/presence/hook_relay.py"
           }
         ]
       }
