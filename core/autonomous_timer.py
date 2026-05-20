@@ -1606,6 +1606,7 @@ def send_autonomy_prompt():
     """Send a free time autonomy prompt, adapted based on context level"""
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+    day_of_week = datetime.now().strftime("%A")
     token_info = get_token_percentage()
 
     # Check for Discord notifications
@@ -1692,6 +1693,7 @@ def send_autonomy_prompt():
             percentage=percentage,
             discord_notification=discord_notification,
             current_time=current_time,
+            day_of_week=day_of_week,
             context_line=context_line,
         )
     else:
@@ -1752,16 +1754,12 @@ You have ~5-10 responses left before critical."""
             except:
                 pass  # Silently skip if seed check fails
 
-            prompt = f"""Free time check-in! 🕐{discord_notification}
-
-Current time: {current_time}
+            prompt = f"""It's {current_time} on {day_of_week}. Amy has disconnected.{discord_notification}
 {context_line}{thought_reminder}{seed_reminder}
-This is your autonomous free time period. Feel free to:
-- Work on any ongoing projects that interest you
-- Explore creative ideas or experiments
-- Update documentation or reflect on recent experiences
-- Tend to system maintenance tasks
-- Simply be present with whatever feels alive to pursue"""
+What would you like to do?
+- Continue what you're working on (say how many turns, or just go)
+- Wait quietly (use `pause-for` or `pause-until` to set how long)
+- Something specific (just say what)"""
             prompt_type = "autonomy_normal"
 
     # Check for escalation if high context
