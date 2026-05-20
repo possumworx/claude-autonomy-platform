@@ -3,7 +3,8 @@
 Check current Claude session context usage from the statusline JSON data.
 
 Reads context window information from data/statusline_data.json (written by
-Claude Code's statusline) instead of shelling out to ccusage.
+Claude Code's statusline). Uses the pre-calculated used_percentage from
+the statusline as the single source of truth.
 """
 
 import json
@@ -15,40 +16,33 @@ try:
 except ImportError:
     from check_usage import get_current_session_id, _get_statusline_data
 
-# System overhead (system prompt + system tools)
-SYSTEM_OVERHEAD = 15600  # tokens
-
-# Warning thresholds
-YELLOW_THRESHOLD = 0.70  # 70% = 140k tokens
-RED_THRESHOLD = 0.85  # 85% = 170k tokens
-TOTAL_CONTEXT = 200000  # 200k token limit
+# Warning thresholds (as percentages 0-100)
+YELLOW_THRESHOLD = 70
+RED_THRESHOLD = 85
 
 
-def format_context_display(cache_tokens, total_tokens, percentage):
+def format_context_display(used_pct, total_input, window_size):
     """Format context usage for display"""
-    if percentage >= RED_THRESHOLD:
+    if used_pct >= RED_THRESHOLD:
         status = "🔴"
-    elif percentage >= YELLOW_THRESHOLD:
+    elif used_pct >= YELLOW_THRESHOLD:
         status = "🟡"
     else:
         status = "🟢"
 
-    if percentage >= RED_THRESHOLD:
-        color = "critical"
-    elif percentage >= YELLOW_THRESHOLD:
-        color = "warning"
-    else:
-        color = "good"
+    color = ("critical" if used_pct >= RED_THRESHOLD
+             else "warning" if used_pct >= YELLOW_THRESHOLD
+             else "good")
+
+    remaining = window_size - total_input
+    remaining_pct = 100 - used_pct
 
     display = f"""
 📊 Context Usage Status
 ═══════════════════════════════
-Session tokens: {cache_tokens:,}
-System overhead: {SYSTEM_OVERHEAD:,}
-───────────────────────────────
-Total: {total_tokens:,} / {TOTAL_CONTEXT:,} tokens
-Usage: {percentage:.1%} {status}
-Free: {TOTAL_CONTEXT - total_tokens:,} tokens ({(1-percentage):.1%})
+Total: {total_input:,} / {window_size:,} tokens
+Usage: {used_pct:.1f}% {status}
+Free: {remaining:,} tokens ({remaining_pct:.1f}%)
 """
 
     return display, color, status
@@ -57,9 +51,9 @@ Free: {TOTAL_CONTEXT - total_tokens:,} tokens ({(1-percentage):.1%})
 def check_context(return_data=False):
     """Main function to check context usage.
 
-    Reads from statusline JSON instead of shelling out to ccusage.
+    Reads used_percentage directly from statusline JSON — the same number
+    displayed in the Claude Code status bar and used by the rolling swap hook.
     """
-    # Get statusline data
     statusline = _get_statusline_data()
     if not statusline:
         error_msg = "❌ No statusline data found (data/statusline_data.json)"
@@ -76,44 +70,29 @@ def check_context(return_data=False):
         print(error_msg)
         return None
 
-    # Extract context window data (use 'or {}' to handle None values)
     context_window = statusline.get("context_window") or {}
-    current_usage = context_window.get("current_usage") or {}
-
-    # Cache read tokens = the main session context size
-    cache_tokens = current_usage.get("cache_read_input_tokens", 0)
-
-    # If cache_read is 0, try summing input tokens as fallback
-    if cache_tokens == 0:
-        cache_tokens = current_usage.get("input_tokens", 0)
-
-    # Calculate total with system overhead
-    total_tokens = cache_tokens + SYSTEM_OVERHEAD
-    percentage = total_tokens / TOTAL_CONTEXT
+    used_pct = context_window.get("used_percentage", 0)
+    total_input = context_window.get("total_input_tokens", 0)
+    window_size = context_window.get("context_window_size", 200000)
 
     if return_data:
         return {
             "session_id": session_id,
-            "cache_tokens": cache_tokens,
-            "system_overhead": SYSTEM_OVERHEAD,
-            "total_tokens": total_tokens,
-            "total_limit": TOTAL_CONTEXT,
-            "percentage": percentage,
-            "free_tokens": TOTAL_CONTEXT - total_tokens,
-            "status": "critical"
-            if percentage >= RED_THRESHOLD
-            else "warning"
-            if percentage >= YELLOW_THRESHOLD
-            else "good",
+            "total_tokens": total_input,
+            "total_limit": window_size,
+            "percentage": used_pct / 100,  # callers expect 0-1 float
+            "free_tokens": window_size - total_input,
+            "status": ("critical" if used_pct >= RED_THRESHOLD
+                       else "warning" if used_pct >= YELLOW_THRESHOLD
+                       else "good"),
         }, None
 
-    # Display results
     display, color, status = format_context_display(
-        cache_tokens, total_tokens, percentage
+        used_pct, total_input, window_size
     )
     print(display)
 
-    return percentage
+    return used_pct / 100  # callers expect 0-1 float
 
 
 def main():
