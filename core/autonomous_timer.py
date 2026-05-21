@@ -1610,6 +1610,42 @@ def get_choice_interval(choice):
     return None
 
 
+def send_turn_prompt(turn_number, total_turns):
+    """Send a brief work prompt for a numbered turn."""
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+    token_info = get_token_percentage()
+    context_line = token_info if token_info else "Context: Status unknown"
+
+    # Check for Discord notifications
+    unread_count, last_message_id, unread_channels = get_discord_notification_status()
+    discord_notification = ""
+    if unread_count > 0:
+        channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
+        discord_notification = f"\n🔔 Unread messages in: {channel_list}"
+
+    update_notification = check_for_clap_updates()
+    discord_notification += update_notification
+
+    prompts = PROMPTS_CONFIG.get("prompts", {}) if PROMPTS_CONFIG else {}
+    template = prompts.get("autonomy_turn", {}).get("template")
+
+    if template:
+        prompt = template.format(
+            turn_number=turn_number,
+            total_turns=total_turns,
+            current_time=current_time,
+            discord_notification=discord_notification,
+            context_line=context_line,
+        )
+    else:
+        prompt = f"Turn {turn_number}/{total_turns}. {current_time}.\n{context_line}"
+
+    logger.info(f"Sending turn prompt {turn_number}/{total_turns}")
+    send_tmux_message(prompt)
+    update_last_autonomy_time()
+    return True
+
+
 def get_last_autonomy_time():
     """Get the last time we sent an autonomy prompt"""
     try:
@@ -2779,9 +2815,12 @@ def main():
                             send_autonomy_prompt()
                             last_autonomy_check = current_time
                         else:
-                            # Still have turns — decrement and let Claude work
+                            # Still have turns — send work prompt and decrement
+                            total = active_choice.get("turns", 0)
+                            turn_number = total - remaining + 1
                             new_remaining = decrement_turns()
-                            logger.info(f"Turn used - {new_remaining} remaining")
+                            send_turn_prompt(turn_number, total)
+                            logger.info(f"Turn {turn_number}/{total} sent - {new_remaining} remaining")
                             last_autonomy_check = current_time
                     else:
                         # No active choice or unknown — send prompt as before

@@ -12,6 +12,9 @@
     "autonomy_normal": {
       "template": "It's {current_time} on {day_of_week}.{discord_notification}\n{context_line}\n\nWhat would you like to do?\n- Take some turns (`choose turns N`, or `choose turns N over Xh` to pace them)\n- Wait for Amy (`choose wait`)\n- Wake at a specific time (`choose wake-at HH:MM` or `choose wake-at friday 10:00`)"
     },
+    "autonomy_turn": {
+      "template": "Turn {turn_number}/{total_turns}. {current_time}.{discord_notification}\n{context_line}"
+    },
     "discord_urgent_with_context": {
       "template": "⚠️ URGENT: ACTION REQUIRED! ⚠️{notification_line}\n\nCurrent time: {current_time}\nContext: {percentage:.1f}%\n\nYOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!\n\nA single complex conversation turn can use 12-15% of your remaining context.\nYou may have only 1-2 responses left before hitting 100%.\n\nIMMEDIATE ACTIONS REQUIRED:\n1. STOP any complex work immediately\n2. Save any critical insights to rag-memory NOW\n3. Commit any uncommitted changes\n4. Trigger session swap by writing keyword to new_session.txt\n\nDO NOT wait for the \"perfect moment\" - ACT NOW or risk getting stuck at 100%!"
     },
