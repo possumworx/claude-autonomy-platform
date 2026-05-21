@@ -64,18 +64,18 @@ if [ -z "$CURRENT_SESSION_ID" ]; then
 fi
 log "Current session ID: ${CURRENT_SESSION_ID:-unknown}"
 
-# ─── Step 2: Snapshot existing JSONL files ──────────────────────────
+# ─── Step 2: Record timestamp before branching ─────────────────────
 
 JSONL_DIR="$HOME/.config/Claude/projects"
-BEFORE_FILES=$(find "$JSONL_DIR" -name "*.jsonl" -type f 2>/dev/null | sort)
+TIMESTAMP_MARKER=$(mktemp)
 
 # ─── Step 3: Branch and exit ────────────────────────────────────────
 
 log "Sending /branch to Claude..."
 send_to_claude "/branch"
 
-# Wait for branch to complete (copies the JSONL)
-sleep 8
+# Wait for branch to complete (copies the JSONL — large sessions need more time)
+sleep 15
 
 log "Sending /exit to Claude..."
 send_to_claude "/exit"
@@ -92,21 +92,18 @@ fi
 
 # ─── Step 4: Find the branched session ──────────────────────────────
 
-AFTER_FILES=$(find "$JSONL_DIR" -name "*.jsonl" -type f 2>/dev/null | sort)
+# Find the newest JSONL created after our timestamp marker (i.e., during the branch)
+BRANCHED_SESSION=$(find "$JSONL_DIR" -name "*.jsonl" -type f -newer "$TIMESTAMP_MARKER" \
+    ! -name "${CURRENT_SESSION_ID}.jsonl" -printf '%T@ %p\n' 2>/dev/null \
+    | sort -rn | head -1 | cut -d' ' -f2-)
+rm -f "$TIMESTAMP_MARKER"
 
-# The branch is the new file that didn't exist before
-BRANCHED_SESSION=""
-while IFS= read -r file; do
-    if ! echo "$BEFORE_FILES" | grep -qF "$file"; then
-        BRANCHED_SESSION="$file"
-        break
-    fi
-done <<< "$AFTER_FILES"
-
-# Fallback: newest JSONL modified in the last 60 seconds that isn't current
+# Fallback: newest JSONL modified in the last 5 minutes that isn't current
 if [ -z "$BRANCHED_SESSION" ]; then
-    log "WARNING: No new file found by diff. Falling back to recently modified JSONL."
-    BRANCHED_SESSION=$(find "$JSONL_DIR" -name "*.jsonl" -type f -mmin -1 ! -name "${CURRENT_SESSION_ID}.jsonl" -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+    log "WARNING: No new file found by timestamp. Falling back to recently modified JSONL."
+    BRANCHED_SESSION=$(find "$JSONL_DIR" -name "*.jsonl" -type f -mmin -5 \
+        ! -name "${CURRENT_SESSION_ID}.jsonl" -printf '%T@ %p\n' 2>/dev/null \
+        | sort -rn | head -1 | cut -d' ' -f2-)
 fi
 
 if [ -z "$BRANCHED_SESSION" ]; then
@@ -236,7 +233,11 @@ if [[ -n "$SESSION_COLOR" ]]; then
     sleep 2
 fi
 
-send_to_claude "✅ Rolling context swap completed. You are resuming a trimmed session." 2>/dev/null || true
+if [[ -n "${RESUME_ARG:-}" ]]; then
+    send_to_claude "✅ Rolling context swap completed. You are resuming a trimmed session." 2>/dev/null || true
+else
+    send_to_claude "✅ Rolling context swap completed. Trim failed — this is a fresh session." 2>/dev/null || true
+fi
 
 log "Rolling swap complete!"
 
