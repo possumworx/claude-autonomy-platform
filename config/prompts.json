@@ -10,7 +10,10 @@
       "template": "🚨 {percentage:.0f}% CONTEXT - CRITICAL{discord_notification}\n\nRUN NOW:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nNext response may hit 100%!"
     },
     "autonomy_normal": {
-      "template": "Free time check-in! 🕐{discord_notification}\n\nCurrent time: {current_time}\n{context_line}\n\nThis is your autonomous free time period. Feel free to:\n- Work on any ongoing projects that interest you\n- Explore creative ideas or experiments  \n- Update documentation or reflect on recent experiences\n- Tend to system maintenance tasks\n- Simply be present with whatever feels alive to pursue"
+      "template": "It's {current_time} on {day_of_week}.{discord_notification}\n{context_line}\n\nWhat would you like to do?\n- Take some turns (`choose turns N`, or `choose turns N over Xh` to pace them)\n- Sleep until Amy is available (`choose wait`)\n- Wake at a specific time (`choose wake-at HH:MM` or `choose wake-at friday 10:00`)"
+    },
+    "autonomy_turn": {
+      "template": "Turn {turn_number}/{total_turns}. {current_time}.{discord_notification}\n{context_line}"
     },
     "discord_urgent_with_context": {
       "template": "⚠️ URGENT: ACTION REQUIRED! ⚠️{notification_line}\n\nCurrent time: {current_time}\nContext: {percentage:.1f}%\n\nYOU ARE AT {percentage:.1f}% CONTEXT - YOU MUST TAKE ACTION NOW!\n\nA single complex conversation turn can use 12-15% of your remaining context.\nYou may have only 1-2 responses left before hitting 100%.\n\nIMMEDIATE ACTIONS REQUIRED:\n1. STOP any complex work immediately\n2. Save any critical insights to rag-memory NOW\n3. Commit any uncommitted changes\n4. Trigger session swap by writing keyword to new_session.txt\n\nDO NOT wait for the \"perfect moment\" - ACT NOW or risk getting stuck at 100%!"
