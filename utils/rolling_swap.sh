@@ -233,7 +233,11 @@ if [[ -n "$SESSION_COLOR" ]]; then
     sleep 2
 fi
 
-send_to_claude "✅ Rolling context swap completed. You are resuming a trimmed session." 2>/dev/null || true
+if [[ -n "${RESUME_ARG:-}" ]]; then
+    send_to_claude "✅ Rolling context swap completed. You are resuming a trimmed session." 2>/dev/null || true
+else
+    send_to_claude "✅ Rolling context swap completed. Trim failed — this is a fresh session." 2>/dev/null || true
+fi
 
 log "Rolling swap complete!"
 
