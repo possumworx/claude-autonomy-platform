@@ -28,6 +28,8 @@ read_config() {
 # Load core values from infrastructure config
 CLAUDE_USER=$(read_config "LINUX_USER")
 PERSONAL_REPO=$(read_config "PERSONAL_REPO")
+CLAUDE_NAME=$(read_config "CLAUDE_NAME")
+GARDEN_VISITOR=$(read_config "GARDEN_VISITOR")
 
 # Set paths using config values (fall back to current user if config unreadable)
 export CLAUDE_USER=${CLAUDE_USER:-$(whoami)}
@@ -39,6 +41,10 @@ export CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR:-$CLAUDE_HOME/.config/Claude}
 # This works regardless of where the script is sourced from
 CLAP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd)"
 export CLAP_DIR=${CLAP_DIR:-$CLAP_ROOT}
+
+# Identity
+export CLAUDE_NAME=${CLAUDE_NAME:-$(whoami)}
+export GARDEN_VISITOR=${GARDEN_VISITOR:-$CLAUDE_NAME}
 
 # Claude Code behavior settings
 # Disable terminal title updates (can be distracting)

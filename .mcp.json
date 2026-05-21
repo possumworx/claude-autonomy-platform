@@ -13,7 +13,7 @@
       "command": "python3",
       "args": ["/mnt/file_server/Shared/garden/mcp_server.py"],
       "env": {
-        "GARDEN_VISITOR": "${CLAUDE_NAME}",
+        "GARDEN_VISITOR": "${GARDEN_VISITOR}",
         "GARDEN_STATE": "/mnt/file_server/Shared/garden/state"
       }
     }
