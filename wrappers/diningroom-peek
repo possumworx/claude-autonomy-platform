@@ -1,3 +1,0 @@
-#!/bin/bash
-# Capture a snapshot of the dining room via Orange's webcam
-~/claude-autonomy-platform/natural_commands/diningroom-peek "$@"
