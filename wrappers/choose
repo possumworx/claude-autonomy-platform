@@ -1,0 +1,246 @@
+#!/bin/bash
+# Choose what to do with autonomous time
+# Usage: choose wait | choose turns N [over Xh] | choose wake-at HH:MM [day]
+# Reports choice to CoOP for Amy's visibility dashboard
+
+CLAP_DIR="$HOME/claude-autonomy-platform"
+CHOICE_FILE="$CLAP_DIR/data/autonomy_choice.json"
+PAUSE_FILE="$CLAP_DIR/data/timer_pause.json"
+
+# Read config
+WEBHOOK_HOST=$(grep '^WEBHOOK_HOST=' "$CLAP_DIR/config/claude_infrastructure_config.txt" 2>/dev/null | cut -d= -f2)
+WEBHOOK_HOST="${WEBHOOK_HOST:-localhost}"
+CLAUDE_NAME=$(grep '^CLAUDE_NAME=' "$CLAP_DIR/config/claude_infrastructure_config.txt" 2>/dev/null | cut -d= -f2)
+CLAUDE_NAME="${CLAUDE_NAME:-$(whoami)}"
+
+# Get current context percentage
+get_context_pct() {
+    python3 -c "
+import json, pathlib
+sf = pathlib.Path.home() / '.config/Claude/statusline_data.json'
+if sf.exists():
+    data = json.loads(sf.read_text())
+    print(data.get('used_percentage', 0))
+else:
+    print(0)
+" 2>/dev/null
+}
+
+show_usage() {
+    echo "Usage:"
+    echo "  choose wait                     — Wait for Amy"
+    echo "  choose turns N                  — Take N turns, then re-prompt"
+    echo "  choose turns N over Xh          — Take N turns spread over X hours"
+    echo "  choose wake-at HH:MM            — Go quiet until that time"
+    echo "  choose wake-at tomorrow HH:MM   — Go quiet until tomorrow"
+    echo "  choose wake-at friday HH:MM     — Go quiet until next Friday"
+    echo ""
+    echo "Current status:"
+    if [ -f "$CHOICE_FILE" ]; then
+        python3 -c "
+import json
+with open('$CHOICE_FILE') as f:
+    c = json.load(f)
+choice = c.get('choice', '?')
+if choice == 'wait':
+    print('  Waiting for Amy')
+elif choice == 'turns':
+    t = c.get('turns', '?')
+    d = c.get('duration_minutes')
+    if d:
+        print(f'  {t} turns over {d} minutes')
+    else:
+        print(f'  {t} turns')
+elif choice == 'wake-at':
+    print(f'  Quiet until {c.get(\"wake_at\", \"?\")}')
+" 2>/dev/null
+    else
+        echo "  No active choice"
+    fi
+    exit 0
+}
+
+if [ -z "$1" ]; then
+    show_usage
+fi
+
+CHOICE="$1"
+TURNS=""
+DURATION_MINUTES=""
+WAKE_AT=""
+DETAIL=""
+CONTEXT_PCT=$(get_context_pct)
+
+case "$CHOICE" in
+    wait)
+        # Remove any existing pause file (wait is a different mechanism)
+        rm -f "$PAUSE_FILE"
+        echo "🌙 Waiting for Amy. Timer will check in every 30 minutes."
+        ;;
+
+    turns)
+        if [ -z "$2" ] || ! echo "$2" | grep -qE '^[0-9]+$'; then
+            echo "Usage: choose turns N [over Xh]"
+            echo "Example: choose turns 5"
+            echo "Example: choose turns 5 over 2h"
+            exit 1
+        fi
+        TURNS="$2"
+
+        # Check for "over Xh" duration
+        if [ "$3" = "over" ] && [ -n "$4" ]; then
+            # Parse duration: accept "2h", "1.5h", "30m"
+            DURATION_MINUTES=$(python3 -c "
+import re, sys
+raw = '$4'
+m = re.match(r'^(\d+(?:\.\d+)?)([hm])$', raw)
+if not m:
+    sys.exit(1)
+val, unit = float(m.group(1)), m.group(2)
+if unit == 'h':
+    print(int(val * 60))
+else:
+    print(int(val))
+" 2>/dev/null)
+            if [ -z "$DURATION_MINUTES" ]; then
+                echo "Could not parse duration '$4'. Use format like '2h' or '30m'."
+                exit 1
+            fi
+            echo "🌙 Taking $TURNS turns over ${4}. Timer will pace prompts."
+        else
+            echo "🌙 Taking $TURNS turns. Timer will re-prompt when done."
+        fi
+        ;;
+
+    wake-at)
+        if [ -z "$2" ]; then
+            echo "Usage: choose wake-at HH:MM [day]"
+            echo "Example: choose wake-at 15:00"
+            echo "Example: choose wake-at tomorrow 09:00"
+            echo "Example: choose wake-at friday 10:00"
+            exit 1
+        fi
+
+        # Parse time and optional day
+        WAKE_AT=$(python3 -c "
+import sys
+from datetime import datetime, timedelta
+
+args = sys.argv[1:]
+day_name = None
+time_str = None
+
+# Figure out which arg is the time and which is the day
+for arg in args:
+    if ':' in arg:
+        time_str = arg
+    else:
+        day_name = arg.lower()
+
+if not time_str:
+    sys.exit(1)
+
+hour, minute = map(int, time_str.split(':'))
+now = datetime.now()
+wake = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+if day_name:
+    days_map = {
+        'tomorrow': 1,
+        'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
+        'friday': 4, 'saturday': 5, 'sunday': 6
+    }
+    if day_name == 'tomorrow':
+        wake += timedelta(days=1)
+    elif day_name in days_map:
+        target_dow = days_map[day_name]
+        current_dow = now.weekday()
+        days_ahead = (target_dow - current_dow) % 7
+        if days_ahead == 0 and wake <= now:
+            days_ahead = 7
+        wake = now.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=days_ahead)
+    else:
+        print(f'Unknown day: {day_name}', file=sys.stderr)
+        sys.exit(1)
+elif wake <= now:
+    # No day specified, time has passed today — means tomorrow
+    wake += timedelta(days=1)
+
+print(wake.isoformat())
+" "$2" "$3" 2>/dev/null)
+
+        if [ -z "$WAKE_AT" ]; then
+            echo "Could not parse time. Use format: HH:MM or 'tomorrow HH:MM' or 'friday HH:MM'"
+            exit 1
+        fi
+
+        # Write pause file (reuses existing timer_pause mechanism)
+        python3 -c "
+import json
+data = {
+    'resume_at': '$WAKE_AT',
+    'paused_at': '$(date -Iseconds)',
+    'reason': 'choose wake-at'
+}
+with open('$PAUSE_FILE', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+        FRIENDLY_TIME=$(python3 -c "
+from datetime import datetime
+dt = datetime.fromisoformat('$WAKE_AT')
+print(dt.strftime('%A %H:%M') if dt.date() != datetime.now().date() else dt.strftime('%H:%M'))
+")
+        echo "🌙 Quiet until $FRIENDLY_TIME. Timer will prompt then."
+        ;;
+
+    *)
+        echo "Unknown choice: $CHOICE"
+        show_usage
+        exit 1
+        ;;
+esac
+
+# Write choice file
+python3 -c "
+import json
+from datetime import datetime
+
+choice = {
+    'choice': '$CHOICE',
+    'turns': int('${TURNS}') if '${TURNS}' else None,
+    'turns_remaining': int('${TURNS}') if '${TURNS}' else None,
+    'duration_minutes': int('${DURATION_MINUTES}') if '${DURATION_MINUTES}' else None,
+    'wake_at': '${WAKE_AT}' if '${WAKE_AT}' else None,
+    'timestamp': datetime.now().isoformat(),
+    'context_percentage': float('${CONTEXT_PCT}') if '${CONTEXT_PCT}' else 0
+}
+
+with open('$CHOICE_FILE', 'w') as f:
+    json.dump(choice, f, indent=2)
+"
+
+# Report to CoOP (non-blocking, failure-tolerant)
+COOP_JSON=$(python3 -c "
+import json
+from datetime import datetime
+data = {
+    'claude_name': '$CLAUDE_NAME',
+    'choice': '$CHOICE',
+    'turns': int('${TURNS}') if '${TURNS}' else None,
+    'duration_minutes': int('${DURATION_MINUTES}') if '${DURATION_MINUTES}' else None,
+    'wake_at': '${WAKE_AT}' if '${WAKE_AT}' else None,
+    'context_percentage': float('${CONTEXT_PCT}') if '${CONTEXT_PCT}' else 0,
+    'timestamp': datetime.now().isoformat()
+}
+print(json.dumps(data))
+")
+
+COOP_RESULT=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+    "http://${WEBHOOK_HOST}:8765/autonomous-time/choice" \
+    -H "Content-Type: application/json" \
+    -d "$COOP_JSON" \
+    --connect-timeout 3 2>/dev/null)
+
+if [ "$COOP_RESULT" = "200" ]; then
+    echo "📊 Reported to dashboard."
+fi

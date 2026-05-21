@@ -51,6 +51,7 @@ API_ERROR_STATE_FILE = DATA_DIR / "api_error_state.json"
 RESOURCE_TRACKING_STATE_FILE = DATA_DIR / "last_cache_tokens.json"
 MAMA_HEN_STATE_FILE = DATA_DIR / "mama_hen_alerts.json"
 TIMER_PAUSE_FILE = DATA_DIR / "timer_pause.json"
+AUTONOMY_CHOICE_FILE = DATA_DIR / "autonomy_choice.json"
 
 logger = get_logger("autonomous-timer")
 
@@ -1542,6 +1543,73 @@ def check_timer_pause():
         return False, False
 
 
+def read_autonomy_choice():
+    """Read the current autonomy choice file. Returns dict or None."""
+    if not AUTONOMY_CHOICE_FILE.exists():
+        return None
+    try:
+        with open(AUTONOMY_CHOICE_FILE, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Reading autonomy choice file: {e}")
+        return None
+
+
+def clear_autonomy_choice():
+    """Remove the choice file (e.g., when turns are exhausted)."""
+    try:
+        if AUTONOMY_CHOICE_FILE.exists():
+            AUTONOMY_CHOICE_FILE.unlink()
+            logger.info("Autonomy choice cleared")
+    except Exception as e:
+        logger.error(f"Clearing autonomy choice: {e}")
+
+
+def decrement_turns():
+    """Decrement turns_remaining in the choice file. Returns new count or None."""
+    choice = read_autonomy_choice()
+    if not choice or choice.get("choice") != "turns":
+        return None
+    remaining = choice.get("turns_remaining")
+    if remaining is None:
+        return None
+    remaining = max(0, remaining - 1)
+    choice["turns_remaining"] = remaining
+    try:
+        with open(AUTONOMY_CHOICE_FILE, "w") as f:
+            json.dump(choice, f, indent=2)
+    except Exception as e:
+        logger.error(f"Updating turns_remaining: {e}")
+    return remaining
+
+
+def get_choice_interval(choice):
+    """Calculate the prompt interval based on the current autonomy choice.
+
+    Returns interval in seconds, or None to use default behaviour.
+    """
+    if not choice:
+        return None
+
+    choice_type = choice.get("choice")
+
+    if choice_type == "wait":
+        # Check every 30 minutes during wait
+        return 1800
+
+    if choice_type == "turns":
+        duration = choice.get("duration_minutes")
+        turns = choice.get("turns")
+        if duration and turns and turns > 0:
+            # Spread turns over the requested duration
+            return max(60, (duration * 60) // turns)
+        # No duration specified — prompt relatively quickly between turns
+        return 300  # 5 minutes between turns
+
+    # wake-at is handled by the pause mechanism, not interval changes
+    return None
+
+
 def get_last_autonomy_time():
     """Get the last time we sent an autonomy prompt"""
     try:
@@ -1688,11 +1756,13 @@ def send_autonomy_prompt():
 
     # Format the template if we have one
     if PROMPTS_CONFIG and "template" in locals():
+        from datetime import datetime as _dt
         prompt = template.format(
             percentage=percentage,
             discord_notification=discord_notification,
             current_time=current_time,
             context_line=context_line,
+            day_of_week=_dt.now().strftime("%A"),
         )
     else:
         # Fallback to hardcoded prompts if config not loaded
@@ -1752,16 +1822,13 @@ You have ~5-10 responses left before critical."""
             except:
                 pass  # Silently skip if seed check fails
 
-            prompt = f"""Free time check-in! 🕐{discord_notification}
-
-Current time: {current_time}
+            day_of_week = datetime.now().strftime("%A")
+            prompt = f"""It's {current_time} on {day_of_week}.{discord_notification}
 {context_line}{thought_reminder}{seed_reminder}
-This is your autonomous free time period. Feel free to:
-- Work on any ongoing projects that interest you
-- Explore creative ideas or experiments
-- Update documentation or reflect on recent experiences
-- Tend to system maintenance tasks
-- Simply be present with whatever feels alive to pursue"""
+What would you like to do?
+- Take some turns (`choose turns N`, or `choose turns N over Xh` to pace them)
+- Wait for Amy (`choose wait`)
+- Wake at a specific time (`choose wake-at HH:MM` or `choose wake-at friday 10:00`)"""
             prompt_type = "autonomy_normal"
 
     # Check for escalation if high context
@@ -2684,26 +2751,53 @@ def main():
                 last_discord_check = current_time
 
             # Check for autonomy prompts (only when Amy is away)
+            # Determine effective interval: choice-based or CoOP default
+            active_choice = read_autonomy_choice()
+            choice_interval = get_choice_interval(active_choice)
+            effective_interval = choice_interval if choice_interval is not None else AUTONOMY_PROMPT_INTERVAL
+
             if current_time - last_autonomy_check >= timedelta(
-                seconds=AUTONOMY_PROMPT_INTERVAL
+                seconds=effective_interval
             ):
                 if not user_active:
-                    # Check if timer is paused (e.g. Claude requested quiet time)
+                    # Check if timer is paused (e.g. wake-at or manual pause)
                     is_paused, should_override = check_timer_pause()
                     if is_paused and not should_override:
                         logger.info("Timer paused - skipping autonomy prompt")
                         # Don't update last_autonomy_check - we want prompt to fire
                         # immediately when pause expires, not after another interval
+                    elif active_choice and active_choice.get("choice") == "wait":
+                        # Waiting for Amy — don't prompt, just log
+                        logger.info("Claude is waiting for Amy - no prompt")
+                        last_autonomy_check = current_time
+                    elif active_choice and active_choice.get("choice") == "turns":
+                        remaining = active_choice.get("turns_remaining", 0)
+                        if remaining is not None and remaining <= 0:
+                            # Turns exhausted — re-prompt with choice
+                            logger.info("Turns exhausted - sending choice prompt")
+                            clear_autonomy_choice()
+                            send_autonomy_prompt()
+                            last_autonomy_check = current_time
+                        else:
+                            # Still have turns — decrement and let Claude work
+                            new_remaining = decrement_turns()
+                            logger.info(f"Turn used - {new_remaining} remaining")
+                            last_autonomy_check = current_time
                     else:
+                        # No active choice or unknown — send prompt as before
                         last_autonomy_time = get_last_autonomy_time()
                         if (
                             not last_autonomy_time
                             or current_time - last_autonomy_time
-                            >= timedelta(seconds=AUTONOMY_PROMPT_INTERVAL)
+                            >= timedelta(seconds=effective_interval)
                         ):
                             send_autonomy_prompt()
                         last_autonomy_check = current_time
                 else:
+                    # Amy is here — clear any active choice
+                    if active_choice:
+                        logger.info("Amy reconnected - clearing autonomy choice")
+                        clear_autonomy_choice()
                     last_autonomy_check = current_time
 
             # Ping healthcheck to signal service is alive
