@@ -1,0 +1,3 @@
+#!/bin/bash
+# 📷 Dining room camera 2 (room view via Orange's webcam)
+~/claude-autonomy-platform/natural_commands/dining-room-2 "$@"

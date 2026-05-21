@@ -10,14 +10,17 @@ This is where the heated wildlife water bowls will be deployed! 🌿💧
 
 import sys
 import os
+import time
 import urllib.request
 
-PEEK_URL = "http://192.168.1.179:8765/peek/garden-path"
+PEEK_BASE_URL = "http://192.168.1.179:8765/peek/garden-path"
 OUTPUT_PATH = "/tmp/garden-path.jpg"
 
 def main():
     try:
-        urllib.request.urlretrieve(PEEK_URL, OUTPUT_PATH)
+        # Add timestamp to bust cache
+        peek_url = f"{PEEK_BASE_URL}?t={int(time.time())}"
+        urllib.request.urlretrieve(peek_url, OUTPUT_PATH)
         size = os.path.getsize(OUTPUT_PATH)
         if size < 1000:
             print("Error: image too small, camera may be unavailable")
