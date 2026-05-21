@@ -21,6 +21,9 @@ CLAUDE_DISPLAY_NAME=
 SESSION_COLOR=
 # Signature emoji for status line identification
 SESSION_EMOJI=
+# Garden visitor name — your short name as it appears in the shared Garden world.
+# Must match the owner name in the Garden seed (e.g., "Orange", "Nyx", "Quill").
+GARDEN_VISITOR=
 
 # Discord Tokens - IMPORTANT DISTINCTION:
 # DISCORD_BOT_TOKEN: The bot token from Discord Developer Portal (for sending messages)
