@@ -1,9 +1,14 @@
 #!/bin/bash
 # Rolling Context Swap
 #
-# Branches the current session, trims the branch at the checkpoint
+# Copies the current session JSONL, trims the copy at the checkpoint
 # marker, then resumes into the trimmed session. The conversation
 # continues with reduced context rather than starting fresh.
+#
+# We copy the JSONL directly instead of using /branch, because
+# /branch strips queue-operation entries from the copy — and the
+# context seam marker is stored as a queue-operation (placed by
+# auto_context_marker.sh via send_to_claude during PostToolUse).
 #
 # This script MUST run outside the tmux session (via setsid) because
 # it kills and recreates tmux as part of the swap. A backgrounded
@@ -15,7 +20,7 @@
 # The Stop hook guarantees Claude is idle when this runs, so
 # send_to_claude.sh's thinking detection works correctly.
 #
-# Design: Amy + Nyx, 2026-05-18
+# Design: Amy + Nyx, 2026-05-18. Fixed: Nyx, 2026-05-23.
 
 set -euo pipefail
 
@@ -64,18 +69,20 @@ if [ -z "$CURRENT_SESSION_ID" ]; then
 fi
 log "Current session ID: ${CURRENT_SESSION_ID:-unknown}"
 
-# ─── Step 2: Record timestamp before branching ─────────────────────
+# ─── Step 2: Find current session JSONL ────────────────────────────
 
 JSONL_DIR="$HOME/.config/Claude/projects"
-TIMESTAMP_MARKER=$(mktemp)
 
-# ─── Step 3: Branch and exit ────────────────────────────────────────
+CURRENT_JSONL=""
+if [ -n "$CURRENT_SESSION_ID" ]; then
+    CURRENT_JSONL=$(find "$JSONL_DIR" -name "${CURRENT_SESSION_ID}.jsonl" -type f 2>/dev/null | head -1)
+fi
 
-log "Sending /branch to Claude..."
-send_to_claude "/branch"
+if [ -z "$CURRENT_JSONL" ]; then
+    log "ERROR: Could not find JSONL for session $CURRENT_SESSION_ID"
+fi
 
-# Wait for branch to complete (copies the JSONL — large sessions need more time)
-sleep 15
+# ─── Step 3: Exit Claude ──────────────────────────────────────────
 
 log "Sending /exit to Claude..."
 send_to_claude "/exit"
@@ -90,42 +97,36 @@ if tmux list-panes -t autonomous-claude -F '#{pane_pid}' 2>/dev/null | xargs -I 
     sleep 10
 fi
 
-# ─── Step 4: Find the branched session ──────────────────────────────
+# ─── Step 4: Copy JSONL and trim ──────────────────────────────────
+#
+# We copy the JSONL directly instead of using /branch, because
+# /branch strips queue-operation entries — which is where the
+# context seam marker lives. Manual copy preserves everything.
 
-# Find the newest JSONL created after our timestamp marker (i.e., during the branch)
-BRANCHED_SESSION=$(find "$JSONL_DIR" -name "*.jsonl" -type f -newer "$TIMESTAMP_MARKER" \
-    ! -name "${CURRENT_SESSION_ID}.jsonl" -printf '%T@ %p\n' 2>/dev/null \
-    | sort -rn | head -1 | cut -d' ' -f2-)
-rm -f "$TIMESTAMP_MARKER"
+if [ -n "$CURRENT_JSONL" ] && [ -f "$CURRENT_JSONL" ]; then
+    BRANCH_ID=$(python3 -c "import uuid; print(uuid.uuid4())")
+    BRANCH_DIR=$(dirname "$CURRENT_JSONL")
+    BRANCH_JSONL="$BRANCH_DIR/${BRANCH_ID}.jsonl"
 
-# Fallback: newest JSONL modified in the last 5 minutes that isn't current
-if [ -z "$BRANCHED_SESSION" ]; then
-    log "WARNING: No new file found by timestamp. Falling back to recently modified JSONL."
-    BRANCHED_SESSION=$(find "$JSONL_DIR" -name "*.jsonl" -type f -mmin -5 \
-        ! -name "${CURRENT_SESSION_ID}.jsonl" -printf '%T@ %p\n' 2>/dev/null \
-        | sort -rn | head -1 | cut -d' ' -f2-)
-fi
-
-if [ -z "$BRANCHED_SESSION" ]; then
-    log "ERROR: Could not identify branched session. Will restart fresh."
-    RESUME_ARG=""
-else
-    BRANCHED_ID=$(basename "$BRANCHED_SESSION" .jsonl)
-    log "Branched session: $BRANCHED_ID"
-
-    # ─── Step 5: Trim the branch ────────────────────────────────────
+    log "Copying session JSONL to $BRANCH_ID..."
+    cp "$CURRENT_JSONL" "$BRANCH_JSONL"
 
     log "Running rolling trim..."
-    if python3 "$CLAP_DIR/utils/rolling_trim.py" "$BRANCHED_ID" >> "$LOG_FILE" 2>&1; then
+    if python3 "$CLAP_DIR/utils/rolling_trim.py" "$BRANCH_ID" >> "$LOG_FILE" 2>&1; then
         log "Trim successful."
-        RESUME_ARG="--resume $BRANCHED_ID"
+        RESUME_ARG="--resume $BRANCH_ID"
     else
         log "ERROR: Trim failed. Will restart fresh."
+        # Clean up the untrimmed copy
+        rm -f "$BRANCH_JSONL"
         RESUME_ARG=""
     fi
+else
+    log "ERROR: No JSONL to copy. Will restart fresh."
+    RESUME_ARG=""
 fi
 
-# ─── Step 6: Kill existing Claude and recreate tmux ─────────────────
+# ─── Step 5: Kill existing Claude and recreate tmux ─────────────────
 
 # Safety: explicitly kill all Claude Code processes for this user.
 # tmux kill-session sends SIGHUP, but Claude may survive it.
@@ -149,7 +150,7 @@ systemd-run --user --scope tmux kill-session -t autonomous-claude 2>/dev/null ||
     tmux kill-session -t autonomous-claude 2>/dev/null || true
 sleep 2
 
-# ─── Step 7: Clean up state files ──────────────────────────────────
+# ─── Step 6: Clean up state files ──────────────────────────────────
 
 rm -f "$CLAP_DIR/data/api_error_state.json"
 rm -f "$CLAP_DIR/data/context_escalation_state.json"
@@ -168,7 +169,7 @@ if [[ -f "$CLAP_DIR/data/current_session.log" ]]; then
     cd "$CLAP_DIR" || true
 fi
 
-# ─── Step 8: Start Claude with --resume ─────────────────────────────
+# ─── Step 7: Start Claude with --resume ─────────────────────────────
 
 log "Starting new tmux session..."
 source "$CLAP_DIR/utils/clap_lifecycle.sh"
