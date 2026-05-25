@@ -1,0 +1,13 @@
+[Unit]
+Description=LED strip daemon for Claude state display
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/claude-autonomy-platform/core/led_daemon.py
+Restart=on-failure
+RestartSec=5
+Environment=CLAP_DIR=%h/claude-autonomy-platform
+
+[Install]
+WantedBy=default.target
