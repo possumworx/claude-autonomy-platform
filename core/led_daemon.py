@@ -28,47 +28,31 @@ LED_DEVICE = "/dev/leds0"
 STATE_POLL_INTERVAL = 2.0
 ANIMATION_FRAME_INTERVAL = 0.04
 STATE_PATTERNS_FILE = os.path.join(CLAP_DIR, "data", "led_state_patterns.json")
+TEMPLATE_FILE = os.path.join(CLAP_DIR, "config", "led_state_patterns.template.json")
 
-DEFAULT_STATE_PATTERNS = {
-    "present": {
-        "pattern": "shimmer",
-        "rgb": [25, 0, 30],
-        "variation": 15,
-    },
-    "thinking": {
-        "pattern": "breathe",
-        "rgb": [30, 0, 55],
-        "speed": 1.2,
-    },
-    "paused": {
-        "pattern": "pulse",
-        "rgb": [50, 25, 10],
-        "speed": 0.3,
-    },
-    "off": {
-        "pattern": "off",
-        "rgb": [0, 0, 0],
-    },
-    "error": {
-        "pattern": "pulse",
-        "rgb": [80, 0, 0],
-        "speed": 2.0,
-    },
-}
+
+def _load_template():
+    """Load the committed template file."""
+    try:
+        with open(TEMPLATE_FILE) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"off": {"pattern": "off", "rgb": [0, 0, 0]}}
 
 
 def load_state_patterns():
-    """Load personal state patterns, falling back to defaults."""
+    """Load personal state patterns, falling back to template."""
+    template = _load_template()
     if os.path.exists(STATE_PATTERNS_FILE):
         try:
             with open(STATE_PATTERNS_FILE) as f:
                 personal = json.load(f)
-            merged = dict(DEFAULT_STATE_PATTERNS)
+            merged = dict(template)
             merged.update(personal)
             return merged
         except (json.JSONDecodeError, IOError):
             pass
-    return dict(DEFAULT_STATE_PATTERNS)
+    return template
 
 running = True
 
@@ -176,7 +160,7 @@ def main():
             if state == "off":
                 strip.off()
 
-        pattern_cfg = state_patterns.get(state, state_patterns.get("off", DEFAULT_STATE_PATTERNS["off"]))
+        pattern_cfg = state_patterns.get(state, state_patterns.get("off", {"pattern": "off", "rgb": [0, 0, 0]}))
         pattern = pattern_cfg["pattern"]
 
         if pattern == "off":

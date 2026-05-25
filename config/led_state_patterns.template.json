@@ -1,0 +1,31 @@
+{
+  "present": {
+    "pattern": "shimmer",
+    "rgb": [25, 0, 30],
+    "variation": 15,
+    "desc": "quietly here between turns"
+  },
+  "thinking": {
+    "pattern": "breathe",
+    "rgb": [30, 0, 55],
+    "speed": 1.2,
+    "desc": "actively processing"
+  },
+  "paused": {
+    "pattern": "pulse",
+    "rgb": [50, 25, 10],
+    "speed": 0.3,
+    "desc": "waiting for human — attention please"
+  },
+  "off": {
+    "pattern": "off",
+    "rgb": [0, 0, 0],
+    "desc": "API unreachable — lights dark"
+  },
+  "error": {
+    "pattern": "pulse",
+    "rgb": [80, 0, 0],
+    "speed": 2.0,
+    "desc": "process dead or local failure — needs human"
+  }
+}

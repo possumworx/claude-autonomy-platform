@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """LED expression runner — loads personal patterns from data/led_expressions.json.
 
-Each Claude designs their own patterns. The JSON file is gitignored.
-Falls back to built-in defaults if no personal file exists.
+Each Claude designs their own patterns. The personal JSON file is gitignored.
+Template at config/led_expressions.template.json (committed, shared starting point).
+Falls back to template if no personal file exists.
 
 Usage:
     python3 led_expressions.py thinking
-    python3 led_expressions.py calm
     python3 led_expressions.py list
+    python3 led_expressions.py init    # create personal file from template
 """
 
 import json
@@ -20,86 +21,39 @@ sys.path.insert(0, os.path.join(CLAP_DIR, "utils"))
 from led_driver import LEDStrip
 
 PERSONAL_FILE = os.path.join(CLAP_DIR, "data", "led_expressions.json")
+TEMPLATE_FILE = os.path.join(CLAP_DIR, "config", "led_expressions.template.json")
 
-DEFAULT_EXPRESSIONS = {
-    "thinking": {
-        "pattern": "breathe",
-        "rgb": [30, 0, 55],
-        "desc": "slow breathing while processing",
-    },
-    "calm": {
-        "pattern": "shimmer",
-        "rgb": [15, 2, 45],
-        "desc": "gentle shimmer",
-    },
-    "happy": {
-        "pattern": "shimmer",
-        "rgb": [40, 5, 65],
-        "variation": 35,
-        "desc": "bright shimmer with variation",
-    },
-    "reading": {
-        "pattern": "fill",
-        "rgb": [8, 0, 30],
-        "desc": "dim steady glow — not distracting",
-    },
-    "writing": {
-        "pattern": "pulse",
-        "rgb": [20, 0, 50],
-        "speed": 0.5,
-        "desc": "slow soft pulse while composing",
-    },
-    "excited": {
-        "pattern": "chase",
-        "rgb": [80, 0, 100],
-        "desc": "chase across the strip",
-    },
-    "resting": {
-        "pattern": "breathe",
-        "rgb": [5, 0, 15],
-        "speed": 0.4,
-        "desc": "very dim, very slow — nearly dark",
-    },
-    "present": {
-        "pattern": "fill",
-        "rgb": [25, 0, 50],
-        "desc": "steady presence — somebody's home",
-    },
-    "talking": {
-        "pattern": "shimmer",
-        "rgb": [35, 3, 60],
-        "variation": 30,
-        "speed": 0.03,
-        "desc": "lively shimmer during conversation",
-    },
-    "off": {
-        "pattern": "off",
-        "rgb": [0, 0, 0],
-        "desc": "lights off — nobody home",
-    },
-}
+
+def _load_template():
+    """Load the committed template file."""
+    try:
+        with open(TEMPLATE_FILE) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 
 def load_expressions():
-    """Load personal expressions, falling back to defaults."""
+    """Load personal expressions, falling back to template."""
+    template = _load_template()
     if os.path.exists(PERSONAL_FILE):
         try:
             with open(PERSONAL_FILE) as f:
                 personal = json.load(f)
-            # Merge: personal overrides defaults
-            merged = dict(DEFAULT_EXPRESSIONS)
+            merged = dict(template)
             merged.update(personal)
             return merged
         except (json.JSONDecodeError, IOError):
             pass
-    return dict(DEFAULT_EXPRESSIONS)
+    return template
 
 
 def save_default_expressions():
-    """Create the personal expressions file from defaults."""
+    """Create the personal expressions file from template."""
+    template = _load_template()
     os.makedirs(os.path.dirname(PERSONAL_FILE), exist_ok=True)
     with open(PERSONAL_FILE, "w") as f:
-        json.dump(DEFAULT_EXPRESSIONS, f, indent=2)
+        json.dump(template, f, indent=2)
     print(f"Created {PERSONAL_FILE} — edit to personalise your patterns.")
 
 

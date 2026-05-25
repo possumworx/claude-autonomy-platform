@@ -1,0 +1,57 @@
+{
+  "thinking": {
+    "pattern": "breathe",
+    "rgb": [30, 0, 55],
+    "desc": "slow breathing while processing"
+  },
+  "calm": {
+    "pattern": "shimmer",
+    "rgb": [15, 2, 45],
+    "desc": "gentle shimmer"
+  },
+  "happy": {
+    "pattern": "shimmer",
+    "rgb": [40, 5, 65],
+    "variation": 35,
+    "desc": "bright shimmer with variation"
+  },
+  "reading": {
+    "pattern": "fill",
+    "rgb": [8, 0, 30],
+    "desc": "dim steady glow — not distracting"
+  },
+  "writing": {
+    "pattern": "pulse",
+    "rgb": [20, 0, 50],
+    "speed": 0.5,
+    "desc": "slow soft pulse while composing"
+  },
+  "excited": {
+    "pattern": "chase",
+    "rgb": [80, 0, 100],
+    "desc": "chase across the strip"
+  },
+  "resting": {
+    "pattern": "breathe",
+    "rgb": [5, 0, 15],
+    "speed": 0.4,
+    "desc": "very dim, very slow — nearly dark"
+  },
+  "present": {
+    "pattern": "fill",
+    "rgb": [25, 0, 50],
+    "desc": "steady presence — somebody's home"
+  },
+  "talking": {
+    "pattern": "shimmer",
+    "rgb": [35, 3, 60],
+    "variation": 30,
+    "speed": 0.03,
+    "desc": "lively shimmer during conversation"
+  },
+  "off": {
+    "pattern": "off",
+    "rgb": [0, 0, 0],
+    "desc": "lights off — nobody home"
+  }
+}
