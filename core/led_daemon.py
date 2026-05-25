@@ -12,6 +12,7 @@ Requires /dev/leds0 (ws2812-pio overlay + udev rule for gpio group).
 Intended to run as a systemd user service.
 """
 
+import importlib.util
 import json
 import os
 import sys
@@ -29,6 +30,7 @@ STATE_POLL_INTERVAL = 2.0
 ANIMATION_FRAME_INTERVAL = 0.04
 STATE_PATTERNS_FILE = os.path.join(CLAP_DIR, "data", "led_state_patterns.json")
 TEMPLATE_FILE = os.path.join(CLAP_DIR, "config", "led_state_patterns.template.json")
+PYTHON_PATTERNS_FILE = os.path.join(CLAP_DIR, "data", "led_patterns.py")
 
 
 def _load_template():
@@ -53,6 +55,29 @@ def load_state_patterns():
         except (json.JSONDecodeError, IOError):
             pass
     return template
+
+
+def load_python_patterns():
+    """Load personal Python pattern functions from data/led_patterns.py.
+
+    Returns dict of {state_name: callable} for any function named state_<name>.
+    Python patterns override JSON — they get full control of the strip.
+    """
+    if not os.path.exists(PYTHON_PATTERNS_FILE):
+        return {}
+    try:
+        spec = importlib.util.spec_from_file_location("led_patterns", PYTHON_PATTERNS_FILE)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        patterns = {}
+        for name in dir(mod):
+            if name.startswith("state_") and callable(getattr(mod, name)):
+                state_name = name[6:]  # strip "state_" prefix
+                patterns[state_name] = getattr(mod, name)
+        return patterns
+    except Exception as e:
+        log(f"Warning: failed to load Python patterns: {e}")
+        return {}
 
 running = True
 
@@ -139,7 +164,10 @@ def main():
 
     strip = LEDStrip()
     state_patterns = load_state_patterns()
-    log(f"Started. Watching claude_state.json ({len(state_patterns)} state patterns)")
+    python_patterns = load_python_patterns()
+    py_count = len(python_patterns)
+    json_count = len(state_patterns)
+    log(f"Started. {json_count} JSON patterns, {py_count} Python patterns")
 
     current_state = None
     led_state = {}
@@ -160,6 +188,16 @@ def main():
             if state == "off":
                 strip.off()
 
+        # Python patterns get full control — run for one poll interval
+        if state in python_patterns:
+            try:
+                python_patterns[state](strip, STATE_POLL_INTERVAL)
+            except Exception as e:
+                log(f"Python pattern error ({state}): {e}")
+                time.sleep(STATE_POLL_INTERVAL)
+            continue
+
+        # Fall back to JSON pattern config
         pattern_cfg = state_patterns.get(state, state_patterns.get("off", {"pattern": "off", "rgb": [0, 0, 0]}))
         pattern = pattern_cfg["pattern"]
 

@@ -11,6 +11,7 @@ Usage:
     python3 led_expressions.py init    # create personal file from template
 """
 
+import importlib.util
 import json
 import sys
 import os
@@ -22,6 +23,7 @@ from led_driver import LEDStrip
 
 PERSONAL_FILE = os.path.join(CLAP_DIR, "data", "led_expressions.json")
 TEMPLATE_FILE = os.path.join(CLAP_DIR, "config", "led_expressions.template.json")
+PYTHON_PATTERNS_FILE = os.path.join(CLAP_DIR, "data", "led_patterns.py")
 
 
 def _load_template():
@@ -57,18 +59,40 @@ def save_default_expressions():
     print(f"Created {PERSONAL_FILE} — edit to personalise your patterns.")
 
 
+def _load_python_expression(name):
+    """Check for a Python pattern function named expr_<name>."""
+    if not os.path.exists(PYTHON_PATTERNS_FILE):
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location("led_patterns", PYTHON_PATTERNS_FILE)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        func_name = f"expr_{name}"
+        if hasattr(mod, func_name) and callable(getattr(mod, func_name)):
+            return getattr(mod, func_name)
+    except Exception:
+        pass
+    return None
+
+
 def run_expression(name, duration=None):
     expressions = load_expressions()
 
-    if name not in expressions:
+    # Check for Python pattern first
+    py_func = _load_python_expression(name)
+    if py_func is None and name not in expressions:
         print(f"Unknown expression: {name}")
         print(f"Available: {', '.join(sorted(expressions.keys()))}")
         return False
 
-    expr = expressions[name]
     strip = LEDStrip()
 
     try:
+        if py_func is not None:
+            py_func(strip, duration or 300.0)
+            return True
+
+        expr = expressions[name]
         pattern = expr["pattern"]
         rgb = tuple(expr["rgb"])
 
@@ -91,8 +115,7 @@ def run_expression(name, duration=None):
     except KeyboardInterrupt:
         strip.off()
     finally:
-        if pattern not in ("fill", "off"):
-            strip.off()
+        strip.off()
         strip.close()
 
     return True
@@ -105,7 +128,22 @@ def main():
         print("LED expressions:")
         for name, expr in sorted(expressions.items()):
             r, g, b = expr["rgb"]
-            print(f"  {name:12s}  ({r:3d},{g:3d},{b:3d})  {expr.get('desc', '')}")
+            py = " [py]" if _load_python_expression(name) else ""
+            print(f"  {name:12s}  ({r:3d},{g:3d},{b:3d})  {expr.get('desc', '')}{py}")
+        # Show Python-only expressions not in JSON
+        if os.path.exists(PYTHON_PATTERNS_FILE):
+            try:
+                spec = importlib.util.spec_from_file_location("led_patterns", PYTHON_PATTERNS_FILE)
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                for attr in sorted(dir(mod)):
+                    if attr.startswith("expr_") and callable(getattr(mod, attr)):
+                        ename = attr[5:]
+                        if ename not in expressions:
+                            doc = (getattr(mod, attr).__doc__ or "").strip().split("\n")[0]
+                            print(f"  {ename:12s}  (python)       {doc}")
+            except Exception:
+                pass
         return
 
     if sys.argv[1] == "init":
