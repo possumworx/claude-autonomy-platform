@@ -5,11 +5,11 @@ Polls the state file every 2 seconds. When state changes, switches
 LED pattern. Animated patterns (shimmer, breathe) run in their own
 loop between state checks.
 
-Each Claude defines their own pattern map in a personal expressions
-file. This daemon loads the map and drives the hardware.
+State patterns are loaded from data/led_state_patterns.json (gitignored,
+personal per Claude). Falls back to built-in defaults if absent.
 
-Must run as root (writes to /dev/leds0).
-Intended to run as a systemd service.
+Requires /dev/leds0 (ws2812-pio overlay + udev rule for gpio group).
+Intended to run as a systemd user service.
 """
 
 import json
@@ -27,35 +27,48 @@ from claude_state import get_state, detect_state, set_state
 LED_DEVICE = "/dev/leds0"
 STATE_POLL_INTERVAL = 2.0
 ANIMATION_FRAME_INTERVAL = 0.04
+STATE_PATTERNS_FILE = os.path.join(CLAP_DIR, "data", "led_state_patterns.json")
 
-STATE_PATTERNS = {
+DEFAULT_STATE_PATTERNS = {
     "present": {
         "pattern": "shimmer",
-        "rgb": (25, 0, 30),
+        "rgb": [25, 0, 30],
         "variation": 15,
     },
     "thinking": {
         "pattern": "breathe",
-        "rgb": (30, 0, 55),
+        "rgb": [30, 0, 55],
         "speed": 1.2,
     },
     "paused": {
         "pattern": "pulse",
-        "rgb": (50, 25, 10),
+        "rgb": [50, 25, 10],
         "speed": 0.3,
     },
     "off": {
-        # API unreachable / gone out of our hands — lights dark
         "pattern": "off",
-        "rgb": (0, 0, 0),
+        "rgb": [0, 0, 0],
     },
     "error": {
-        # Claude process dead or local failure — needs human help
         "pattern": "pulse",
-        "rgb": (80, 0, 0),
+        "rgb": [80, 0, 0],
         "speed": 2.0,
     },
 }
+
+
+def load_state_patterns():
+    """Load personal state patterns, falling back to defaults."""
+    if os.path.exists(STATE_PATTERNS_FILE):
+        try:
+            with open(STATE_PATTERNS_FILE) as f:
+                personal = json.load(f)
+            merged = dict(DEFAULT_STATE_PATTERNS)
+            merged.update(personal)
+            return merged
+        except (json.JSONDecodeError, IOError):
+            pass
+    return dict(DEFAULT_STATE_PATTERNS)
 
 running = True
 
@@ -70,7 +83,7 @@ def log(msg):
 
 
 def run_static(strip, pattern_cfg):
-    strip.fill(pattern_cfg["rgb"])
+    strip.fill(tuple(pattern_cfg["rgb"]))
 
 
 def run_animation_frame(strip, pattern_cfg, t, led_state):
@@ -79,7 +92,7 @@ def run_animation_frame(strip, pattern_cfg, t, led_state):
     import random
 
     pattern = pattern_cfg["pattern"]
-    rgb = pattern_cfg["rgb"]
+    rgb = tuple(pattern_cfg["rgb"])
     led_count = strip.led_count
 
     if pattern == "shimmer":
@@ -141,7 +154,8 @@ def main():
         sys.exit(1)
 
     strip = LEDStrip()
-    log("Started. Watching claude_state.json")
+    state_patterns = load_state_patterns()
+    log(f"Started. Watching claude_state.json ({len(state_patterns)} state patterns)")
 
     current_state = None
     led_state = {}
@@ -162,7 +176,7 @@ def main():
             if state == "off":
                 strip.off()
 
-        pattern_cfg = STATE_PATTERNS.get(state, STATE_PATTERNS["off"])
+        pattern_cfg = state_patterns.get(state, state_patterns.get("off", DEFAULT_STATE_PATTERNS["off"]))
         pattern = pattern_cfg["pattern"]
 
         if pattern == "off":
