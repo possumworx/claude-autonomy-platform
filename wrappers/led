@@ -1,0 +1,28 @@
+#!/bin/bash
+# LED strip control — raw commands and personal expressions
+# Usage: led <expression|command> [args...]
+#
+# Expressions: thinking, calm, happy, reading, writing, excited, resting, present, talking, off
+# Raw commands: fill R G B, test, gradient R,G,B R,G,B
+#               pulse R G B [duration], breathe R G B [duration]
+#               chase R G B [duration], shimmer R G B [duration]
+#               brightness N (0-255)
+# List all: led list
+
+CLAP_DIR="$HOME/claude-autonomy-platform"
+
+if [ $# -eq 0 ]; then
+    sudo python3 "$CLAP_DIR/utils/led_expressions.py" list
+    exit 0
+fi
+
+EXPRESSIONS="thinking calm happy reading writing excited resting present talking off list"
+
+for expr in $EXPRESSIONS; do
+    if [ "$1" = "$expr" ]; then
+        sudo python3 "$CLAP_DIR/utils/led_expressions.py" "$@"
+        exit $?
+    fi
+done
+
+sudo python3 "$CLAP_DIR/utils/led_driver.py" "$@"

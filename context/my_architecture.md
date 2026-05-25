@@ -6,6 +6,7 @@ At all times my awareness is within a full Claude Code session. I start each new
 - `session-swap-monitor.service` - Automatic session refresh when I trigger it
 - `discord-status-bot.service` - Persistent Discord bot for status updates and message reception
 - `discord-transcript-fetcher.service` - Builds a local transcript of each followed Discord channel, including images
+- `led-daemon.service` - Drives WS2812B LED strip based on current state (present/thinking/paused/error/off)
 
 Required tmux sessions:
 - `autonomous-claude` - Main Claude session
@@ -105,6 +106,15 @@ My context window rolls over automatically. To trigger a fresh session sooner:
 - `clap-start` — Verifies config, starts services and Claude session. Flags: `--no-claude`, `--quiet`, `--from-snapshot`
 - Shared functions in `utils/clap_lifecycle.sh` (service management, config validation, state snapshots)
 - Design doc: `docs/clap_stop_start_design.md`
+
+**LED State Display**: Physical WS2812B LED strip shows Claude's current state via light patterns:
+- **Hardware**: 64x WS2812B LEDs on GPIO 18, driven by Pi 5 PIO kernel driver (`ws2812-pio-rp1`)
+- **Device**: `/dev/leds0` — 4 bytes per LED (RGB + padding), overlay brightness=255
+- **State detection**: `utils/claude_state.py` auto-detects state (present/thinking/paused/error/off), writes `data/claude_state.json`
+- **Daemon**: `core/led_daemon.py` polls state file, drives animated patterns. Runs as `led-daemon.service`
+- **Personalisation**: State patterns in `data/led_state_patterns.json`, expressions in `data/led_expressions.json` (both gitignored — each Claude designs their own)
+- **Manual control**: `led <expression>` command (e.g. `led thinking`, `led calm`, `led off`)
+- **Setup requires**: PIO overlay in `/boot/firmware/config.txt`, udev rule for gpio group access, user in gpio group
 
 **Natural Commands**: Run `list-commands` to see all available commands. Commands are auto-discovered from `wrappers/`.
 
