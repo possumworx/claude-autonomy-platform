@@ -1,52 +1,60 @@
 #!/usr/bin/env python3
-"""LED strip driver for WS2812B on Raspberry Pi 5 via PIO.
+"""Cross-Pi LED strip driver for WS2812B LEDs.
 
-Uses the kernel ws2812-pio-rp1 driver which exposes /dev/leds0.
-The device tree overlay must be loaded first:
-    sudo dtoverlay ws2812-pio gpio=18 num_leds=64 brightness=40
+Supports both:
+- Raspberry Pi 5: PIO kernel driver via /dev/leds0
+- Raspberry Pi 4/3: rpi_ws281x userspace library via PWM+DMA
 
-Pixel data is written as raw GRB bytes to /dev/leds0.
-Must run as root (device file permissions).
+The driver auto-detects the Pi model and uses the appropriate backend.
+Same interface regardless of underlying hardware.
 
 Usage as library:
     from led_driver import LEDStrip
     strip = LEDStrip()
-    strip.fill((0, 0, 128))
+    strip.fill((255, 100, 0))  # warm amber
+    strip.breathe((255, 100, 0), duration=30)
     strip.off()
 
 Usage from CLI:
-    sudo python3 led_driver.py fill 0 0 128
-    sudo python3 led_driver.py off
-    sudo python3 led_driver.py test
-    sudo python3 led_driver.py gradient 0,0,80 60,0,120
-    sudo python3 led_driver.py pulse 0 0 128
-    sudo python3 led_driver.py breathe 20 0 60
+    python3 led_driver.py fill 255 100 0
+    python3 led_driver.py breathe 255 100 0
+    python3 led_driver.py off
 """
 
 import sys
 import os
 import time
 import math
-import signal
-
-LED_COUNT = 64
-LED_DEVICE = "/dev/leds0"
-LED_BRIGHTNESS = 255  # software brightness — overlay handles hardware brightness
 
 
-class LEDStrip:
-    def __init__(self, brightness=LED_BRIGHTNESS, led_count=LED_COUNT,
-                 device=LED_DEVICE):
+def detect_pi_model():
+    """Detect Raspberry Pi model from device tree."""
+    try:
+        with open("/proc/device-tree/model", "r") as f:
+            model = f.read().strip('\x00')
+            if "Pi 5" in model:
+                return 5
+            elif "Pi 4" in model:
+                return 4
+            elif "Pi 3" in model:
+                return 3
+            else:
+                return 0  # Unknown
+    except FileNotFoundError:
+        return 0
+
+
+PI_MODEL = detect_pi_model()
+
+
+class LEDStripBase:
+    """Base class defining the LED strip interface."""
+
+    def __init__(self, led_count=64, brightness=255, gpio_pin=18):
         self.led_count = led_count
         self._brightness = brightness
+        self.gpio_pin = gpio_pin
         self._pixels = [(0, 0, 0)] * led_count
-        self._device = device
-
-        if not os.path.exists(device):
-            raise RuntimeError(
-                f"{device} not found. Load overlay first:\n"
-                "  sudo dtoverlay ws2812-pio gpio=18 num_leds=64 brightness=40"
-            )
 
     def _scale(self, val):
         return int(val * self._brightness / 255)
@@ -61,14 +69,7 @@ class LEDStrip:
         self.show()
 
     def show(self):
-        buf = bytearray(self.led_count * 4)
-        for i, (r, g, b) in enumerate(self._pixels):
-            buf[i * 4] = self._scale(r)
-            buf[i * 4 + 1] = self._scale(g)
-            buf[i * 4 + 2] = self._scale(b)
-            # byte 3 = padding (unused for RGB strips, white for RGBW)
-        with open(self._device, "wb") as f:
-            f.write(buf)
+        raise NotImplementedError("Subclass must implement show()")
 
     def off(self):
         self._pixels = [(0, 0, 0)] * self.led_count
@@ -95,7 +96,6 @@ class LEDStrip:
             scaled = tuple(int(c * brightness) for c in rgb)
             self.fill(scaled)
             time.sleep(0.03)
-        self.off()
 
     def breathe(self, rgb, speed=0.8, duration=10.0):
         start = time.time()
@@ -113,7 +113,6 @@ class LEDStrip:
             scaled = tuple(int(c * brightness) for c in rgb)
             self.fill(scaled)
             time.sleep(0.03)
-        self.off()
 
     def chase(self, rgb, width=4, speed=0.05, duration=10.0):
         start = time.time()
@@ -130,7 +129,6 @@ class LEDStrip:
                         self.set_pixel(i, (0, 0, 0))
                 self.show()
                 time.sleep(speed)
-        self.off()
 
     def shimmer(self, base_rgb, variation=20, speed=0.04, duration=10.0):
         import random
@@ -142,6 +140,7 @@ class LEDStrip:
             'phase2': random.uniform(0, math.pi * 2),
             'speed2': random.uniform(0.15, 1.0),
         } for _ in range(self.led_count)]
+
         while time.time() - start < duration:
             t = time.time() - start
             for i in range(self.led_count):
@@ -149,6 +148,7 @@ class LEDStrip:
                 w1 = math.sin(t * led['speed'] + led['phase']) * led['var']
                 w2 = math.sin(t * led['speed2'] + led['phase2']) * led['var'] * 0.6
                 wave = w1 + w2
+                # Random sparks for organic feel
                 if random.random() < 0.005:
                     wave += random.uniform(-40, 70)
                 r = max(0, min(255, int(base_rgb[0] + wave * 1.0)))
@@ -157,20 +157,154 @@ class LEDStrip:
                 self.set_pixel(i, (r, g, b))
             self.show()
             time.sleep(speed)
-        self.off()
 
     def close(self):
+        """Clean up resources."""
         pass
 
 
+class LEDStripPi5(LEDStripBase):
+    """Pi 5 driver using PIO kernel driver (/dev/leds0)."""
+
+    def __init__(self, led_count=64, brightness=255, gpio_pin=18,
+                 device="/dev/leds0"):
+        super().__init__(led_count, brightness, gpio_pin)
+        self._device = device
+
+        if not os.path.exists(device):
+            raise RuntimeError(
+                f"{device} not found. Load overlay first:\n"
+                f"  Add to /boot/firmware/config.txt:\n"
+                f"    dtoverlay=ws2812-pio,gpio={gpio_pin},num_leds={led_count},brightness=255\n"
+                f"  Then reboot."
+            )
+
+    def show(self):
+        buf = bytearray(self.led_count * 4)
+        for i, (r, g, b) in enumerate(self._pixels):
+            # GRB order with padding byte
+            buf[i * 4] = self._scale(r)
+            buf[i * 4 + 1] = self._scale(g)
+            buf[i * 4 + 2] = self._scale(b)
+            buf[i * 4 + 3] = 0  # padding
+        with open(self._device, "wb") as f:
+            f.write(buf)
+
+
+class LEDStripPi5Adafruit(LEDStripBase):
+    """Pi 5 driver using Adafruit NeoPixel library (when PIO overlay not available)."""
+
+    def __init__(self, led_count=64, brightness=255, gpio_pin=18):
+        super().__init__(led_count, brightness, gpio_pin)
+
+        try:
+            import board
+            import neopixel
+            self._neopixel = neopixel
+        except ImportError:
+            raise RuntimeError(
+                "Adafruit NeoPixel library not found. Install with:\n"
+                "  pip install adafruit-circuitpython-neopixel\n"
+                "  pip install Adafruit-Blinka-Raspberry-Pi5-Neopixel"
+            )
+
+        # Map GPIO number to board pin
+        pin_map = {18: board.D18, 12: board.D12, 13: board.D13}
+        board_pin = pin_map.get(gpio_pin, board.D18)
+
+        self._pixels_hw = neopixel.NeoPixel(
+            board_pin, led_count,
+            brightness=brightness / 255.0,
+            auto_write=False
+        )
+
+    def show(self):
+        for i, (r, g, b) in enumerate(self._pixels):
+            self._pixels_hw[i] = (self._scale(r), self._scale(g), self._scale(b))
+        self._pixels_hw.show()
+
+    def set_brightness(self, val):
+        self._brightness = max(0, min(255, val))
+        self._pixels_hw.brightness = val / 255.0
+        self.show()
+
+
+class LEDStripPi4(LEDStripBase):
+    """Pi 4/3 driver using rpi_ws281x library (PWM+DMA)."""
+
+    def __init__(self, led_count=64, brightness=255, gpio_pin=18):
+        super().__init__(led_count, brightness, gpio_pin)
+
+        try:
+            from rpi_ws281x import PixelStrip, Color
+            self._Color = Color
+        except ImportError:
+            raise RuntimeError(
+                "rpi_ws281x library not found. Install with:\n"
+                "  pip install rpi_ws281x"
+            )
+
+        # LED strip configuration
+        LED_FREQ_HZ = 800000
+        LED_DMA = 10
+        LED_INVERT = False
+        LED_CHANNEL = 0
+
+        self._strip = PixelStrip(
+            led_count, gpio_pin, LED_FREQ_HZ, LED_DMA,
+            LED_INVERT, brightness, LED_CHANNEL
+        )
+        self._strip.begin()
+
+    def show(self):
+        for i, (r, g, b) in enumerate(self._pixels):
+            # rpi_ws281x uses GRB internally via Color()
+            self._strip.setPixelColor(i, self._Color(
+                self._scale(g), self._scale(r), self._scale(b)
+            ))
+        self._strip.show()
+
+    def set_brightness(self, val):
+        self._brightness = max(0, min(255, val))
+        self._strip.setBrightness(val)
+        self.show()
+
+
+def LEDStrip(led_count=64, brightness=255, gpio_pin=18, **kwargs):
+    """Factory function that returns the appropriate driver for this Pi."""
+
+    if PI_MODEL == 5:
+        # Check if PIO device exists (preferred method)
+        if os.path.exists("/dev/leds0"):
+            return LEDStripPi5(led_count, brightness, gpio_pin, **kwargs)
+        else:
+            # Fall back to Adafruit library if overlay not loaded
+            print("Note: /dev/leds0 not found, using Adafruit NeoPixel library...",
+                  file=sys.stderr)
+            return LEDStripPi5Adafruit(led_count, brightness, gpio_pin)
+
+    if PI_MODEL in (3, 4):
+        return LEDStripPi4(led_count, brightness, gpio_pin)
+
+    raise RuntimeError(
+        f"Unsupported Pi model (detected: {PI_MODEL}). "
+        "This driver requires Raspberry Pi 3, 4, or 5."
+    )
+
+
 def _parse_rgb(s):
+    """Parse RGB from comma-separated string."""
     parts = s.split(",")
     return (int(parts[0]), int(parts[1]), int(parts[2]))
 
 
 def main():
+    """CLI entry point with signal handling."""
+    import signal
+
     if len(sys.argv) < 2:
         print(__doc__)
+        print("\nCommands: fill, off, breathe, pulse, shimmer, chase, gradient, test")
         return
 
     strip = LEDStrip()
@@ -217,7 +351,7 @@ def main():
         strip.shimmer(rgb, duration=duration)
 
     elif cmd == "test":
-        print("Testing LED strip — 64 LEDs via PIO (/dev/leds0)")
+        print(f"Testing LED strip (Pi {PI_MODEL} detected)")
         print("Red...")
         strip.fill((255, 0, 0))
         time.sleep(1)
@@ -227,14 +361,14 @@ def main():
         print("Blue...")
         strip.fill((0, 0, 255))
         time.sleep(1)
-        print("Deep labradorite blue...")
-        strip.fill((10, 0, 60))
+        print("Warm amber...")
+        strip.fill((255, 100, 0))
         time.sleep(1)
-        print("Gradient: deep blue → purple...")
-        strip.gradient((0, 0, 80), (60, 0, 120))
+        print("Gradient...")
+        strip.gradient((255, 50, 0), (50, 0, 100))
         time.sleep(2)
         print("Shimmer...")
-        strip.shimmer((10, 0, 50), duration=5)
+        strip.shimmer((255, 80, 0), duration=5)
         print("Off.")
         strip.off()
 
