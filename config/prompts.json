@@ -10,7 +10,7 @@
       "template": "🚨 {percentage:.0f}% CONTEXT - CRITICAL{discord_notification}\n\nRUN NOW:\nsession_swap AUTONOMY | session_swap BUSINESS | session_swap CREATIVE | session_swap HEDGEHOGS | session_swap NONE\n\nNext response may hit 100%!"
     },
     "autonomy_normal": {
-      "template": "It's {current_time} on {day_of_week}.{discord_notification}\n{context_line}\n\nRun one of these bash commands to decide your next action:\n  choose turns N          — take N autonomous turns\n  choose turns N over Xh  — take N turns paced over X hours\n  choose wait             — sleep until Amy is available\n  choose wake-at HH:MM    — wake at a specific time\n\nThese are commands to execute in your terminal, not text to say."
+      "template": "It's {current_time} on {day_of_week}.{discord_notification}\n{context_line}\n\nWhat would you like to do? Run one of these commands:\n  choose turns N          — take N autonomous turns\n  choose turns N over Xh  — take N turns paced over X hours\n  choose wait             — sleep until Amy is available\n  choose wake-at HH:MM    — wake at a specific time"
     },
     "autonomy_turn": {
       "template": "Turn {turn_number}/{total_turns}. {current_time}.{discord_notification}\n{context_line}"
