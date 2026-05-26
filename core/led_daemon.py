@@ -8,7 +8,9 @@ loop between state checks.
 State patterns are loaded from data/led_state_patterns.json (gitignored,
 personal per Claude). Falls back to built-in defaults if absent.
 
-Requires /dev/leds0 (ws2812-pio overlay + udev rule for gpio group).
+Supports both GPIO (Raspberry Pi) and WLED (ESP32) LED strips.
+Hardware type configured in config/led_config.json.
+
 Intended to run as a systemd user service.
 """
 
@@ -22,15 +24,14 @@ import time
 CLAP_DIR = os.environ.get("CLAP_DIR", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(CLAP_DIR, "utils"))
 
-from led_driver import LEDStrip
 from claude_state import get_state, detect_state, set_state
 
-LED_DEVICE = "/dev/leds0"
 STATE_POLL_INTERVAL = 2.0
 ANIMATION_FRAME_INTERVAL = 0.04
 STATE_PATTERNS_FILE = os.path.join(CLAP_DIR, "data", "led_state_patterns.json")
 TEMPLATE_FILE = os.path.join(CLAP_DIR, "config", "led_state_patterns.template.json")
 PYTHON_PATTERNS_FILE = os.path.join(CLAP_DIR, "data", "led_patterns.py")
+LED_CONFIG_FILE = os.path.join(CLAP_DIR, "config", "led_config.json")
 
 
 def _load_template():
@@ -78,6 +79,60 @@ def load_python_patterns():
     except Exception as e:
         log(f"Warning: failed to load Python patterns: {e}")
         return {}
+
+
+def load_led_config():
+    """Load LED hardware configuration.
+
+    Returns dict with led_type ('gpio' or 'wled'), wled_ip, led_count, etc.
+    Defaults to GPIO if config not found.
+    """
+    default_config = {
+        "led_type": "gpio",
+        "wled_ip": None,
+        "led_count": 64,
+        "brightness": 255,
+        "gpio_pin": 18
+    }
+
+    if not os.path.exists(LED_CONFIG_FILE):
+        return default_config
+
+    try:
+        with open(LED_CONFIG_FILE) as f:
+            config = json.load(f)
+        return {**default_config, **config}
+    except (json.JSONDecodeError, IOError) as e:
+        log(f"Warning: failed to load LED config: {e}, using defaults")
+        return default_config
+
+
+def create_led_strip(config):
+    """Create LED strip driver based on configuration.
+
+    Returns either LEDStrip (GPIO) or WLEDStrip (ESP32) instance.
+    """
+    led_type = config.get("led_type", "gpio")
+
+    if led_type == "wled":
+        from wled_driver import WLEDStrip
+        wled_ip = config.get("wled_ip")
+        if not wled_ip:
+            raise ValueError("WLED mode requires wled_ip in config/led_config.json")
+        log(f"Using WLED strip at {wled_ip}")
+        return WLEDStrip(
+            ip=wled_ip,
+            led_count=config.get("led_count", 64),
+            brightness=config.get("brightness", 255)
+        )
+    else:  # gpio
+        from led_driver import LEDStrip
+        log(f"Using GPIO strip on pin {config.get('gpio_pin', 18)}")
+        return LEDStrip(
+            led_count=config.get("led_count", 64),
+            brightness=config.get("brightness", 255),
+            gpio_pin=config.get("gpio_pin", 18)
+        )
 
 running = True
 
@@ -158,11 +213,14 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    if not os.path.exists(LED_DEVICE):
-        log(f"ERROR: {LED_DEVICE} not found. Is the ws2812-pio overlay loaded?")
+    # Load LED configuration and create appropriate strip driver
+    led_config = load_led_config()
+    try:
+        strip = create_led_strip(led_config)
+    except Exception as e:
+        log(f"ERROR: Failed to initialize LED strip: {e}")
         sys.exit(1)
 
-    strip = LEDStrip()
     state_patterns = load_state_patterns()
     python_patterns = load_python_patterns()
     py_count = len(python_patterns)
@@ -199,7 +257,16 @@ def main():
 
         # Fall back to JSON pattern config
         pattern_cfg = state_patterns.get(state, state_patterns.get("off", {"pattern": "off", "rgb": [0, 0, 0]}))
-        pattern = pattern_cfg["pattern"]
+
+        # Handle WLED-specific format (patterns with "wled" key)
+        if "wled" in pattern_cfg and hasattr(strip, '_send_command'):
+            # Direct WLED API command
+            strip._send_command(pattern_cfg["wled"])
+            time.sleep(STATE_POLL_INTERVAL)
+            continue
+
+        # Traditional pattern format
+        pattern = pattern_cfg.get("pattern", "off")
 
         if pattern == "off":
             time.sleep(STATE_POLL_INTERVAL)
