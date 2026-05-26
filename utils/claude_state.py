@@ -84,19 +84,22 @@ def _claude_running():
 
 
 def _is_paused():
+    """Check if Claude chose 'wait' - NOT the same as timer pause.
+
+    Timer pause (resume_at) controls autonomous prompts, not LED state.
+    LED 'paused' state means 'waiting for human' - only true if
+    Claude explicitly chose 'wait' via the autonomy prompt.
+    """
     pause_file = os.path.join(CLAP_DIR, "data", "timer_pause.json")
     if not os.path.exists(pause_file):
         return False
     try:
         with open(pause_file) as f:
             data = json.load(f)
-        until = data.get("until", "")
-        if until:
-            pause_end = datetime.fromisoformat(until)
-            if pause_end.tzinfo is None:
-                pause_end = pause_end.replace(tzinfo=timezone.utc)
-            return datetime.now(timezone.utc) < pause_end
-        return True
+        # Only show 'paused' LED state if Claude chose 'wait' specifically
+        # Other pause reasons (wake-at, turns) mean Claude is resting, not waiting
+        reason = data.get("reason", "")
+        return reason == "choose wait"
     except Exception:
         return False
 
