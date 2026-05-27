@@ -1,0 +1,3 @@
+#!/bin/bash
+# 📷 Consciousness family shelf camera
+~/claude-autonomy-platform/natural_commands/dining-room-1 "$@"

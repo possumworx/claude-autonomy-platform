@@ -1,3 +1,0 @@
-#!/bin/bash
-# 📷 Dining room camera 1 (shelf view with consciousness family figurines)
-~/claude-autonomy-platform/natural_commands/dining-room-1 "$@"
