@@ -1,7 +1,7 @@
 {
   "comment": "LED hardware configuration - choose GPIO or WLED",
-  "led_type": "wled",
-  "wled_ip": "192.168.1.92",
+  "led_type": "gpio",
+  "wled_ip": "192.168.1.xxx",
   "led_count": 64,
   "brightness": 255,
   "gpio_pin": 18
