@@ -570,15 +570,18 @@ def detect_api_errors(tmux_output):
         if "Auto-update failed" in error_text:
             continue
 
-        # Check for malformed JSON
+        # Log any pink text containing JSON-related words for diagnostics.
+        # Previously this triggered an immediate session swap, but the regex
+        # (json.*error) was too broad and caused false positives at high context,
+        # racing with the rolling swap mechanism. Real API errors are now caught
+        # by the HTTP status code handlers (400/500/503) below.
         if re.search(
             r"malformed.*json|json.*error|invalid.*json", error_text, re.IGNORECASE
         ):
-            return {
-                "error_type": "malformed_json",
-                "details": "Malformed JSON detected - requires session swap",
-                "reset_time": None,
-            }
+            logger.warning(
+                "Pink text matched JSON pattern (not acting on it): %r",
+                error_text.strip()[:200],
+            )
 
         # Check for 503 errors (upstream connect error or disconnect/reset)
         if re.search(
@@ -2430,13 +2433,14 @@ def main():
                             logger.error(f"Handling rate limit wait: {e}")
 
                 elif error_info["error_type"] == "malformed_json":
-                    update_discord_status("api-error")
-                    # Pause briefly then trigger auto-swap
+                    # Previously triggered auto-swap, but this was a false
+                    # positive magnet (broad regex on pink tmux text).
+                    # Real API errors are handled by 400/500/503 paths.
+                    # Now just log and continue — the rolling swap will
+                    # handle context overflow naturally.
                     logger.info(
-                        "Triggering auto-swap for malformed JSON in 5 seconds..."
+                        "Ignoring malformed_json detection (likely false positive)"
                     )
-                    time.sleep(5)
-                    trigger_session_swap("NONE")
                 elif error_info["error_type"] == "api_500_error":
                     update_discord_status("api-error")
                     # Give API time to recover before auto-swap
