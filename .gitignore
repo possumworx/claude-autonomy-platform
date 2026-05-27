@@ -155,3 +155,4 @@ debug-log.txt
 latest
 config/discord_routing.json
 matrix/config.json
+led_config.json
