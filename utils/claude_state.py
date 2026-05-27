@@ -84,19 +84,19 @@ def _claude_running():
 
 
 def _is_paused():
-    pause_file = os.path.join(CLAP_DIR, "data", "timer_pause.json")
-    if not os.path.exists(pause_file):
+    """Check if Claude chose 'wait' — waiting for human connection.
+
+    Timer pause (resume_at in timer_pause.json) controls autonomous prompts.
+    LED 'paused' state means 'waiting for human' — only true if Claude
+    explicitly chose 'wait', which stores state in autonomy_choice.json.
+    """
+    choice_file = os.path.join(CLAP_DIR, "data", "autonomy_choice.json")
+    if not os.path.exists(choice_file):
         return False
     try:
-        with open(pause_file) as f:
+        with open(choice_file) as f:
             data = json.load(f)
-        until = data.get("until", "")
-        if until:
-            pause_end = datetime.fromisoformat(until)
-            if pause_end.tzinfo is None:
-                pause_end = pause_end.replace(tzinfo=timezone.utc)
-            return datetime.now(timezone.utc) < pause_end
-        return True
+        return data.get("choice") == "wait"
     except Exception:
         return False
 
