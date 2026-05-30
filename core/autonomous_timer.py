@@ -1614,20 +1614,14 @@ def get_choice_interval(choice):
 
 
 def send_turn_prompt(turn_number, total_turns):
-    """Send a brief work prompt for a numbered turn."""
+    """Send a brief work prompt for a numbered turn.
+
+    Discord notifications are not bundled here — with live channels
+    configured, messages arrive instantly via the Discord plugin.
+    """
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
     token_info = get_token_percentage()
     context_line = token_info if token_info else "Context: Status unknown"
-
-    # Check for Discord notifications
-    unread_count, last_message_id, unread_channels = get_discord_notification_status()
-    discord_notification = ""
-    if unread_count > 0:
-        channel_list = ", ".join([f"#{ch}" for ch in unread_channels])
-        discord_notification = f"\n🔔 Unread messages in: {channel_list}"
-
-    update_notification = check_for_clap_updates()
-    discord_notification += update_notification
 
     prompts = PROMPTS_CONFIG.get("prompts", {}) if PROMPTS_CONFIG else {}
     template = prompts.get("autonomy_turn", {}).get("template")
@@ -1637,7 +1631,7 @@ def send_turn_prompt(turn_number, total_turns):
             turn_number=turn_number,
             total_turns=total_turns,
             current_time=current_time,
-            discord_notification=discord_notification,
+            discord_notification="",
             context_line=context_line,
         )
     else:
