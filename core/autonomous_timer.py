@@ -1649,6 +1649,29 @@ def send_turn_prompt(turn_number, total_turns):
     return True
 
 
+def send_turn_exhausted_prompt():
+    """Send a brief follow-up when turns are exhausted, offering more turns.
+
+    If Claude doesn't respond with `choose turns N`, the next cycle will
+    hit the default-to-wait path and no further prompts will be sent.
+    """
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+    token_info = get_token_percentage()
+    context_line = token_info if token_info else "Context: Status unknown"
+
+    prompt = (
+        f"Turns complete. {current_time}.\n"
+        f"{context_line}\n\n"
+        f"Want to keep going? Use `choose turns N` for more turns, "
+        f"or do nothing to wait."
+    )
+
+    logger.info("Sending turn-exhausted follow-up prompt")
+    send_tmux_message(prompt)
+    update_last_autonomy_time()
+    return True
+
+
 def get_last_autonomy_time():
     """Get the last time we sent an autonomy prompt"""
     try:
@@ -2813,10 +2836,10 @@ def main():
                     elif active_choice and active_choice.get("choice") == "turns":
                         remaining = active_choice.get("turns_remaining", 0)
                         if remaining is not None and remaining <= 0:
-                            # Turns exhausted — re-prompt with choice
-                            logger.info("Turns exhausted - sending choice prompt")
+                            # Turns exhausted — send one follow-up, then default to wait
+                            logger.info("Turns exhausted - sending follow-up prompt")
+                            send_turn_exhausted_prompt()
                             clear_autonomy_choice()
-                            send_autonomy_prompt()
                             last_autonomy_check = current_time
                         else:
                             # Still have turns — send work prompt and decrement
@@ -2827,14 +2850,11 @@ def main():
                             logger.info(f"Turn {turn_number}/{total} sent - {new_remaining} remaining")
                             last_autonomy_check = current_time
                     else:
-                        # No active choice or unknown — send prompt as before
-                        last_autonomy_time = get_last_autonomy_time()
-                        if (
-                            not last_autonomy_time
-                            or current_time - last_autonomy_time
-                            >= timedelta(seconds=effective_interval)
-                        ):
-                            send_autonomy_prompt()
+                        # No active choice — default to wait
+                        # Claude can proactively use `choose turns N` or
+                        # `choose wake-at HH:MM` when they want to work.
+                        # Messages arrive via live Discord channels.
+                        logger.info("No active choice - defaulting to wait")
                         last_autonomy_check = current_time
                 else:
                     # Amy is here — clear any active choice
