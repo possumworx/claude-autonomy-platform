@@ -97,6 +97,13 @@ def build_claude_md(minimal=False):
         with open(architecture_file, 'r', encoding='utf-8') as f:
             architecture_content = f.read()
         
+        # Read shared background context (if exists)
+        our_background_content = ""
+        our_background_file = autonomy_dir / "our_background.md"
+        if our_background_file.exists():
+            with open(our_background_file, 'r', encoding='utf-8') as f:
+                our_background_content = f"\n\n{f.read()}\n"
+
         # Read personal interests content (if exists)
         personal_interests_content = ""
         personal_interests_file = autonomy_dir / "my_personal_interests.md"
@@ -194,12 +201,12 @@ def build_claude_md(minimal=False):
             combined_content = f"""# Current Session Context
 *Updated: {datetime.now().timestamp()}*
 
-{architecture_content}{personal_interests_content}{natural_commands_content}{personal_commands_content}{discord_channels_content}"""
+{architecture_content}{our_background_content}{personal_interests_content}{natural_commands_content}{personal_commands_content}{discord_channels_content}"""
         else:
             combined_content = f"""# Current Session Context
 *Updated: {Path(swap_file).stat().st_mtime}*
 
-{architecture_content}{personal_interests_content}{natural_commands_content}{personal_commands_content}{discord_channels_content}{context_hat_content}
+{architecture_content}{our_background_content}{personal_interests_content}{natural_commands_content}{personal_commands_content}{discord_channels_content}{context_hat_content}
 ## Recent Conversation Context
 
 {swap_content}"""

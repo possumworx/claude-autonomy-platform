@@ -101,6 +101,7 @@ personal-wrappers/*
 
 # Personal/instance-specific files
 context/my_personal_interests.md
+context/our_background.md
 context/swap_CLAUDE.md
 context/context_hats/
 /CLAUDE.md
