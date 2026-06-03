@@ -21,6 +21,11 @@ SWAP_THRESHOLD=80
 # Consume stdin (hook protocol requires reading it)
 cat - > /dev/null
 
+# Keep swap_CLAUDE.md warm — always-current conversation context
+# so any kind of restart (crash, stale lock, manual) has recent context
+python3 "$CLAP_DIR/utils/export_transcript.py" > /dev/null 2>&1 && \
+    python3 "$CLAP_DIR/utils/update_conversation_history.py" "$CLAP_DIR/context/current_export.txt" > /dev/null 2>&1
+
 # Already triggered this session?
 if [ -f "$SWAP_FLAG" ]; then
     exit 0

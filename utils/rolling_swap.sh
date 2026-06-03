@@ -116,10 +116,13 @@ if [ -n "$CURRENT_JSONL" ] && [ -f "$CURRENT_JSONL" ]; then
         log "Trim successful."
         RESUME_ARG="--resume $BRANCH_ID"
     else
-        log "ERROR: Trim failed. Will restart fresh."
+        log "ERROR: Trim failed. Will use warm swap_CLAUDE.md for context."
         # Clean up the untrimmed copy
         rm -f "$BRANCH_JSONL"
         RESUME_ARG=""
+        # swap_CLAUDE.md is kept warm by the Stop hook every turn,
+        # so recent conversation context is already available
+        ROLLING_SWAP_FALLBACK=true
     fi
 else
     log "ERROR: No JSONL to copy. Will restart fresh."
@@ -184,12 +187,23 @@ if [[ -x "$CLAP_DIR/utils/reapply_tweakcc.sh" ]]; then
     bash "$CLAP_DIR/utils/reapply_tweakcc.sh" >> "$LOG_FILE" 2>&1 || true
 fi
 
-# Build minimal CLAUDE.md (architecture + commands only, no conversation history)
-# The trimmed session JSONL carries conversation forward
-if python3 "$CLAP_DIR/context/project_session_context_builder.py" --minimal >> "$LOG_FILE" 2>&1; then
-    log "CLAUDE.md rebuilt (minimal — conversation in JSONL)."
+# Build CLAUDE.md
+# Normal rolling swap: minimal (conversation lives in the trimmed JSONL)
+# Fallback (trim failed): full build (conversation lives in swap_CLAUDE.md)
+if [[ "${ROLLING_SWAP_FALLBACK:-false}" == "true" ]]; then
+    # Write keyword for full builder
+    echo "NONE" > "$CLAP_DIR/new_session.txt"
+    if python3 "$CLAP_DIR/context/project_session_context_builder.py" >> "$LOG_FILE" 2>&1; then
+        log "CLAUDE.md rebuilt (full — fallback context from JSONL)."
+    else
+        log "WARNING: Full CLAUDE.md build failed (continuing anyway)"
+    fi
 else
-    log "WARNING: Minimal CLAUDE.md build failed (continuing anyway)"
+    if python3 "$CLAP_DIR/context/project_session_context_builder.py" --minimal >> "$LOG_FILE" 2>&1; then
+        log "CLAUDE.md rebuilt (minimal — conversation in JSONL)."
+    else
+        log "WARNING: Minimal CLAUDE.md build failed (continuing anyway)"
+    fi
 fi
 
 tmux new-session -d -s autonomous-claude

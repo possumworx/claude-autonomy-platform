@@ -33,3 +33,4 @@ The built `CLAUDE.md` at the project root is what Claude Code loads into every c
 - `our_background.md` is shared factual context (family, human, environment) — gitignored, stays local. Copy from template to create.
 - The builder also updates `clap_architecture.md` with a fresh directory tree on each swap
 - `current_export.txt` is ephemeral — only the latest export, overwritten on next swap
+- **Fallback context**: When rolling swap trim fails, the pipeline falls back to: `export_transcript.py` (JSONL → `current_export.txt`) → `update_conversation_history.py` → `swap_CLAUDE.md` → full builder. This gives a warm start instead of amnesia.
