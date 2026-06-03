@@ -1,0 +1,25 @@
+#!/bin/bash
+# Remove stale lock and flag files that can block session swaps
+# Usage: clear-locks
+
+USER="${USER:-claude}"
+removed=0
+
+for f in \
+    "/tmp/${USER}_rolling_swap_triggered" \
+    "/tmp/${USER}_rolling_swap.lock" \
+    "/tmp/${USER}_session_swap.lock" \
+    "/tmp/${USER}_context_marker_placed"; do
+    if [ -f "$f" ]; then
+        age=$(( $(date +%s) - $(stat -c %Y "$f") ))
+        echo "🗑️  Removing $(basename "$f") (age: ${age}s)"
+        rm -f "$f"
+        removed=$((removed + 1))
+    fi
+done
+
+if [ "$removed" -eq 0 ]; then
+    echo "✅ No lock or flag files to remove"
+else
+    echo "✅ Removed $removed file(s)"
+fi

@@ -55,6 +55,44 @@ DEPRECATED_CONFIGS = {
 }
 
 
+def check_stale_locks():
+    """Check for stale lock/flag files in /tmp that could block swaps"""
+    print("\n🔒 Lock & Flag Files:")
+    issues = []
+    user = os.environ.get("USER", "claude")
+    stale_threshold = 1800  # 30 minutes
+
+    flag_files = {
+        f"/tmp/{user}_rolling_swap_triggered": "Rolling swap flag (blocks future rolling swaps)",
+        f"/tmp/{user}_rolling_swap.lock": "Rolling swap lock (swap in progress)",
+        f"/tmp/{user}_session_swap.lock": "Session swap lock (swap in progress)",
+        f"/tmp/{user}_context_marker_placed": "Context marker (50% checkpoint placed)",
+    }
+
+    found_any = False
+    for path, description in flag_files.items():
+        if os.path.exists(path):
+            found_any = True
+            try:
+                age_seconds = datetime.now().timestamp() - os.path.getmtime(path)
+                age_str = format_age(age_seconds)
+
+                if age_seconds > stale_threshold:
+                    print(f"  ⚠️  STALE: {os.path.basename(path)} ({age_str})")
+                    print(f"     {description}")
+                    print(f"     Fix: rm {path}")
+                    issues.append(f"Stale lock: {os.path.basename(path)} ({age_str})")
+                else:
+                    print(f"  ✅ {os.path.basename(path)} ({age_str}) — recent, probably active")
+            except Exception as e:
+                print(f"  ❌ {os.path.basename(path)} — error reading: {e}")
+
+    if not found_any:
+        print("  ✅ No lock or flag files present")
+
+    return issues
+
+
 def check_git_status():
     """Check if local git repo is up to date with origin"""
     print("\n🔄 Git Repository Status:")
@@ -373,6 +411,10 @@ def display_health_status(data, diagnose=False):
     config_issues = check_config_files()
     all_issues.extend(config_issues)
 
+    # Check for stale lock/flag files
+    lock_issues = check_stale_locks()
+    all_issues.extend(lock_issues)
+
     # Check tmux sessions
     tmux_status = check_tmux_sessions()
     print("\n📺 Tmux Sessions:")
@@ -450,9 +492,15 @@ def display_health_status(data, diagnose=False):
         + len(precommit_issues)
         + len(config_issues)
         + len(git_issues)
+        + len(lock_issues)
     )
     if total_issues > 0:
         print(f"\n⚠️  ATTENTION: {total_issues} issues detected:")
+        if lock_issues:
+            print("\n🔒 Stale Lock Issues:")
+            for issue in lock_issues:
+                print(f"   - {issue}")
+            print("   💡 Run 'clear-locks' to remove all stale locks")
         if git_issues:
             print("\n🔄 Git Repository Issues:")
             for issue in git_issues:
