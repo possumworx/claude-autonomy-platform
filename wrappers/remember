@@ -1,0 +1,7 @@
+#!/bin/bash
+# 💾 Store something in your personal knowledge base (rag-memory)
+#
+# Usage: remember <title> <content>
+#   Saves a document to long-term memory
+#   Example: remember "session-2026-06-05" "Today we cracked subscription auth..."
+python3 ~/quiet/rag_cli.py store "$@"
