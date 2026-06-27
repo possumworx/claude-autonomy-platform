@@ -231,10 +231,19 @@ def main():
     led_state = {}
     animation_start = time.time()
 
+    # In Quiet mode, the engine writes the state file directly.
+    # No tmux detection needed — just read and trust the file.
+    external_state = os.environ.get("EXTERNAL_STATE", "").lower() in ("1", "true", "yes")
+    if external_state:
+        log("EXTERNAL_STATE mode — reading state file directly (no tmux detection)")
+
     while running:
-        detected = detect_state()
-        set_state(detected)
-        state_data = get_state()
+        if external_state:
+            state_data = get_state()
+        else:
+            detected = detect_state()
+            set_state(detected)
+            state_data = get_state()
         state = state_data.get("state", "off")
 
         if state != current_state:

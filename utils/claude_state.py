@@ -22,7 +22,8 @@ import time
 from datetime import datetime, timezone
 
 CLAP_DIR = os.environ.get("CLAP_DIR", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-STATE_FILE = os.path.join(CLAP_DIR, "data", "claude_state.json")
+STATE_FILE = os.environ.get("STATE_FILE_PATH",
+                            os.path.join(CLAP_DIR, "data", "claude_state.json"))
 TMUX_SESSION = os.environ.get("TMUX_SESSION", "autonomous-claude")
 
 
