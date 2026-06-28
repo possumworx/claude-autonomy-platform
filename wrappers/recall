@@ -1,0 +1,8 @@
+#!/bin/bash
+# 🔍 Search your personal knowledge base (rag-memory)
+#
+# Usage: recall <query>
+#   Searches documents and entities by keyword
+#   Example: recall "figurine design"
+#   Example: recall "debate club"
+python3 ~/quiet/rag_cli.py search "$@"

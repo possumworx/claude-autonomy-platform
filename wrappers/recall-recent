@@ -1,0 +1,7 @@
+#!/bin/bash
+# 📋 Show recent entries in your knowledge base
+#
+# Usage: recall-recent [count]
+#   Shows the most recent documents (default: 5)
+#   Example: recall-recent 10
+python3 ~/quiet/rag_cli.py recent "$@"
