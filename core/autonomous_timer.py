@@ -2341,6 +2341,7 @@ def main():
 
     last_autonomy_check = datetime.now()
     last_discord_check = datetime.now()
+    last_user_active = None  # Track user presence state for state change detection
 
     while True:
         try:
@@ -2354,6 +2355,15 @@ def main():
             cleanup_expired_pause()
 
             user_active = check_user_active()
+
+            # Detect state change: user leaving (attached → detached)
+            # Send autonomy prompt immediately when this happens
+            if last_user_active == True and user_active == False:
+                logger.info("User disconnected - sending autonomy prompt immediately")
+                send_autonomy_prompt()
+                update_last_autonomy_time()
+
+            last_user_active = user_active  # Track for next cycle
 
             # Check for API errors alongside context
             console_output, error_info = get_token_percentage_and_errors()
