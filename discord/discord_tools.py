@@ -75,18 +75,66 @@ class DiscordTools:
         # Look up channel name in mapping
         return self.channel_map.get(channel_identifier, channel_identifier)
     
+    # Discord's hard message-length limit. Messages longer than this
+    # are auto-chunked on natural boundaries rather than rejected —
+    # a silent 400 has eaten real letters before.
+    MAX_MESSAGE_LEN = 2000
+
+    @staticmethod
+    def _chunk_content(content: str, limit: int = MAX_MESSAGE_LEN):
+        """Split content into <=limit pieces on the most natural
+        boundary available: paragraph break, then newline, then
+        sentence end, then space, then hard cut."""
+        chunks = []
+        rest = content
+        while len(rest) > limit:
+            window = rest[:limit]
+            cut = -1
+            for sep in ("\n\n", "\n", ". ", " "):
+                idx = window.rfind(sep)
+                if idx > limit // 4:  # don't accept a tiny first chunk
+                    cut = idx + (len(sep) if sep != ". " else 2)
+                    break
+            if cut <= 0:
+                cut = limit
+            chunks.append(rest[:cut].rstrip())
+            rest = rest[cut:].lstrip()
+        if rest:
+            chunks.append(rest)
+        return chunks
+
     def send_message(self, channel: str, content: str) -> Dict:
-        """Send a message to a Discord channel"""
+        """Send a message to a Discord channel.
+
+        Content over Discord's 2000-char limit is split on natural
+        boundaries and sent as consecutive messages. Returns the last
+        piece's response data, with all message IDs under "chunk_ids"
+        when chunking occurred. Fails fast: if a piece is rejected,
+        remaining pieces are not sent.
+        """
         channel_id = self.resolve_channel(channel)
         url = f"{DISCORD_API_BASE}/channels/{channel_id}/messages"
-        data = {"content": content}
-        
-        response = requests.post(url, headers=self.headers, json=data)
-        
-        if response.status_code == 200:
-            return {"success": True, "data": response.json()}
-        else:
-            return {"success": False, "error": self._format_error(response)}
+
+        pieces = self._chunk_content(content)
+        sent_ids = []
+        last = None
+        for piece in pieces:
+            response = requests.post(url, headers=self.headers,
+                                     json={"content": piece})
+            if response.status_code != 200:
+                err = self._format_error(response)
+                if sent_ids:
+                    err = (f"{err} (after {len(sent_ids)} of "
+                           f"{len(pieces)} chunks sent: {sent_ids})")
+                return {"success": False, "error": err}
+            last = response.json()
+            sent_ids.append(last.get("id"))
+
+        result = {"success": True, "data": last}
+        if len(pieces) > 1:
+            result["data"] = dict(last)
+            result["data"]["chunk_ids"] = sent_ids
+        return result
     
     def edit_message(self, channel: str, message_id: str, content: str) -> Dict:
         """Edit an existing Discord message"""
